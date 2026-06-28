@@ -118,7 +118,7 @@ if grep -qsi Microsoft /proc/version; then
 fi
 
 ### 7. Artifactory Info ###
-export ARTIFACTORY_REGISTRY="x"
+export ARTIFACTORY_REGISTRY="xx"
 export ARTIFACTORY_USER="xxx"
 
 
