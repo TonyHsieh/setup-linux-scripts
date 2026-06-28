@@ -14,6 +14,10 @@ if [[ $- == *i* ]]; then
   fi
 fi
 
+# In ble.sh - Always use thin bar cursor
+printf '\e[6 q'
+
+
 # Enable extended globbing equivalents
 shopt -s extglob
 shopt -s nocaseglob
