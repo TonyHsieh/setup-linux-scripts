@@ -12,10 +12,15 @@ if [[ $- == *i* ]]; then
   elif [[ -r "$HOME/.local/share/blesh/ble.sh" ]]; then
     source "$HOME/.local/share/blesh/ble.sh" --noattach
   fi
+
+  # Underline the auto-complete predictions and clear the background highlight
+  if type ble-face >/dev/null 2>&1; then
+    ble-face auto_complete='fg=242,bg=,underline'
+  fi
 fi
 
-# In ble.sh - Always use thin bar cursor
-printf '\e[6 q'
+# In ble.sh - Always use flatline (underline) cursor
+printf '\e[4 q'
 
 
 # Enable extended globbing equivalents
