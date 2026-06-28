@@ -79,7 +79,7 @@ export VISUAL=vim
 ##### 4. Completion system #####
 
 # Load bash completion via Homebrew if present, fallback to standard Linux paths
-if [[ -r "$(brew --prefix 2>/dev/null)/etc/profile.d/bash_completion.sh" ]]; then
+if command -v brew >/dev/null 2>&1 && [[ -r "$(brew --prefix)/etc/profile.d/bash_completion.sh" ]]; then
   source "$(brew --prefix)/etc/profile.d/bash_completion.sh"
 elif [[ -r /usr/share/bash-completion/bash_completion ]]; then
   source /usr/share/bash-completion/bash_completion
