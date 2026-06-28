@@ -1,12 +1,12 @@
-# Linux & WSL Developer Environment Setup Scripts
+# Developer Environment Setup Scripts for Linux, WSL & macOS
 
-This repository contains clean, idempotent, and highly portable developer environment configuration scripts. It supports both native **Cachy-OS / Arch Linux** and **WSL2-Ubuntu / Debian Linux**.
+This repository contains clean, idempotent, and highly portable developer environment configuration scripts. It supports native **macOS** (via Homebrew), **CachyOS / Arch Linux** (via pacman), and **WSL2-Ubuntu / Debian Linux** (via apt).
 
 ---
 
 ## 📂 File Structure
 
-* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS, installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`), configures your environments, and deploys configuration files.
+* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`), configures your environments, and deploys configuration files.
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme (includes time, directory context, git branch status, node/java info).
 * **`.bashrc`**: Custom portable bash configuration.

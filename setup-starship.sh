@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # setup-starship.sh
-# Purpose: Idempotently set up Starship prompt configuration on CachyOS / Linux
+# Purpose: Idempotently set up Starship prompt configuration on CachyOS / Linux / macOS
 # ==============================================================================
 set -euo pipefail
 
@@ -26,7 +26,7 @@ deploy_config() {
     else
       # For heredoc, we check diff against a temporary file
       local tmp_file
-      tmp_file=$(mktemp)
+      tmp_file=$(mktemp "${TMPDIR:-/tmp}/starship.XXXXXXXXXX")
       write_default_config "$tmp_file"
       if cmp -s "$tmp_file" "$DEST_FILE"; then
         echo "   ✓ ~/.config/starship.toml is already up-to-date (no changes needed)"

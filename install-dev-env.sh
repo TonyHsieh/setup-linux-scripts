@@ -9,14 +9,16 @@ set -euo pipefail
 # Detect OS family and WSL status
 detect_os() {
   OS_FAMILY="unknown"
-  if command -v pacman >/dev/null 2>&1; then
+  if [ "$(uname)" = "Darwin" ]; then
+    OS_FAMILY="macos"
+  elif command -v pacman >/dev/null 2>&1; then
     OS_FAMILY="arch"
   elif command -v apt-get >/dev/null 2>&1; then
     OS_FAMILY="debian"
   fi
 
   IS_WSL=false
-  if grep -qsi Microsoft /proc/version; then
+  if [ "$OS_FAMILY" != "macos" ] && grep -qsi Microsoft /proc/version; then
     IS_WSL=true
   fi
 }
@@ -25,7 +27,7 @@ detect_os
 echo "==> Detected OS Family: $OS_FAMILY (WSL: $IS_WSL)"
 
 if [ "$OS_FAMILY" = "unknown" ]; then
-  echo "❌ Error: Unsupported system. This script supports Arch Linux/CachyOS (pacman) and Debian/Ubuntu (apt)." >&2
+  echo "❌ Error: Unsupported system. This script supports macOS (Homebrew), Arch Linux/CachyOS (pacman), and Debian/Ubuntu (apt)." >&2
   exit 1
 fi
 
@@ -282,11 +284,123 @@ install_debian_packages() {
   fi
 }
 
+install_macos_packages() {
+  # 1. Ensure Homebrew is installed
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "==> Homebrew not found. Installing Homebrew..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Configure brew path for current session depending on architecture (Intel / Apple Silicon)
+    if [ -f "/opt/homebrew/bin/brew" ]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    elif [ -f "/usr/local/bin/brew" ]; then
+      eval "$(/usr/local/bin/brew shellenv)"
+    fi
+  else
+    echo "==> Homebrew is already installed."
+  fi
+
+  # Standard packages
+  local PACKAGES=(
+    git
+    vim
+    starship
+    curl
+    wget
+    tmux
+    jq
+    yq
+    k9s
+    bash
+    bash-completion@2
+    kubernetes-cli
+    helm
+    fluxcd/tap/flux
+    docker
+  )
+
+  local TO_INSTALL=()
+  for pkg in "${PACKAGES[@]}"; do
+    local pkg_name="$pkg"
+    if [[ "$pkg" == *"/"* ]]; then
+      pkg_name="${pkg##*/}"
+    fi
+    if ! brew list --formula "$pkg_name" >/dev/null 2>&1; then
+      TO_INSTALL+=("$pkg")
+    fi
+  done
+
+  if [ ${#TO_INSTALL[@]} -ne 0 ]; then
+    echo "==> Installing Homebrew packages: ${TO_INSTALL[*]}"
+    brew install "${TO_INSTALL[@]}"
+  else
+    echo "==> All standard Homebrew packages are already installed."
+  fi
+
+  # GUI Casks
+  if ! command -v zed >/dev/null 2>&1 && ! brew list --cask zed >/dev/null 2>&1; then
+    echo "==> Installing Zed editor"
+    brew install --cask zed
+  fi
+
+  # 3. Install rustup
+  if ! command -v rustup >/dev/null 2>&1; then
+    echo "==> Installing rustup"
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+  else
+    echo "==> rustup is already installed."
+  fi
+
+  # 4. Nerd Fonts
+  local FONTS=(
+    font-meslo-lg-nerd-font
+    font-jetbrains-mono-nerd-font
+    font-fira-code-nerd-font
+    font-hack-nerd-font
+    font-iosevka-nerd-font
+    font-cascadia-code-nerd-font
+  )
+  local TO_INSTALL_FONTS=()
+  for font in "${FONTS[@]}"; do
+    if ! brew list --cask "$font" >/dev/null 2>&1; then
+      TO_INSTALL_FONTS+=("$font")
+    fi
+  done
+
+  if [ ${#TO_INSTALL_FONTS[@]} -ne 0 ]; then
+    echo "==> Installing Nerd Fonts via Homebrew: ${TO_INSTALL_FONTS[*]}"
+    brew install --cask "${TO_INSTALL_FONTS[@]}"
+  else
+    echo "==> All requested Nerd Fonts are already installed."
+  fi
+
+  # 5. Install ble.sh (Bash Line Editor)
+  local BLESH_DIR="$HOME/.local/share/blesh"
+  if [ ! -d "$BLESH_DIR" ] && [ ! -r "$HOME/.local/share/blesh/ble.sh" ]; then
+    echo "==> Installing ble.sh (Bash Line Editor)"
+    git clone --recursive --depth 1 https://github.com/akinomyoga/ble.sh.git /tmp/ble.sh
+    make -C /tmp/ble.sh install PREFIX="$HOME/.local"
+    rm -rf /tmp/ble.sh
+  else
+    echo "==> ble.sh is already installed."
+  fi
+
+  # 6. Install kind
+  if ! command -v kind >/dev/null 2>&1; then
+    echo "==> Installing kind"
+    brew install kind
+  else
+    echo "==> kind is already installed."
+  fi
+}
+
 # Run the appropriate installer function
 if [ "$OS_FAMILY" = "arch" ]; then
   install_arch_packages
 elif [ "$OS_FAMILY" = "debian" ]; then
   install_debian_packages
+elif [ "$OS_FAMILY" = "macos" ]; then
+  install_macos_packages
 fi
 
 # Enable Docker daemon service (Native Arch Linux only)
@@ -297,21 +411,25 @@ if [ "$OS_FAMILY" = "arch" ]; then
   else
     echo "==> Docker service is already active."
   fi
+elif [ "$OS_FAMILY" = "macos" ]; then
+  echo "==> Skipping Docker daemon service configuration (assuming Docker Desktop is managed via application on macOS)."
 else
   echo "==> Skipping Docker daemon service configuration (assuming Docker Desktop integration on WSL)."
 fi
 
 # Add current user to docker group if not already a member
-if [ "$OS_FAMILY" = "debian" ] && ! getent group docker >/dev/null; then
-  sudo groupadd docker
-fi
+if [ "$OS_FAMILY" != "macos" ]; then
+  if [ "$OS_FAMILY" = "debian" ] && ! getent group docker >/dev/null; then
+    sudo groupadd docker
+  fi
 
-if ! groups "$USER" | grep -q "\bdocker\b"; then
-  echo "==> Adding $USER to docker group"
-  sudo usermod -aG docker "$USER"
-  echo "⚠️ Note: You will need to log out and back in (or run 'newgrp docker') for docker group membership to apply."
-else
-  echo "==> User $USER is already in docker group."
+  if ! groups "$USER" | grep -q "\bdocker\b"; then
+    echo "==> Adding $USER to docker group"
+    sudo usermod -aG docker "$USER"
+    echo "⚠️ Note: You will need to log out and back in (or run 'newgrp docker') for docker group membership to apply."
+  else
+    echo "==> User $USER is already in docker group."
+  fi
 fi
 
 # Initialize Rust toolchain via rustup if no active toolchain is set
@@ -365,6 +483,10 @@ if [ ! -f "$SSH_KEY" ]; then
     else
       echo "      Run: cat ${SSH_KEY}.pub"
     fi
+  elif command -v pbcopy >/dev/null 2>&1; then
+    pbcopy < "${SSH_KEY}.pub"
+    echo "      (Automatically copied to clipboard using pbcopy!)"
+    echo "      Alternatively, run: cat ${SSH_KEY}.pub"
   elif command -v wl-copy >/dev/null 2>&1; then
     wl-copy < "${SSH_KEY}.pub"
     echo "      (Automatically copied to clipboard using wl-copy!)"
@@ -378,10 +500,18 @@ if [ ! -f "$SSH_KEY" ]; then
   fi
   echo "   2. Go to GitHub SSH settings: https://github.com/settings/keys"
   echo "   3. Click 'New SSH key', choose a title, paste the key, and click 'Add SSH key'."
-  echo "   4. (Optional) To automatically load the passphrase into your SSH agent, add this to ~/.ssh/config:"
-  echo "      Host github.com"
-  echo "        AddKeysToAgent yes"
-  echo "        IdentityFile ~/.ssh/id_ed25519"
+  if [ "$OS_FAMILY" = "macos" ]; then
+    echo "   4. (Optional) To automatically load the passphrase into your SSH agent and macOS Keychain, add this to ~/.ssh/config:"
+    echo "      Host github.com"
+    echo "        AddKeysToAgent yes"
+    echo "        UseKeychain yes"
+    echo "        IdentityFile ~/.ssh/id_ed25519"
+  else
+    echo "   4. (Optional) To automatically load the passphrase into your SSH agent, add this to ~/.ssh/config:"
+    echo "      Host github.com"
+    echo "        AddKeysToAgent yes"
+    echo "        IdentityFile ~/.ssh/id_ed25519"
+  fi
   echo ""
 else
   echo "==> SSH key already exists."
