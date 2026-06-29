@@ -211,6 +211,10 @@ export GOPATH="$HOME/go"
 export PATH="$PATH:$GOPATH/bin"
 export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 
+# Remove duplicate entries
+export PATH=$(printf "%s" "$PATH" | awk -v RS=: -v ORS=: '!seen[$0]++')
+
+
 # Attach ble.sh at the very end of bashrc if present in an interactive shell
 if [[ $- == *i* ]] && type ble-attach >/dev/null 2>&1; then
   ble-attach
