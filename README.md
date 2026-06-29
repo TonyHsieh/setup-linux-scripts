@@ -10,7 +10,7 @@ This repository contains clean, idempotent, and highly portable developer enviro
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme. See the [Starship TOML Feature Guide](docs/starship-toml.md) for configuration details.
 * **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md)).
-* **`.tmux.conf`**: Configures tmux, enabling vi-mode copy-paste, scroll-back buffers, and TPM (Tmux Plugin Manager) plugins.
+* **`.tmux.conf`**: Configures tmux, enabling vi-mode copy-paste, scroll-back buffers, and TPM (Tmux Plugin Manager) plugins. See the [TMUX Feature Guide](docs/tmux.md) for configuration details.
 
 ---
 
@@ -21,6 +21,7 @@ Detailed feature lists and configuration details for the core shell enhancements
 * **[Starship TOML Features](docs/starship-toml.md)**: Details on background colors, custom language detectors, and status symbols configured in `starship.toml`.
 * **[Starship Prompt Overview](docs/starship.md)**: Information on cross-shell capabilities, performance, and shell integration.
 * **[ble.sh (Bash Line Editor) Features](docs/blesh.md)**: Guide to syntax highlighting, auto-suggestions, and interactive completion in Bash.
+* **[TMUX Configuration Features](docs/tmux.md)**: Guide to Vi-mode copy/paste, portable clipboard integration, Vim-like navigation, and automatic session resurrection.
 
 ---
 
