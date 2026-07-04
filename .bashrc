@@ -111,6 +111,10 @@ alias gc='git commit'
 alias gp='git push'
 
 alias k='kubectl'
+alias vi='vim'
+
+alias up='cd ..'
+
 
 # WSL clipboard helper aliases (mimic macOS pbcopy/pbpaste)
 if grep -qsi Microsoft /proc/version; then

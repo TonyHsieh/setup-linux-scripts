@@ -91,6 +91,7 @@ install_arch_packages() {
     fluxcd
     zed
     rustup
+    bottom
   )
 
   local TO_INSTALL=()
@@ -282,6 +283,20 @@ install_debian_packages() {
   else
     echo "==> kind is already installed."
   fi
+
+  # 13. Install bottom
+  if ! command -v btm >/dev/null 2>&1; then
+    echo "==> Installing bottom"
+    local BTM_VERSION
+    BTM_VERSION=$(curl -s "https://api.github.com/repos/ClementTsang/bottom/releases/latest" | jq -r .tag_name)
+    local ARCH
+    ARCH=$(dpkg --print-architecture)
+    curl -Lo /tmp/bottom.deb "https://github.com/ClementTsang/bottom/releases/download/${BTM_VERSION}/bottom_${BTM_VERSION}-1_${ARCH}.deb"
+    sudo apt-get install -y /tmp/bottom.deb
+    rm -f /tmp/bottom.deb
+  else
+    echo "==> bottom is already installed."
+  fi
 }
 
 install_macos_packages() {
@@ -317,6 +332,7 @@ install_macos_packages() {
     helm
     fluxcd/tap/flux
     docker
+    bottom
   )
 
   local TO_INSTALL=()

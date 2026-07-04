@@ -6,7 +6,8 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 ## 📂 File Structure
 
-* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`), configures your environments, and deploys configuration files.
+* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`), configures your environments, and deploys configuration files.
+* **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed.
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme. See the [Starship TOML Feature Guide](docs/starship-toml.md) for configuration details.
 * **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md)).
@@ -32,6 +33,9 @@ Simply run the installation script:
 ./install-dev-env.sh
 ```
 
+> [!NOTE]
+> The installation script is safe and idempotent. It checks if configuration files (like `~/.bashrc` and `~/.tmux.conf`) are different before backing up and replacing them. If no changes are detected, your existing configuration is left untouched.
+
 ---
 
 ## 💾 Manual Backup Instructions
@@ -51,9 +55,24 @@ cp ~/.bashrc ~/setup_backup/.bashrc
 
 ---
 
-## 🔄 Rollback Instructions
+## 🔄 Rollback & Uninstallation Instructions
 
-If you run the installer and decide you want to return to your previous shell configurations:
+You can automatically revert all changes (including package installations, font settings, configurations, and TPM) by running:
+
+```bash
+./uninstall-dev-env.sh
+```
+
+> [!IMPORTANT]
+> Because `ble.sh` (which runs background processes) and `starship` (which renders the command prompt) are actively running in your current terminal session, deleting their files will cause your current shell to print "No such file or directory" errors as it attempts to execute the deleted files.
+>
+> **This is expected and the script has successfully completed.** To stop the errors and reload a clean environment, simply run:
+> ```bash
+> exec bash
+> ```
+> (or close your terminal window and open a new one).
+
+Alternatively, if you prefer to manually restore your backup configuration files:
 
 ```bash
 # Restore your original configuration files
