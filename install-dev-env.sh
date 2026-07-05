@@ -92,6 +92,8 @@ install_arch_packages() {
     zed
     rustup
     bottom
+    sops
+    age
   )
 
   local TO_INSTALL=()
@@ -157,6 +159,7 @@ install_debian_packages() {
     wl-clipboard
     build-essential
     gawk
+    age
   )
 
   local TO_INSTALL=()
@@ -297,6 +300,18 @@ install_debian_packages() {
   else
     echo "==> bottom is already installed."
   fi
+
+  # 14. Install sops
+  if ! command -v sops >/dev/null 2>&1; then
+    echo "==> Installing sops"
+    local SOPS_VER
+    SOPS_VER=$(curl -s "https://api.github.com/repos/getsops/sops/releases/latest" | grep -oP '"tag_name": "\K[^"]+')
+    curl -LO "https://github.com/getsops/sops/releases/download/${SOPS_VER}/sops-${SOPS_VER}.linux.amd64"
+    sudo mv sops-*.linux.amd64 /usr/local/bin/sops
+    sudo chmod +x /usr/local/bin/sops
+  else
+    echo "==> sops is already installed."
+  fi
 }
 
 install_macos_packages() {
@@ -333,6 +348,8 @@ install_macos_packages() {
     fluxcd/tap/flux
     docker
     bottom
+    sops
+    age
   )
 
   local TO_INSTALL=()
@@ -531,6 +548,28 @@ if [ ! -f "$SSH_KEY" ]; then
   echo ""
 else
   echo "==> SSH key already exists."
+fi
+
+# Setup age key pair for SOPS if missing
+AGE_KEY_DIR="$HOME/.config/sops/age"
+AGE_KEY_FILE="$AGE_KEY_DIR/keys.txt"
+if [ ! -f "$AGE_KEY_FILE" ]; then
+  if command -v age-keygen >/dev/null 2>&1; then
+    echo "==> Generating age key pair for SOPS"
+    mkdir -p "$AGE_KEY_DIR"
+    chmod 700 "$AGE_KEY_DIR"
+    age-keygen -o "$AGE_KEY_FILE"
+    chmod 600 "$AGE_KEY_FILE"
+    echo "==> age key pair generated successfully!"
+    echo "👉 Your public key is:"
+    grep "public key:" "$AGE_KEY_FILE"
+  else
+    echo "⚠️ Warning: age-keygen command not found, cannot generate age key pair."
+  fi
+else
+  echo "==> age key pair already exists at $AGE_KEY_FILE"
+  echo "👉 Your public key is:"
+  grep "public key:" "$AGE_KEY_FILE"
 fi
 
 # Deploy configurations

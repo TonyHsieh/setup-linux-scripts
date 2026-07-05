@@ -79,6 +79,8 @@ uninstall_arch_packages() {
     starship
     vim
     git
+    sops
+    age
   )
 
   for pkg in "${PACKAGES[@]}"; do
@@ -189,7 +191,13 @@ uninstall_debian_packages() {
     sudo rm -f /usr/local/bin/starship
   fi
 
-  # 12. Uninstall Docker CLI
+  # 12. Uninstall sops
+  if [ -f /usr/local/bin/sops ]; then
+    echo "==> Uninstalling sops"
+    sudo rm -f /usr/local/bin/sops
+  fi
+
+  # 13. Uninstall Docker CLI
   if dpkg -s docker-ce-cli >/dev/null 2>&1; then
     echo "==> Uninstalling Docker CLI"
     sudo apt-get purge -y docker-ce-cli || true
@@ -197,7 +205,7 @@ uninstall_debian_packages() {
     sudo rm -f /etc/apt/sources.list.d/docker.list
   fi
 
-  # 13. Uninstall standard packages
+  # 14. Uninstall standard packages
   local PACKAGES=(
     gawk
     build-essential
@@ -211,6 +219,7 @@ uninstall_debian_packages() {
     curl
     vim
     git
+    age
   )
   for pkg in "${PACKAGES[@]}"; do
     if dpkg -s "$pkg" >/dev/null 2>&1; then
@@ -285,6 +294,8 @@ uninstall_macos_packages() {
     starship
     vim
     git
+    sops
+    age
   )
   for pkg in "${PACKAGES[@]}"; do
     local pkg_name="$pkg"
@@ -334,6 +345,12 @@ if [ -f "$SSH_KEY" ]; then
   else
     echo "==> Skipping SSH key deletion (non-interactive session)"
   fi
+fi
+
+# Inform user that sops/age keys are preserved
+AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+if [ -f "$AGE_KEY_FILE" ]; then
+  echo "==> Note: Your age key pair for SOPS at $AGE_KEY_FILE has been preserved."
 fi
 
 # Clean up deployed configuration files

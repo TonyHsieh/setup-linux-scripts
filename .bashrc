@@ -17,6 +17,16 @@ if [[ $- == *i* ]]; then
   if type ble-face >/dev/null 2>&1; then
     ble-face auto_complete='fg=242,bg=,underline'
   fi
+
+  # Performance optimizations to prevent command-line lag and freezes:
+  if type bleopt >/dev/null 2>&1; then
+    # Add a typing delay (200ms) before suggestions trigger to reduce input lag
+    bleopt complete_auto_delay=200
+    # Process syntax highlighting asynchronously to prevent large folder scans from locking input
+    bleopt highlight_timeout_sync=0
+    # Disable auto-complete scanning of slow WSL Windows mount paths
+    ble/path#remove-glob PATH '/mnt/*'
+  fi
 fi
 
 # In ble.sh - Always use flatline (underline) cursor
