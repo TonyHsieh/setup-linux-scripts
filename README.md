@@ -6,11 +6,11 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 ## 📂 File Structure
 
-* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`), configures your environments, and deploys configuration files.
-* **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed.
+* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`, `sops`, `age`, `neovim`, `LunarVim`), configures your environments, and deploys configuration files.
+* **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed (preserving your local `sops` and `LunarVim` config directories).
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme. See the [Starship TOML Feature Guide](docs/starship-toml.md) for configuration details.
-* **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md)).
+* **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md) with performance tunings).
 * **`.tmux.conf`**: Configures tmux, enabling vi-mode copy-paste, scroll-back buffers, and TPM (Tmux Plugin Manager) plugins. See the [TMUX Feature Guide](docs/tmux.md) for configuration details.
 
 ---
@@ -19,9 +19,11 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 Detailed feature lists and configuration details for the core shell enhancements are available in the following guides:
 
+* **[LunarVim Primer for Vim Users](docs/lunarvim-primer.md)**: Jumpstart guide covering LunarVim shortcuts, buffers, LSPs, and configuration.
+* **[Secret Management with SOPS & age](docs/SOPS-AGE-Guide.md)**: Guide on generating keys, configuring `.sops.yaml`, and managing encrypted repository secrets.
 * **[Starship TOML Features](docs/starship-toml.md)**: Details on background colors, custom language detectors, and status symbols configured in `starship.toml`.
 * **[Starship Prompt Overview](docs/starship.md)**: Information on cross-shell capabilities, performance, and shell integration.
-* **[ble.sh (Bash Line Editor) Features](docs/blesh.md)**: Guide to syntax highlighting, auto-suggestions, and interactive completion in Bash.
+* **[ble.sh (Bash Line Editor) Features](docs/blesh.md)**: Guide to syntax highlighting, auto-suggestions, interactive completion, and anti-hang performance configurations in Bash.
 * **[TMUX Configuration Features](docs/tmux.md)**: Guide to Vi-mode copy/paste, portable clipboard integration, Vim-like navigation, and automatic session resurrection.
 
 ---

@@ -45,6 +45,17 @@ Our installation script ([`install-dev-env.sh`](file:///home/tonyh/_Projects/set
      ```bash
      printf '\e[4 q'
      ```
+   - **Performance & Anti-Hang Optimizations**: Configures optimization options within `.bashrc` to prevent cursor freezes, input lag, and directory traversal hangs:
+     ```bash
+     if type bleopt >/dev/null 2>&1; then
+       # Add a 200ms typing delay before auto-complete to reduce keyboard input stutter
+       bleopt complete_auto_delay=200
+       # Process syntax highlighting asynchronously to prevent heavy wildcard/glob expansions from freezing input
+       bleopt highlight_timeout_sync=0
+       # Disable auto-complete scanning of slow WSL Windows mount paths (/mnt/*)
+       ble/path#remove-glob PATH '/mnt/*'
+     fi
+     ```
    - **Late Attachment**: Attached at the very bottom of the `.bashrc` file to ensure it captures all alias definitions and shell functions correctly:
      ```bash
      if [[ $- == *i* ]] && type ble-attach >/dev/null 2>&1; then
