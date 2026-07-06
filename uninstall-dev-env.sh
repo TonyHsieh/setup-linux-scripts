@@ -81,6 +81,11 @@ uninstall_arch_packages() {
     git
     sops
     age
+    neovim
+    nodejs
+    npm
+    ripgrep
+    make
   )
 
   for pkg in "${PACKAGES[@]}"; do
@@ -197,6 +202,14 @@ uninstall_debian_packages() {
     sudo rm -f /usr/local/bin/sops
   fi
 
+  # 12.5. Uninstall Neovim
+  if [ -f /usr/local/bin/nvim ]; then
+    echo "==> Uninstalling Neovim"
+    sudo rm -f /usr/local/bin/nvim
+    sudo rm -rf /usr/local/share/nvim
+    sudo rm -rf /usr/local/lib/nvim
+  fi
+
   # 13. Uninstall Docker CLI
   if dpkg -s docker-ce-cli >/dev/null 2>&1; then
     echo "==> Uninstalling Docker CLI"
@@ -220,6 +233,9 @@ uninstall_debian_packages() {
     vim
     git
     age
+    nodejs
+    npm
+    ripgrep
   )
   for pkg in "${PACKAGES[@]}"; do
     if dpkg -s "$pkg" >/dev/null 2>&1; then
@@ -296,6 +312,9 @@ uninstall_macos_packages() {
     git
     sops
     age
+    neovim
+    node
+    ripgrep
   )
   for pkg in "${PACKAGES[@]}"; do
     local pkg_name="$pkg"
@@ -323,6 +342,18 @@ if [ "$OS_FAMILY" != "macos" ]; then
   if groups "$USER" | grep -q "\bdocker\b"; then
     echo "==> Removing $USER from docker group"
     sudo gpasswd -d "$USER" docker || true
+  fi
+fi
+
+# Clean up LunarVim (excluding personal config)
+LVIM_BIN="$HOME/.local/bin/lvim"
+if [ -f "$LVIM_BIN" ] || [ -d "$HOME/.local/share/lunarvim" ]; then
+  echo "==> Uninstalling LunarVim binaries and caches"
+  rm -f "$LVIM_BIN"
+  rm -rf "$HOME/.local/share/lunarvim"
+  rm -rf "$HOME/.cache/lvim"
+  if [ -d "$HOME/.config/lvim" ]; then
+    echo "==> Note: Preserving your LunarVim configuration directory at ~/.config/lvim"
   fi
 fi
 

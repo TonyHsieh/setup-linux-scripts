@@ -94,6 +94,11 @@ install_arch_packages() {
     bottom
     sops
     age
+    neovim
+    nodejs
+    npm
+    ripgrep
+    make
   )
 
   local TO_INSTALL=()
@@ -160,6 +165,9 @@ install_debian_packages() {
     build-essential
     gawk
     age
+    nodejs
+    npm
+    ripgrep
   )
 
   local TO_INSTALL=()
@@ -174,6 +182,27 @@ install_debian_packages() {
     sudo apt-get install -y "${TO_INSTALL[@]}"
   else
     echo "==> All standard apt packages are already installed."
+  fi
+
+  # 1.5. Install Neovim stable binary (since apt versions are often too old for LunarVim)
+  if ! command -v nvim >/dev/null 2>&1 || [[ "$(nvim --version | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" < "0.9.0" ]]; then
+    echo "==> Installing/updating Neovim (stable binary)"
+    local ARCH
+    ARCH=$(uname -m)
+    local NVIM_TAR
+    if [ "$ARCH" = "x86_64" ]; then
+      NVIM_TAR="nvim-linux-x86_64.tar.gz"
+    elif [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+      NVIM_TAR="nvim-linux-arm64.tar.gz"
+    else
+      echo "❌ Error: Unsupported architecture ($ARCH) for Neovim download." >&2
+      return 1
+    fi
+    curl -LO "https://github.com/neovim/neovim/releases/download/stable/$NVIM_TAR"
+    sudo tar -C /usr/local --strip-components 1 -xzf "$NVIM_TAR"
+    rm -f "$NVIM_TAR"
+  else
+    echo "==> Neovim is already installed and meets version requirement."
   fi
 
   # 2. Install Docker Client CLI (docker-ce-cli)
@@ -350,6 +379,9 @@ install_macos_packages() {
     bottom
     sops
     age
+    neovim
+    node
+    ripgrep
   )
 
   local TO_INSTALL=()
@@ -570,6 +602,16 @@ else
   echo "==> age key pair already exists at $AGE_KEY_FILE"
   echo "👉 Your public key is:"
   grep "public key:" "$AGE_KEY_FILE"
+fi
+
+# Setup LunarVim if missing
+LVIM_BIN="$HOME/.local/bin/lvim"
+if [ ! -f "$LVIM_BIN" ]; then
+  echo "==> Installing LunarVim"
+  # Run the official installer non-interactively using the --yes flag
+  LV_BRANCH='master' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/master/utils/installer/install.sh) --yes
+else
+  echo "==> LunarVim is already installed."
 fi
 
 # Deploy configurations

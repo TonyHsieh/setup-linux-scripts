@@ -87,8 +87,13 @@ if [[ -f "$HOME/.cargo/env" ]]; then
 fi
 
 # Editors
-export EDITOR=vim
-export VISUAL=vim
+if command -v lvim >/dev/null 2>&1; then
+  export EDITOR=lvim
+  export VISUAL=lvim
+else
+  export EDITOR=vim
+  export VISUAL=vim
+fi
 
 
 ##### 4. Completion system #####
@@ -121,7 +126,13 @@ alias gc='git commit'
 alias gp='git push'
 
 alias k='kubectl'
-alias vi='vim'
+
+if command -v lvim >/dev/null 2>&1; then
+  alias vi='lvim'
+  alias vim='lvim'
+else
+  alias vi='vim'
+fi
 
 alias up='cd ..'
 

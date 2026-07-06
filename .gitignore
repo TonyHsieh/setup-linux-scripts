@@ -1,0 +1,23 @@
+# Neovim tarballs & binaries
+nvim-linux-x86_64.tar.gz
+nvim-linux-arm64.tar.gz
+nvim-linux64.tar.gz
+
+# Deployed backups and log files
+*.bak
+*.log
+
+# SSH keys & age keys (safety default to prevent accidental commits)
+id_ed25519
+id_ed25519.pub
+keys.txt
+
+# Editor / OS temporary files
+.DS_Store
+.directory
+*~
+*.swp
+*.swo
+
+# Local test configurations
+test/
