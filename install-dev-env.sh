@@ -297,9 +297,11 @@ install_debian_packages() {
   local BLESH_DIR="$HOME/.local/share/blesh"
   if [ ! -d "$BLESH_DIR" ] && [ ! -r "$HOME/.local/share/blesh/ble.sh" ]; then
     echo "==> Installing ble.sh (Bash Line Editor)"
-    git clone --recursive --depth 1 https://github.com/akinomyoga/ble.sh.git /tmp/ble.sh
-    make -C /tmp/ble.sh install PREFIX="$HOME/.local"
-    rm -rf /tmp/ble.sh
+    local BLESH_TMP
+    BLESH_TMP=$(mktemp -d /tmp/ble.sh.XXXXXX)
+    git clone --recursive --depth 1 https://github.com/akinomyoga/ble.sh.git "$BLESH_TMP"
+    make -C "$BLESH_TMP" install PREFIX="$HOME/.local"
+    rm -rf "$BLESH_TMP"
   else
     echo "==> ble.sh is already installed."
   fi
@@ -348,7 +350,7 @@ install_macos_packages() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "==> Homebrew not found. Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    
+
     # Configure brew path for current session depending on architecture (Intel / Apple Silicon)
     if [ -f "/opt/homebrew/bin/brew" ]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -382,6 +384,7 @@ install_macos_packages() {
     neovim
     node
     ripgrep
+    gawk
   )
 
   local TO_INSTALL=()
@@ -423,7 +426,7 @@ install_macos_packages() {
     font-fira-code-nerd-font
     font-hack-nerd-font
     font-iosevka-nerd-font
-    font-cascadia-code-nerd-font
+    font-cascadia-code-nf
   )
   local TO_INSTALL_FONTS=()
   for font in "${FONTS[@]}"; do
@@ -434,7 +437,13 @@ install_macos_packages() {
 
   if [ ${#TO_INSTALL_FONTS[@]} -ne 0 ]; then
     echo "==> Installing Nerd Fonts via Homebrew: ${TO_INSTALL_FONTS[*]}"
-    brew install --cask "${TO_INSTALL_FONTS[@]}"
+    for font in "${TO_INSTALL_FONTS[@]}"; do
+      if brew install --cask "$font"; then
+        echo "==> Installed cask: $font"
+      else
+        echo "⚠️ Warning: Failed to install cask '$font'. Continuing with remaining fonts."
+      fi
+    done
   else
     echo "==> All requested Nerd Fonts are already installed."
   fi
@@ -443,9 +452,11 @@ install_macos_packages() {
   local BLESH_DIR="$HOME/.local/share/blesh"
   if [ ! -d "$BLESH_DIR" ] && [ ! -r "$HOME/.local/share/blesh/ble.sh" ]; then
     echo "==> Installing ble.sh (Bash Line Editor)"
-    git clone --recursive --depth 1 https://github.com/akinomyoga/ble.sh.git /tmp/ble.sh
-    make -C /tmp/ble.sh install PREFIX="$HOME/.local"
-    rm -rf /tmp/ble.sh
+    local BLESH_TMP
+    BLESH_TMP=$(mktemp -d /tmp/ble.sh.XXXXXX)
+    git clone --recursive --depth 1 https://github.com/akinomyoga/ble.sh.git "$BLESH_TMP"
+    make -C "$BLESH_TMP" install PREFIX="$HOME/.local"
+    rm -rf "$BLESH_TMP"
   else
     echo "==> ble.sh is already installed."
   fi
@@ -519,9 +530,14 @@ else
   echo "==> TMUX Plugin Manager (TPM) is already installed."
 fi
 
-# Generate SSH key if it does not exist
+# Generate SSH key if no private key exists in ~/.ssh
 SSH_KEY="$HOME/.ssh/id_ed25519"
-if [ ! -f "$SSH_KEY" ]; then
+HAS_SSH_KEY=false
+if [ -d "$HOME/.ssh" ] && find "$HOME/.ssh" -maxdepth 1 -type f -name 'id_*' ! -name '*.pub' | grep -q .; then
+  HAS_SSH_KEY=true
+fi
+
+if [ "$HAS_SSH_KEY" = false ]; then
   echo "==> Generating SSH key"
   if [ -t 0 ]; then
     read -rp "Enter your email address for the SSH key [your_email@example.com]: " ssh_email
@@ -579,7 +595,10 @@ if [ ! -f "$SSH_KEY" ]; then
   fi
   echo ""
 else
-  echo "==> SSH key already exists."
+  echo "==> Existing SSH key files detected. Skipping SSH key generation."
+  find "$HOME/.ssh" -maxdepth 1 -type f -name 'id_*' | sort | while IFS= read -r key_file; do
+    echo "   - $key_file"
+  done
 fi
 
 # Setup age key pair for SOPS if missing
