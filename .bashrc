@@ -145,6 +145,17 @@ if grep -qsi Microsoft /proc/version; then
   if ! command -v pbpaste >/dev/null 2>&1; then
     alias pbpaste='powershell.exe -NoProfile -Command Get-Clipboard | tr -d "\r"'
   fi
+
+  # WSL2 Wayland socket symlink for systemd
+  if [[ -d "/mnt/wslg/runtime-dir" && -n "$XDG_RUNTIME_DIR" && -d "$XDG_RUNTIME_DIR" ]]; then
+    w_disp="${WAYLAND_DISPLAY:-wayland-0}"
+    if [[ ! -S "$XDG_RUNTIME_DIR/$w_disp" && -S "/mnt/wslg/runtime-dir/$w_disp" ]]; then
+      ln -sf "/mnt/wslg/runtime-dir/$w_disp" "$XDG_RUNTIME_DIR/$w_disp"
+      if [[ -f "/mnt/wslg/runtime-dir/$w_disp.lock" ]]; then
+        ln -sf "/mnt/wslg/runtime-dir/$w_disp.lock" "$XDG_RUNTIME_DIR/$w_disp.lock"
+      fi
+    fi
+  fi
 fi
 
 ### 7. Artifactory Info ###
