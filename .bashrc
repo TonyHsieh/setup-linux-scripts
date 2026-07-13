@@ -87,9 +87,9 @@ if [[ -f "$HOME/.cargo/env" ]]; then
 fi
 
 # Editors
-if command -v lvim >/dev/null 2>&1; then
-  export EDITOR=lvim
-  export VISUAL=lvim
+if command -v nvim >/dev/null 2>&1; then
+  export EDITOR=nvim
+  export VISUAL=nvim
 else
   export EDITOR=vim
   export VISUAL=vim
@@ -127,9 +127,9 @@ alias gp='git push'
 
 alias k='kubectl'
 
-if command -v lvim >/dev/null 2>&1; then
-  alias vi='lvim'
-  alias vim='lvim'
+if command -v nvim >/dev/null 2>&1; then
+  alias vi='nvim'
+  alias vim='nvim'
 else
   alias vi='vim'
 fi

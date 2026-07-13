@@ -345,16 +345,15 @@ if [ "$OS_FAMILY" != "macos" ]; then
   fi
 fi
 
-# Clean up LunarVim (excluding personal config)
-LVIM_BIN="$HOME/.local/bin/lvim"
-if [ -f "$LVIM_BIN" ] || [ -d "$HOME/.local/share/lunarvim" ]; then
-  echo "==> Uninstalling LunarVim binaries and caches"
-  rm -f "$LVIM_BIN"
-  rm -rf "$HOME/.local/share/lunarvim"
-  rm -rf "$HOME/.cache/lvim"
-  if [ -d "$HOME/.config/lvim" ]; then
-    echo "==> Note: Preserving your LunarVim configuration directory at ~/.config/lvim"
-  fi
+# Clean up LazyVim configurations and caches
+LAZYVIM_CONFIG_DIR="$HOME/.config/nvim"
+if [ -d "$LAZYVIM_CONFIG_DIR" ] || [ -d "$HOME/.local/share/nvim" ] || [ -d "$HOME/.local/state/nvim" ] || [ -d "$HOME/.cache/nvim" ]; then
+  echo "==> Uninstalling LazyVim configurations and Neovim caches"
+  rm -rf "$LAZYVIM_CONFIG_DIR"
+  rm -rf "$HOME/.local/share/nvim"
+  rm -rf "$HOME/.local/state/nvim"
+  rm -rf "$HOME/.cache/nvim"
+  echo "   ✓ Successfully removed LazyVim and all Neovim files"
 fi
 
 # Clean up TPM (TMUX Plugin Manager)

@@ -184,7 +184,7 @@ install_debian_packages() {
     echo "==> All standard apt packages are already installed."
   fi
 
-  # 1.5. Install Neovim stable binary (since apt versions are often too old for LunarVim)
+  # 1.5. Install Neovim stable binary (since apt versions are often too old for LazyVim)
   if ! command -v nvim >/dev/null 2>&1 || [[ "$(nvim --version | head -n1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')" < "0.9.0" ]]; then
     echo "==> Installing/updating Neovim (stable binary)"
     local ARCH
@@ -623,14 +623,27 @@ else
   grep "public key:" "$AGE_KEY_FILE"
 fi
 
-# Setup LunarVim if missing
-LVIM_BIN="$HOME/.local/bin/lvim"
-if [ ! -f "$LVIM_BIN" ]; then
-  echo "==> Installing LunarVim"
-  # Run the official installer non-interactively using the --yes flag
-  LV_BRANCH='master' bash <(curl -s https://raw.githubusercontent.com/LunarVim/LunarVim/master/utils/installer/install.sh) --yes
+# Setup LazyVim if missing
+LAZYVIM_CONFIG_DIR="$HOME/.config/nvim"
+if [ ! -d "$LAZYVIM_CONFIG_DIR" ] || [ ! -f "$LAZYVIM_CONFIG_DIR/init.lua" ]; then
+  echo "==> Installing LazyVim"
+  # Backup existing Neovim folders if any
+  if [ -d "$LAZYVIM_CONFIG_DIR" ]; then
+    echo "   ⚠️ Backing up existing Neovim configuration to ~/.config/nvim.bak"
+    mv "$LAZYVIM_CONFIG_DIR" "${LAZYVIM_CONFIG_DIR}.bak"
+  fi
+  # Clean up old Neovim share/state/cache to prevent plugin conflicts
+  rm -rf "$HOME/.local/share/nvim"
+  rm -rf "$HOME/.local/state/nvim"
+  rm -rf "$HOME/.cache/nvim"
+  
+  # Clone the official LazyVim starter template
+  git clone https://github.com/LazyVim/starter "$LAZYVIM_CONFIG_DIR"
+  # Remove the .git folder so it becomes a custom user config directory
+  rm -rf "$LAZYVIM_CONFIG_DIR/.git"
+  echo "   ✓ LazyVim installed successfully! (Run 'nvim' to initialize plugins)"
 else
-  echo "==> LunarVim is already installed."
+  echo "==> LazyVim is already installed."
 fi
 
 # Deploy configurations

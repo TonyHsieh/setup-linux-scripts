@@ -6,8 +6,8 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 ## 📂 File Structure
 
-* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`, `sops`, `age`, `neovim`, `LunarVim`), configures your environments, and deploys configuration files.
-* **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed (preserving your local `sops` and `LunarVim` config directories).
+* **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`, `sops`, `age`, `neovim`, `LazyVim`), configures your environments, and deploys configuration files.
+* **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed (preserving your local `sops` config directory).
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme. See the [Starship TOML Feature Guide](docs/starship-toml.md) for configuration details.
 * **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md) with performance tunings).
@@ -19,7 +19,7 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 Detailed feature lists and configuration details for the core shell enhancements are available in the following guides:
 
-* **[LunarVim Primer for Vim Users](docs/lunarvim-primer.md)**: Jumpstart guide covering LunarVim shortcuts, buffers, LSPs, and configuration.
+* **[LazyVim Primer for Vim Users](docs/lazyvim-primer.md)**: Jumpstart guide covering LazyVim shortcuts, buffers, LSPs, and configuration.
 * **[Secret Management with SOPS & age](docs/SOPS-AGE-Guide.md)**: Guide on generating keys, configuring `.sops.yaml`, and managing encrypted repository secrets.
 * **[Starship TOML Features](docs/starship-toml.md)**: Details on background colors, custom language detectors, and status symbols configured in `starship.toml`.
 * **[Starship Prompt Overview](docs/starship.md)**: Information on cross-shell capabilities, performance, and shell integration.
