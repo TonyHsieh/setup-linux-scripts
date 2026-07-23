@@ -8,10 +8,35 @@ This repository contains clean, idempotent, and highly portable developer enviro
 
 * **`install-dev-env.sh`**: The main setup script. Automatically detects your OS (macOS, Arch Linux, Debian/Ubuntu), installs CLI tools (`rustup`, `docker`, `kubectl`, `helm`, `flux`, `k9s`, `yq`, `starship`, `ble.sh`, `bottom`, `sops`, `age`, `neovim`, `LazyVim`), configures your environments, and deploys configuration files.
 * **`uninstall-dev-env.sh`**: The uninstallation script. Reverts all configurations, restores backed-up files, and uninstalls all tools that were installed (preserving your local `sops` config directory).
+* **`remove-lunarvim.sh`**: Cleanup utility script. Completely removes legacy LunarVim binaries (`lvim`) and clears Neovim configuration/state directories (`~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim`, `~/.cache/nvim`) to prepare for a fresh LazyVim installation.
 * **`setup-starship.sh`**: Installs/deploys the Starship prompt profile configuration.
 * **`starship.toml`**: Custom Starship configuration theme. See the [Starship TOML Feature Guide](docs/starship-toml.md) for configuration details.
 * **`.bashrc`**: Custom portable bash configuration (integrates [Starship](docs/starship.md) and [ble.sh](docs/blesh.md) with performance tunings).
 * **`.tmux.conf`**: Configures tmux, enabling vi-mode copy-paste, scroll-back buffers, and TPM (Tmux Plugin Manager) plugins. See the [TMUX Feature Guide](docs/tmux.md) for configuration details.
+
+---
+
+## ⚡ Vim / Neovim Environment
+
+> [!IMPORTANT]
+> **We are no longer using LunarVim.** The development environment now standardizes on **Neovim (v0.9+ Stable)** paired with the **[LazyVim](https://www.lazyvim.org/)** framework.
+
+### 🧹 Upgrading / Removing Legacy LunarVim
+If your machine previously used LunarVim, run the removal script before running `install-dev-env.sh`:
+
+```bash
+./remove-lunarvim.sh
+```
+
+This script cleans up:
+* The `lvim` binary (`~/.local/bin/lvim`)
+* LunarVim directories (`~/.local/share/lunarvim`, `~/.cache/lvim`, `~/.config/lvim`)
+* Existing Neovim config and state directories (`~/.config/nvim`, `~/.local/share/nvim`, `~/.local/state/nvim`, `~/.cache/nvim`) to avoid configuration collisions.
+
+### 🛠️ Current Vim Setup & Documentation
+* **Vim Engine**: **Neovim v0.9+** (Installed via official stable appimage / release binaries or system package manager).
+* **Distribution**: [**LazyVim Starter**](https://github.com/LazyVim/starter) (Modular, fast, batteries-included Neovim setup).
+* **Documentation & Usage Guide**: See the detailed **[LazyVim Primer for Vim Users](docs/lazyvim-primer.md)** for essential shortcuts, buffer controls, LSP management (`:LazyExtras`), and plugin customization.
 
 ---
 
