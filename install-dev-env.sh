@@ -529,6 +529,13 @@ if [ ! -d "$TPM_DIR" ]; then
 else
   echo "==> TMUX Plugin Manager (TPM) is already installed."
 fi
+chmod -R +x "$TPM_DIR"
+if [ -x "$TPM_DIR/bin/install_plugins" ]; then
+  echo "==> Installing tmux plugins via TPM"
+  "$TPM_DIR/bin/install_plugins" || true
+fi
+
+
 
 # Generate SSH key if no private key exists in ~/.ssh
 SSH_KEY="$HOME/.ssh/id_ed25519"
