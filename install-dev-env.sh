@@ -212,7 +212,7 @@ install_debian_packages() {
     sudo install -m 0755 -d /etc/apt/keyrings
     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
     sudo chmod a+r /etc/apt/keyrings/docker.asc
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
     sudo apt-get update -y
     sudo apt-get install -y docker-ce-cli
   else
@@ -535,8 +535,6 @@ if [ -x "$TPM_DIR/bin/install_plugins" ]; then
   "$TPM_DIR/bin/install_plugins" || true
 fi
 
-
-
 # Generate SSH key if no private key exists in ~/.ssh
 SSH_KEY="$HOME/.ssh/id_ed25519"
 HAS_SSH_KEY=false
@@ -563,24 +561,24 @@ if [ "$HAS_SSH_KEY" = false ]; then
   echo "   1. Copy the public key to your clipboard:"
   if [ "$IS_WSL" = true ]; then
     if command -v clip.exe >/dev/null 2>&1; then
-      clip.exe < "${SSH_KEY}.pub"
+      clip.exe <"${SSH_KEY}.pub"
       echo "      (Automatically copied to Windows clipboard using clip.exe!)"
     elif [ -f "/mnt/c/Windows/System32/clip.exe" ]; then
-      /mnt/c/Windows/System32/clip.exe < "${SSH_KEY}.pub"
+      /mnt/c/Windows/System32/clip.exe <"${SSH_KEY}.pub"
       echo "      (Automatically copied to Windows clipboard using clip.exe!)"
     else
       echo "      Run: cat ${SSH_KEY}.pub"
     fi
   elif command -v pbcopy >/dev/null 2>&1; then
-    pbcopy < "${SSH_KEY}.pub"
+    pbcopy <"${SSH_KEY}.pub"
     echo "      (Automatically copied to clipboard using pbcopy!)"
     echo "      Alternatively, run: cat ${SSH_KEY}.pub"
   elif command -v wl-copy >/dev/null 2>&1; then
-    wl-copy < "${SSH_KEY}.pub"
+    wl-copy <"${SSH_KEY}.pub"
     echo "      (Automatically copied to clipboard using wl-copy!)"
     echo "      Alternatively, run: cat ${SSH_KEY}.pub"
   elif command -v xclip >/dev/null 2>&1; then
-    xclip -selection clipboard < "${SSH_KEY}.pub"
+    xclip -selection clipboard <"${SSH_KEY}.pub"
     echo "      (Automatically copied to clipboard using xclip!)"
     echo "      Alternatively, run: cat ${SSH_KEY}.pub"
   else
@@ -643,7 +641,7 @@ if [ ! -d "$LAZYVIM_CONFIG_DIR" ] || [ ! -f "$LAZYVIM_CONFIG_DIR/init.lua" ]; th
   rm -rf "$HOME/.local/share/nvim"
   rm -rf "$HOME/.local/state/nvim"
   rm -rf "$HOME/.cache/nvim"
-  
+
   # Clone the official LazyVim starter template
   git clone https://github.com/LazyVim/starter "$LAZYVIM_CONFIG_DIR"
   # Remove the .git folder so it becomes a custom user config directory
@@ -694,3 +692,4 @@ else
 fi
 echo "   2. Restart your terminal or run: exec bash"
 echo "   3. Add your SSH key to GitHub if you haven't already (see details above or go to https://github.com/settings/keys)"
+echo "   4. In TMUX - you might need to hit <prefix> I to install any TMUX plugins."
