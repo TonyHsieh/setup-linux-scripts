@@ -124,6 +124,20 @@ uninstall_arch_packages() {
     echo "==> Uninstalling kind-bin"
     sudo pacman -R --noconfirm kind-bin || true
   fi
+  if is_installed_arch "opencode-bin"; then
+    echo "==> Uninstalling opencode-bin"
+    sudo pacman -R --noconfirm opencode-bin || true
+  fi
+  if is_installed_arch "opencode"; then
+    echo "==> Uninstalling opencode"
+    sudo pacman -R --noconfirm opencode || true
+  fi
+
+  # Uninstall Hermes Agent
+  if command -v hermes >/dev/null 2>&1; then
+    echo "==> Uninstalling Hermes Agent binary"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
+  fi
 }
 
 uninstall_debian_packages() {
@@ -208,6 +222,18 @@ uninstall_debian_packages() {
     sudo rm -f /usr/local/bin/nvim
     sudo rm -rf /usr/local/share/nvim
     sudo rm -rf /usr/local/lib/nvim
+  fi
+
+  # 12.6. Uninstall OpenCode
+  if command -v opencode >/dev/null 2>&1; then
+    echo "==> Uninstalling OpenCode binary"
+    sudo rm -f /usr/local/bin/opencode "$HOME/.local/bin/opencode"
+  fi
+
+  # 12.7. Uninstall Hermes Agent
+  if command -v hermes >/dev/null 2>&1; then
+    echo "==> Uninstalling Hermes Agent binary"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
   fi
 
   # 13. Uninstall Docker CLI
@@ -297,6 +323,7 @@ uninstall_macos_packages() {
     bottom
     docker
     fluxcd/tap/flux
+    anomalyco/tap/opencode
     helm
     kubernetes-cli
     bash-completion@2
@@ -326,6 +353,12 @@ uninstall_macos_packages() {
       brew uninstall "$pkg" || echo "⚠️ Could not uninstall $pkg"
     fi
   done
+
+  # 7. Uninstall Hermes Agent
+  if command -v hermes >/dev/null 2>&1; then
+    echo "==> Uninstalling Hermes Agent binary"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
+  fi
 }
 
 # Run the appropriate uninstaller function

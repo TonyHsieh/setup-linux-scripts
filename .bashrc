@@ -136,6 +136,14 @@ fi
 
 alias up='cd ..'
 
+# AI Agent Aliases
+if command -v opencode >/dev/null 2>&1; then
+  alias oc='opencode'
+fi
+if command -v hermes >/dev/null 2>&1; then
+  alias ha='hermes'
+fi
+
 
 # WSL clipboard helper aliases (mimic macOS pbcopy/pbpaste)
 if grep -qsi Microsoft /proc/version; then

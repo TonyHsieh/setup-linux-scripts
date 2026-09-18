@@ -141,9 +141,18 @@ install_arch_packages() {
     echo "==> All requested Nerd Fonts are already installed."
   fi
 
-  echo "==> Checking AUR packages"
+  echo "==> Checking AUR and binary packages"
   install_aur_arch "blesh-git"
   install_aur_arch "kind-bin" "kind"
+  install_aur_arch "opencode-bin" "opencode"
+
+  # Install Hermes Agent
+  if ! command -v hermes >/dev/null 2>&1; then
+    echo "==> Installing Hermes Agent"
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+  else
+    echo "==> Hermes Agent is already installed."
+  fi
 }
 
 install_debian_packages() {
@@ -343,6 +352,22 @@ install_debian_packages() {
   else
     echo "==> sops is already installed."
   fi
+
+  # 15. Install OpenCode
+  if ! command -v opencode >/dev/null 2>&1; then
+    echo "==> Installing OpenCode"
+    curl -fsSL https://opencode.ai/install | bash
+  else
+    echo "==> OpenCode is already installed."
+  fi
+
+  # 16. Install Hermes Agent
+  if ! command -v hermes >/dev/null 2>&1; then
+    echo "==> Installing Hermes Agent"
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+  else
+    echo "==> Hermes Agent is already installed."
+  fi
 }
 
 install_macos_packages() {
@@ -377,6 +402,7 @@ install_macos_packages() {
     kubernetes-cli
     helm
     fluxcd/tap/flux
+    anomalyco/tap/opencode
     docker
     bottom
     sops
@@ -467,6 +493,14 @@ install_macos_packages() {
     brew install kind
   else
     echo "==> kind is already installed."
+  fi
+
+  # 7. Install Hermes Agent
+  if ! command -v hermes >/dev/null 2>&1; then
+    echo "==> Installing Hermes Agent"
+    curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+  else
+    echo "==> Hermes Agent is already installed."
   fi
 }
 
@@ -680,6 +714,75 @@ if [ -f "$SCRIPT_DIR/setup-starship.sh" ]; then
   bash "$SCRIPT_DIR/setup-starship.sh"
 fi
 
+# Ensure ~/.bashrc.local exists with AI agent API key stubs if not present
+LOCAL_BASHRC="$HOME/.bashrc.local"
+if [ ! -f "$LOCAL_BASHRC" ]; then
+  touch "$LOCAL_BASHRC"
+fi
+if ! grep -q "OPENAI_API_KEY" "$LOCAL_BASHRC" 2>/dev/null; then
+  echo "==> Adding AI agent API key template stubs to ~/.bashrc.local"
+  cat <<'EOF' >> "$LOCAL_BASHRC"
+
+# AI Agent Credentials (OpenCode / Hermes)
+# export OPENAI_API_KEY="your-api-key-here"
+# export ANTHROPIC_API_KEY="your-api-key-here"
+EOF
+fi
+
+# Provision default OpenCode MCP Configuration (~/.config/opencode/opencode.json)
+OPENCODE_CFG_DIR="$HOME/.config/opencode"
+OPENCODE_CFG_FILE="$OPENCODE_CFG_DIR/opencode.json"
+if [ ! -f "$OPENCODE_CFG_FILE" ]; then
+  echo "==> Deploying default MCP servers for OpenCode ($OPENCODE_CFG_FILE)"
+  mkdir -p "$OPENCODE_CFG_DIR"
+  cat <<'EOF' > "$OPENCODE_CFG_FILE"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "filesystem": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "."],
+      "enabled": true
+    },
+    "git": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-git"],
+      "enabled": true
+    },
+    "postgres": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-postgres"],
+      "enabled": true
+    }
+  }
+}
+EOF
+else
+  echo "==> OpenCode configuration file already exists at $OPENCODE_CFG_FILE"
+fi
+
+# Provision default Hermes Agent MCP Configuration (~/.hermes/config.yaml)
+HERMES_CFG_DIR="$HOME/.hermes"
+HERMES_CFG_FILE="$HERMES_CFG_DIR/config.yaml"
+if [ ! -f "$HERMES_CFG_FILE" ]; then
+  echo "==> Deploying default MCP servers for Hermes Agent ($HERMES_CFG_FILE)"
+  mkdir -p "$HERMES_CFG_DIR"
+  cat <<'EOF' > "$HERMES_CFG_FILE"
+mcp_servers:
+  puppeteer:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-puppeteer"]
+  fetch:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-fetch"]
+  github:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-github"]
+EOF
+else
+  echo "==> Hermes Agent configuration file already exists at $HERMES_CFG_FILE"
+fi
+
 echo "==> Setup and installation complete!"
 echo "👉 Next steps:"
 if [ "$IS_WSL" = true ]; then
@@ -691,5 +794,7 @@ else
   echo "   1. Set your terminal font to one of the installed Nerd Fonts (e.g., 'MesloLGS Nerd Font' or 'JetBrainsMono Nerd Font')"
 fi
 echo "   2. Restart your terminal or run: exec bash"
-echo "   3. Add your SSH key to GitHub if you haven't already (see details above or go to https://github.com/settings/keys)"
-echo "   4. In TMUX - you might need to hit <prefix> I to install any TMUX plugins."
+echo "   3. Configure your LLM API keys in ~/.bashrc.local (or run 'hermes setup --portal')"
+echo "   4. Launch OpenCode via 'opencode' (or 'oc') and Hermes via 'hermes' (or 'ha')"
+echo "   5. Add your SSH key to GitHub if you haven't already (see details above or go to https://github.com/settings/keys)"
+echo "   6. In TMUX - you might need to hit <prefix> I to install any TMUX plugins."
