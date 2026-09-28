@@ -24,8 +24,10 @@ if [[ $- == *i* ]]; then
     bleopt complete_auto_delay=200
     # Process syntax highlighting asynchronously to prevent large folder scans from locking input
     bleopt highlight_timeout_sync=0
-    # Disable auto-complete scanning of slow WSL Windows mount paths
+    # Disable auto-complete scanning of slow WSL Windows mount paths & Nix store directories
     ble/path#remove-glob PATH '/mnt/*'
+    ble/path#remove-glob PATH '/nix/store/*'
+    ble/path#remove-glob PATH '/nix/*'
   fi
 fi
 
@@ -96,6 +98,17 @@ else
 fi
 
 
+# Nix & Devenv environment integration
+if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+  source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+elif [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
+  source "$HOME/.nix-profile/etc/profile.d/nix.sh"
+fi
+
+if [[ -d "$HOME/.nix-profile/bin" && ":$PATH:" != *":$HOME/.nix-profile/bin:"* ]]; then
+  export PATH="$HOME/.nix-profile/bin:$PATH"
+fi
+
 ##### 4. Completion system #####
 
 # Load bash completion via Homebrew if present, fallback to standard Linux paths
@@ -105,6 +118,11 @@ elif [[ -r /usr/share/bash-completion/bash_completion ]]; then
   source /usr/share/bash-completion/bash_completion
 elif [[ -r /usr/local/etc/profile.d/bash_completion.sh ]]; then
   source /usr/local/etc/profile.d/bash_completion.sh
+fi
+
+# Devenv completion
+if command -v devenv >/dev/null 2>&1; then
+  eval "$(devenv completion bash)"
 fi
 
 

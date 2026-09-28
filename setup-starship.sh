@@ -56,6 +56,9 @@ write_default_config() {
 
 "$schema" = 'https://starship.rs/config-schema.json'
 
+# Increase command timeout from default 500ms to 1000ms to prevent slow CLI timeouts (e.g. npm -v)
+command_timeout = 1000
+
 format = """
 $time$directory$git_branch$git_status$fill$aws$nodejs$java$gradle$custom
 $os$character

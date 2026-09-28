@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # install-dev-env.sh
-# Purpose: Idempotent CLI tool installation for bash + rust + zed + vim + docker
+# Purpose: Idempotent CLI tool installation for bash + rust + zed + vim + docker + devenv
 # Target: CachyOS / Arch Linux & WSL2-Ubuntu / Debian Linux
 # ==============================================================================
 set -euo pipefail
@@ -470,6 +470,102 @@ install_macos_packages() {
   fi
 }
 
+# Check for Conda and Nix conflicts
+check_conda_nix_conflicts() {
+  echo "==> Checking for Conda/Nix environment conflicts"
+  local CONFLICT_FOUND=false
+
+  if [ -n "${CONDA_PREFIX:-}" ] || command -v conda >/dev/null 2>&1 || command -v mamba >/dev/null 2>&1; then
+    echo "⚠️ Warning: Active or installed Conda/Mamba environment detected."
+    if [ -n "${CONDA_PREFIX:-}" ]; then
+      echo "   Active Conda environment: $CONDA_PREFIX"
+      echo "   Conda overrides PATH and dynamic library lookup paths (LD_LIBRARY_PATH), which can cause symbol conflicts with Nix/devenv."
+      echo "   Tip: Deactivate Conda ('conda deactivate') before running devenv environments."
+    else
+      echo "   Conda/Mamba command is available in PATH. Make sure Conda environments are deactivated before using devenv."
+    fi
+    CONFLICT_FOUND=true
+  fi
+
+  if command -v nix >/dev/null 2>&1; then
+    echo "==> Pre-existing Nix installation detected ($(nix --version 2>/dev/null || echo 'Nix active'))."
+  fi
+
+  if [ "$CONFLICT_FOUND" = false ]; then
+    echo "   ✓ No active Conda conflicts detected."
+  fi
+}
+
+install_devenv() {
+  check_conda_nix_conflicts
+
+  if command -v devenv >/dev/null 2>&1; then
+    echo "==> devenv is already installed ($(devenv version 2>/dev/null || echo 'devenv active'))."
+    return 0
+  fi
+
+  echo "==> Installing devenv and Nix dependency"
+
+  # 1. Ensure Nix is installed first
+  if ! command -v nix >/dev/null 2>&1 && [ ! -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ] && [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+    echo "==> Nix not found. Installing Nix via Determinate Nix Installer..."
+    curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+  else
+    echo "==> Nix installation detected."
+  fi
+
+  # Source Nix profile for current execution session if present
+  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  elif [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+  fi
+
+  if [ -d "$HOME/.nix-profile/bin" ]; then
+    export PATH="$HOME/.nix-profile/bin:$PATH"
+  fi
+
+  # 2. Install devenv CLI
+  if [ "$OS_FAMILY" = "arch" ] && (command -v paru >/dev/null 2>&1 || command -v yay >/dev/null 2>&1); then
+    echo "==> Installing devenv via AUR"
+    install_aur_arch "devenv-bin" "devenv" || {
+      echo "==> AUR package install failed; falling back to nix profile / devenv installer"
+      if command -v nix >/dev/null 2>&1; then
+        nix profile add --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv || nix profile install --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv
+      else
+        curl -fsSL https://devenv.sh/install.sh | sh
+      fi
+    }
+  elif [ "$OS_FAMILY" = "macos" ] && command -v brew >/dev/null 2>&1; then
+    echo "==> Installing devenv via Homebrew"
+    brew install devenv || {
+      echo "==> Homebrew install failed; falling back to nix profile / devenv installer"
+      if command -v nix >/dev/null 2>&1; then
+        nix profile add --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv || nix profile install --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv
+      else
+        curl -fsSL https://devenv.sh/install.sh | sh
+      fi
+    }
+  else
+    if command -v nix >/dev/null 2>&1; then
+      echo "==> Installing devenv via Nix profile (with flakes enabled)"
+      nix profile add --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv || nix profile install --extra-experimental-features "nix-command flakes" --accept-flake-config github:cachix/devenv || {
+        echo "==> nix profile install failed; falling back to official installer script"
+        curl -fsSL https://devenv.sh/install.sh | sh
+      }
+    else
+      echo "==> Installing devenv via official installer script"
+      curl -fsSL https://devenv.sh/install.sh | sh
+    fi
+  fi
+
+  if command -v devenv >/dev/null 2>&1 || [ -f "$HOME/.nix-profile/bin/devenv" ] || [ -f "/usr/local/bin/devenv" ] || [ -f "$HOME/.local/bin/devenv" ]; then
+    echo "   ✓ devenv installed successfully!"
+  else
+    echo "⚠️ Warning: devenv installation script completed. You may need to reload your shell session to use 'devenv'."
+  fi
+}
+
 # Run the appropriate installer function
 if [ "$OS_FAMILY" = "arch" ]; then
   install_arch_packages
@@ -478,6 +574,9 @@ elif [ "$OS_FAMILY" = "debian" ]; then
 elif [ "$OS_FAMILY" = "macos" ]; then
   install_macos_packages
 fi
+
+# Install devenv and Nix dependency
+install_devenv
 
 # Enable Docker daemon service (Native Arch Linux only)
 if [ "$OS_FAMILY" = "arch" ]; then

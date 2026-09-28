@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # uninstall-dev-env.sh
-# Purpose: Idempotent uninstallation of development environment set up by install-dev-env.sh
+# Purpose: Idempotent uninstallation of development environment set up by install-dev-env.sh (including devenv & Nix)
 # Target: CachyOS / Arch Linux & WSL2-Ubuntu / Debian Linux & macOS
 # ==============================================================================
 set -euo pipefail
@@ -328,6 +328,53 @@ uninstall_macos_packages() {
   done
 }
 
+uninstall_devenv() {
+  echo "==> Uninstalling devenv and Nix"
+
+  # 1. Uninstall devenv CLI
+  if [ "$OS_FAMILY" = "arch" ] && is_installed_arch "devenv-bin"; then
+    echo "==> Uninstalling devenv-bin via pacman"
+    sudo pacman -R --noconfirm devenv-bin || true
+  elif [ "$OS_FAMILY" = "arch" ] && is_installed_arch "devenv"; then
+    echo "==> Uninstalling devenv via pacman"
+    sudo pacman -R --noconfirm devenv || true
+  elif [ "$OS_FAMILY" = "macos" ] && command -v brew >/dev/null 2>&1 && brew list --formula devenv >/dev/null 2>&1; then
+    echo "==> Uninstalling devenv via Homebrew"
+    brew uninstall devenv || true
+  fi
+
+  if command -v nix >/dev/null 2>&1; then
+    nix profile remove devenv >/dev/null 2>&1 || true
+  fi
+
+  rm -f "$HOME/.local/bin/devenv"
+  sudo rm -f /usr/local/bin/devenv
+
+  # Remove devenv configuration and cache directories
+  rm -rf "$HOME/.config/devenv"
+  rm -rf "$HOME/.cache/devenv"
+  echo "   ✓ devenv CLI and user cache directories removed"
+
+  # 2. Uninstall Nix (if installed)
+  if [ -x /nix/nix-installer ]; then
+    echo "==> Uninstalling Nix via Determinate nix-installer"
+    sudo /nix/nix-installer uninstall --no-confirm || true
+  elif [ -d /nix ]; then
+    echo "==> Removing Nix directory and service files"
+    if command -v systemctl >/dev/null 2>&1; then
+      sudo systemctl stop nix-daemon.service nix-daemon.socket 2>/dev/null || true
+      sudo systemctl disable nix-daemon.service nix-daemon.socket 2>/dev/null || true
+    fi
+    sudo rm -rf /nix
+    sudo rm -rf /etc/nix
+    sudo rm -f /etc/profile.d/nix.sh
+    rm -rf "$HOME/.nix-profile" "$HOME/.nix-defexpr" "$HOME/.nix-channels" "$HOME/.config/nix"
+    echo "   ✓ Nix installation and state removed"
+  else
+    echo "   ✓ No Nix installation detected."
+  fi
+}
+
 # Run the appropriate uninstaller function
 if [ "$OS_FAMILY" = "arch" ]; then
   uninstall_arch_packages
@@ -336,6 +383,9 @@ elif [ "$OS_FAMILY" = "debian" ]; then
 elif [ "$OS_FAMILY" = "macos" ]; then
   uninstall_macos_packages
 fi
+
+# Uninstall devenv and Nix
+uninstall_devenv
 
 # Clean up docker group membership (Linux only)
 if [ "$OS_FAMILY" != "macos" ]; then
