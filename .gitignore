@@ -2,6 +2,7 @@
 nvim-linux-x86_64.tar.gz
 nvim-linux-arm64.tar.gz
 nvim-linux64.tar.gz
+nvim/
 
 # Deployed backups and log files
 *.bak
