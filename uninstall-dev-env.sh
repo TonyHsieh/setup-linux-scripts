@@ -408,6 +408,84 @@ uninstall_devenv() {
   fi
 }
 
+# Optional Flatpak uninstallation (Decision point with detection of existing apps and remotes)
+uninstall_flatpak() {
+  if [ "$OS_FAMILY" = "macos" ]; then
+    return 0
+  fi
+
+  local is_installed=false
+  if [ "$OS_FAMILY" = "arch" ] && is_installed_arch "flatpak"; then
+    is_installed=true
+  elif [ "$OS_FAMILY" = "debian" ] && dpkg -s "flatpak" >/dev/null 2>&1; then
+    is_installed=true
+  elif command -v flatpak >/dev/null 2>&1; then
+    is_installed=true
+  fi
+
+  if [ "$is_installed" = false ]; then
+    return 0
+  fi
+
+  echo ""
+  echo "==> Flatpak Evaluation & Decision Point"
+
+  local APPS
+  APPS=$(flatpak list --app --columns=name,application,version,branch,origin,installation 2>/dev/null || true)
+  local REMOTES
+  REMOTES=$(flatpak remotes --columns=name,title,options,url 2>/dev/null || true)
+
+  if [ -n "$APPS" ]; then
+    echo "⚠️  Detected installed Flatpak applications (NOT installed by install-dev-env.sh):"
+    echo "$APPS" | sed 's/^/   /'
+    echo ""
+    echo "⚠️  Warning: Uninstalling the Flatpak package will break desktop shortcuts and prevent these apps from running!"
+  else
+    echo "ℹ️  No installed Flatpak applications detected."
+  fi
+
+  if [ -n "$REMOTES" ]; then
+    echo ""
+    echo "ℹ️  Configured Flatpak remotes:"
+    echo "$REMOTES" | sed 's/^/   /'
+  fi
+
+  if [ -d "$HOME/.var/app" ]; then
+    local APP_COUNT
+    APP_COUNT=$(find "$HOME/.var/app" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [ "$APP_COUNT" -gt 0 ]; then
+      echo ""
+      echo "ℹ️  User application data exists in ~/.var/app ($APP_COUNT application directories)."
+    fi
+  fi
+
+  echo ""
+  if [ -t 0 ]; then
+    read -rp "Do you want to uninstall Flatpak? (y/N) " confirm_flatpak
+    if [[ "$confirm_flatpak" =~ ^[Yy]$ ]]; then
+      if flatpak remotes --system --columns=name 2>/dev/null | grep -qx "flathub"; then
+        read -rp "Do you also want to remove the Flathub system remote? (y/N) " confirm_remote
+        if [[ "$confirm_remote" =~ ^[Yy]$ ]]; then
+          echo "==> Removing Flathub system remote"
+          sudo flatpak remote-delete flathub --force 2>/dev/null || true
+        fi
+      fi
+
+      echo "==> Uninstalling Flatpak package"
+      if [ "$OS_FAMILY" = "arch" ]; then
+        sudo pacman -R --noconfirm flatpak || echo "⚠️ Could not uninstall flatpak"
+      elif [ "$OS_FAMILY" = "debian" ]; then
+        sudo apt-get remove --purge -y flatpak || echo "⚠️ Could not uninstall flatpak"
+      fi
+      echo "   ✓ Flatpak uninstalled (user app data in ~/.var/app preserved)"
+    else
+      echo "==> Keeping Flatpak and existing applications intact."
+    fi
+  else
+    echo "==> Non-interactive session: Skipping Flatpak uninstallation to protect installed applications."
+  fi
+}
+
 # Run the appropriate uninstaller function
 if [ "$OS_FAMILY" = "arch" ]; then
   uninstall_arch_packages
@@ -416,6 +494,9 @@ elif [ "$OS_FAMILY" = "debian" ]; then
 elif [ "$OS_FAMILY" = "macos" ]; then
   uninstall_macos_packages
 fi
+
+# Decision point for Flatpak uninstallation (Linux only)
+uninstall_flatpak
 
 # Uninstall devenv and Nix
 uninstall_devenv

@@ -99,6 +99,7 @@ install_arch_packages() {
     npm
     ripgrep
     make
+    flatpak
   )
 
   local TO_INSTALL=()
@@ -177,6 +178,7 @@ install_debian_packages() {
     nodejs
     npm
     ripgrep
+    flatpak
   )
 
   local TO_INSTALL=()
@@ -600,6 +602,46 @@ install_devenv() {
   fi
 }
 
+# Setup Flatpak and Flathub repository (Linux only)
+setup_flatpak() {
+  if [ "$OS_FAMILY" = "macos" ]; then
+    return 0
+  fi
+
+  if ! command -v flatpak >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "==> Configuring Flatpak and Flathub repository"
+
+  # Ensure the official Flathub system remote exists
+  if ! flatpak remotes --system --columns=name 2>/dev/null | grep -qx "flathub"; then
+    echo "==> Adding Flathub system remote"
+    sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  else
+    # Sanitize Flathub remote URL: fix case where .flatpakrepo file URL was mistakenly used as repo URL
+    local CURRENT_SYS_URL
+    CURRENT_SYS_URL=$(flatpak remotes --system -d 2>/dev/null | awk '$1=="flathub" {print $3}')
+    if [[ "$CURRENT_SYS_URL" == *"flathub.flatpakrepo"* ]]; then
+      echo "==> Correcting Flathub system remote URL to https://dl.flathub.org/repo/"
+      sudo flatpak remote-modify --system flathub --url=https://dl.flathub.org/repo/
+    fi
+  fi
+
+  # Also sanitize user Flathub remote if present
+  if flatpak remotes --user --columns=name 2>/dev/null | grep -qx "flathub"; then
+    local CURRENT_USER_URL
+    CURRENT_USER_URL=$(flatpak remotes --user -d 2>/dev/null | awk '$1=="flathub" {print $3}')
+    if [[ "$CURRENT_USER_URL" == *"flathub.flatpakrepo"* ]]; then
+      echo "==> Correcting Flathub user remote URL to https://dl.flathub.org/repo/"
+      flatpak remote-modify --user flathub --url=https://dl.flathub.org/repo/
+    fi
+  fi
+
+  echo "==> Updating Flatpak AppStream metadata"
+  flatpak update --appstream 2>/dev/null || true
+}
+
 # Run the appropriate installer function
 if [ "$OS_FAMILY" = "arch" ]; then
   install_arch_packages
@@ -608,6 +650,9 @@ elif [ "$OS_FAMILY" = "debian" ]; then
 elif [ "$OS_FAMILY" = "macos" ]; then
   install_macos_packages
 fi
+
+# Configure Flatpak and Flathub repository (Linux only)
+setup_flatpak
 
 # Install devenv and Nix dependency
 install_devenv
