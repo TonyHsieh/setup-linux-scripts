@@ -188,6 +188,19 @@ else
       echo "==> Ensuring local wildcard SSL certificates exist (*.localhost)..."
       "${HOME}/.nix-profile/bin/just" -f "$HOME/.local/share/local-services/justfile" certs 2>/dev/null || true
     fi
+
+    # Register Root CA in Windows Trust Store if running in WSL2
+    if grep -qsi Microsoft /proc/version 2>/dev/null; then
+      ROOT_CA="$HOME/.local/share/mkcert/rootCA.pem"
+      if [ -f "$ROOT_CA" ] && command -v wslpath >/dev/null 2>&1; then
+        WIN_CA="$(wslpath -w "$ROOT_CA" 2>/dev/null || true)"
+        WIN_PS="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+        if [ -n "$WIN_CA" ] && [ -x "$WIN_PS" ]; then
+          echo "==> Attempting to register Root CA in Windows Certificate Store (UAC prompt may appear)..."
+          "$WIN_PS" -NoProfile -Command "Start-Process powershell -Verb RunAs -ArgumentList '-NoProfile','-Command','Import-Certificate -FilePath \"$WIN_CA\" -CertStoreLocation Cert:\LocalMachine\Root'" 2>/dev/null || true
+        fi
+      fi
+    fi
   fi
 
   echo ""
@@ -195,6 +208,14 @@ else
   echo "👉 Your declarative CLI packages are now linked into ~/.nix-profile/bin"
   echo "👉 Existing dotfiles backed up with extension: .$BACKUP_EXT"
   echo "👉 Reload your shell to enjoy the updated environment: exec bash"
+  if grep -qsi Microsoft /proc/version 2>/dev/null; then
+    ROOT_CA="$HOME/.local/share/mkcert/rootCA.pem"
+    if [ -f "$ROOT_CA" ] && command -v wslpath >/dev/null 2>&1; then
+      WIN_CA="$(wslpath -w "$ROOT_CA" 2>/dev/null || true)"
+      echo "👉 Windows SSL Notice: If browser shows untrusted certs, run this in Admin PowerShell:"
+      echo "   Import-Certificate -FilePath \"$WIN_CA\" -CertStoreLocation Cert:\LocalMachine\Root"
+    fi
+  fi
   if command -v podman >/dev/null 2>&1; then
     echo "👉 Local container mesh ready: run 'jl up' to start Traefik, BentoPDF, & Postgres!"
   else
