@@ -6,6 +6,9 @@
 # ==============================================================================
 set -euo pipefail
 
+# Ensure local bin directories are in PATH for current script execution
+export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$HOME/.opencode/bin:$PATH"
+
 # Detect OS family and WSL status
 detect_os() {
   OS_FAMILY="unknown"
@@ -356,9 +359,9 @@ install_debian_packages() {
   fi
 
   # 15. Install OpenCode
-  if ! command -v opencode >/dev/null 2>&1; then
+  if ! command -v opencode >/dev/null 2>&1 && [ ! -f "$HOME/.local/bin/opencode" ] && [ ! -f "$HOME/.opencode/bin/opencode" ]; then
     echo "==> Installing OpenCode"
-    curl -fsSL https://opencode.ai/install | bash
+    XDG_BIN_DIR="$HOME/.local/bin" curl -fsSL https://opencode.ai/install | bash
   else
     echo "==> OpenCode is already installed."
   fi
@@ -651,6 +654,44 @@ elif [ "$OS_FAMILY" = "macos" ]; then
   install_macos_packages
 fi
 
+# Setup AI agent binaries and shorthand symlinks (oc, ha)
+setup_agent_symlinks() {
+  echo "==> Setting up AI agent binaries and shorthand symlinks (oc, ha)"
+  mkdir -p "$HOME/.local/bin"
+
+  # Link opencode to ~/.local/bin if installed in ~/.opencode/bin
+  if [ -f "$HOME/.opencode/bin/opencode" ] && [ ! -f "$HOME/.local/bin/opencode" ]; then
+    ln -sf "$HOME/.opencode/bin/opencode" "$HOME/.local/bin/opencode"
+  fi
+
+  local oc_bin=""
+  if command -v opencode >/dev/null 2>&1; then
+    oc_bin="$(command -v opencode)"
+  elif [ -f "$HOME/.local/bin/opencode" ]; then
+    oc_bin="$HOME/.local/bin/opencode"
+  elif [ -f "$HOME/.opencode/bin/opencode" ]; then
+    oc_bin="$HOME/.opencode/bin/opencode"
+  fi
+
+  if [ -n "$oc_bin" ]; then
+    ln -sf "$oc_bin" "$HOME/.local/bin/oc"
+    echo "   ✓ opencode available at $oc_bin (shorthand: $HOME/.local/bin/oc)"
+  fi
+
+  local ha_bin=""
+  if command -v hermes >/dev/null 2>&1; then
+    ha_bin="$(command -v hermes)"
+  elif [ -f "$HOME/.local/bin/hermes" ]; then
+    ha_bin="$HOME/.local/bin/hermes"
+  fi
+
+  if [ -n "$ha_bin" ]; then
+    ln -sf "$ha_bin" "$HOME/.local/bin/ha"
+    echo "   ✓ hermes available at $ha_bin (shorthand: $HOME/.local/bin/ha)"
+  fi
+}
+setup_agent_symlinks
+
 # Configure Flatpak and Flathub repository (Linux only)
 setup_flatpak
 
@@ -882,6 +923,17 @@ if [ ! -f "$OPENCODE_CFG_FILE" ]; then
   cat <<'EOF' > "$OPENCODE_CFG_FILE"
 {
   "$schema": "https://opencode.ai/config.json",
+  "skills": {
+    "paths": [
+      "$HOME/.config/opencode/skills"
+    ]
+  },
+  "command": {
+    "agy": {
+      "description": "Run a prompt with the Google Antigravity (agy) CLI",
+      "template": "Run the following prompt using the agy CLI tool non-interactively via bash (`agy -p \"$ARG\" --output-format text`): $ARG"
+    }
+  },
   "mcp": {
     "filesystem": {
       "type": "local",
@@ -897,12 +949,66 @@ if [ ! -f "$OPENCODE_CFG_FILE" ]; then
       "type": "local",
       "command": ["npx", "-y", "@modelcontextprotocol/server-postgres"],
       "enabled": true
+    },
+    "puppeteer": {
+      "type": "local",
+      "command": ["podman", "run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"],
+      "enabled": true
     }
   }
 }
 EOF
 else
   echo "==> OpenCode configuration file already exists at $OPENCODE_CFG_FILE"
+fi
+
+# Provision default OpenCode agy skill and /agy command
+OPENCODE_SKILLS_DIR="$OPENCODE_CFG_DIR/skills/agy"
+OPENCODE_COMMANDS_DIR="$OPENCODE_CFG_DIR/commands"
+mkdir -p "$OPENCODE_SKILLS_DIR" "$OPENCODE_COMMANDS_DIR"
+if [ ! -f "$OPENCODE_SKILLS_DIR/SKILL.md" ]; then
+  echo "==> Deploying OpenCode agy skill ($OPENCODE_SKILLS_DIR/SKILL.md)"
+  cat <<'EOF' > "$OPENCODE_SKILLS_DIR/SKILL.md"
+---
+name: agy
+description: Run prompts, tasks, deep reasoning, and ecosystem workflows using the Google Antigravity (AGY) CLI (`agy`). Use this skill whenever the user asks to run an agy command, consult Antigravity, delegate complex architectural analysis, or interact with Google Cloud/Antigravity features.
+---
+
+# Google Antigravity (AGY) CLI Skill
+
+This skill enables OpenCode to delegate tasks, queries, and deep multi-step reasoning to the **Google Antigravity CLI (`agy`)**.
+
+## How to Execute `agy` from OpenCode
+OpenCode invokes `agy` using the built-in `bash` tool in non-interactive print mode (`-p` / `--print`).
+
+### 1. Non-Interactive Text Query (Default)
+Run a prompt and return the formatted response:
+```bash
+agy -p "<prompt>" --output-format text
+```
+
+### 2. Structured JSON Output
+```bash
+agy -p "<prompt>" --output-format json
+```
+
+### 3. Execution Rules & Best Practices
+- Always specify `-p` (or `--print`) so that `agy` does not block waiting for interactive input.
+- Pass `--dangerously-skip-permissions` if non-interactive tool execution is required.
+- Add `--print-timeout <duration>` (e.g. `--print-timeout 180s`) for longer tasks.
+EOF
+fi
+
+if [ ! -f "$OPENCODE_COMMANDS_DIR/agy.md" ]; then
+  cat <<'EOF' > "$OPENCODE_COMMANDS_DIR/agy.md"
+---
+description: Run a prompt using the Google Antigravity (agy) CLI
+---
+
+Run the following user prompt using the `agy` CLI non-interactively via bash (`agy -p "$ARG" --output-format text`):
+
+$ARG
+EOF
 fi
 
 # Provision default Hermes Agent MCP Configuration (~/.hermes/config.yaml)

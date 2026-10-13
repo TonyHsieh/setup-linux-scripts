@@ -82,6 +82,11 @@ fi
 # User paths
 export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 
+# OpenCode binary path (if installed in ~/.opencode/bin)
+if [[ -d "$HOME/.opencode/bin" && ":$PATH:" != *":$HOME/.opencode/bin:"* ]]; then
+  export PATH="$HOME/.opencode/bin:$PATH"
+fi
+
 
 # Rust (installed via rustup)
 if [[ -f "$HOME/.cargo/env" ]]; then
@@ -120,11 +125,6 @@ elif [[ -r /usr/local/etc/profile.d/bash_completion.sh ]]; then
   source /usr/local/etc/profile.d/bash_completion.sh
 fi
 
-# Devenv completion
-if command -v devenv >/dev/null 2>&1; then
-  eval "$(devenv completion bash)"
-fi
-
 
 ##### 5. Prompt (Powerline-style via Starship) #####
 if command -v starship >/dev/null 2>&1; then
@@ -155,10 +155,10 @@ fi
 alias up='cd ..'
 
 # AI Agent Aliases
-if command -v opencode >/dev/null 2>&1; then
+if command -v opencode >/dev/null 2>&1 || [ -f "$HOME/.local/bin/opencode" ] || [ -f "$HOME/.opencode/bin/opencode" ]; then
   alias oc='opencode'
 fi
-if command -v hermes >/dev/null 2>&1; then
+if command -v hermes >/dev/null 2>&1 || [ -f "$HOME/.local/bin/hermes" ]; then
   alias ha='hermes'
 fi
 

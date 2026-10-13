@@ -22,3 +22,7 @@ keys.txt
 
 # Local test configurations
 test/
+
+# Nix build outputs
+result
+result-*

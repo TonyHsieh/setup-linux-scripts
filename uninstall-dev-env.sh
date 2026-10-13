@@ -134,10 +134,11 @@ uninstall_arch_packages() {
   fi
 
   # Uninstall Hermes Agent
-  if command -v hermes >/dev/null 2>&1; then
+  if command -v hermes >/dev/null 2>&1 || [ -f "$HOME/.local/bin/hermes" ]; then
     echo "==> Uninstalling Hermes Agent binary"
-    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes" /usr/local/bin/ha "$HOME/.local/bin/ha"
   fi
+  sudo rm -f /usr/local/bin/oc "$HOME/.local/bin/oc"
 }
 
 uninstall_debian_packages() {
@@ -225,15 +226,16 @@ uninstall_debian_packages() {
   fi
 
   # 12.6. Uninstall OpenCode
-  if command -v opencode >/dev/null 2>&1; then
-    echo "==> Uninstalling OpenCode binary"
-    sudo rm -f /usr/local/bin/opencode "$HOME/.local/bin/opencode"
+  if command -v opencode >/dev/null 2>&1 || [ -f "$HOME/.local/bin/opencode" ] || [ -d "$HOME/.opencode" ]; then
+    echo "==> Uninstalling OpenCode binary and shorthand symlink"
+    sudo rm -f /usr/local/bin/opencode "$HOME/.local/bin/opencode" /usr/local/bin/oc "$HOME/.local/bin/oc"
+    rm -rf "$HOME/.opencode"
   fi
 
   # 12.7. Uninstall Hermes Agent
-  if command -v hermes >/dev/null 2>&1; then
-    echo "==> Uninstalling Hermes Agent binary"
-    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
+  if command -v hermes >/dev/null 2>&1 || [ -f "$HOME/.local/bin/hermes" ]; then
+    echo "==> Uninstalling Hermes Agent binary and shorthand symlink"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes" /usr/local/bin/ha "$HOME/.local/bin/ha"
   fi
 
   # 13. Uninstall Docker CLI
@@ -355,10 +357,11 @@ uninstall_macos_packages() {
   done
 
   # 7. Uninstall Hermes Agent
-  if command -v hermes >/dev/null 2>&1; then
-    echo "==> Uninstalling Hermes Agent binary"
-    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes"
+  if command -v hermes >/dev/null 2>&1 || [ -f "$HOME/.local/bin/hermes" ]; then
+    echo "==> Uninstalling Hermes Agent binary and shorthand symlink"
+    sudo rm -f /usr/local/bin/hermes "$HOME/.local/bin/hermes" /usr/local/bin/ha "$HOME/.local/bin/ha"
   fi
+  rm -f "$HOME/.local/bin/oc" /usr/local/bin/oc
 }
 
 uninstall_devenv() {

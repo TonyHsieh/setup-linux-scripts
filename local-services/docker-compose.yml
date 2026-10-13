@@ -1,0 +1,75 @@
+version: '3.8'
+
+networks:
+  local-mesh:
+    driver: bridge
+
+services:
+  # 🚦 Traefik v3 Ingress Reverse Proxy
+  traefik:
+    image: docker.io/library/traefik:v3.0
+    container_name: traefik-ingress
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/dynamic.yml"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "80:80"       # Standard HTTP (http://app.localhost - no port number needed!)
+      - "443:443"     # Standard HTTPS (https://app.localhost - no port number needed!)
+      - "8088:8080"   # Traefik Dashboard (http://traefik.localhost:8088 or http://traefik.localhost)
+    volumes:
+      - "${DOCKER_SOCK:-/run/user/1000/podman/podman.sock}:/var/run/docker.sock:ro"
+      - "${LOCAL_SERVICES_DIR:-$HOME/.local/share/local-services}/certs:/certs:ro"
+      - "${LOCAL_SERVICES_DIR:-$HOME/.local/share/local-services}/traefik/dynamic.yml:/etc/traefik/dynamic.yml:ro"
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.localhost`)"
+      - "traefik.http.routers.dashboard.entrypoints=web,websecure"
+      - "traefik.http.routers.dashboard.tls=true"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "io.containers.autoupdate=registry"
+
+  # 📄 BentoPDF - Privacy-First Local PDF Toolkit UI
+  bentopdf:
+    image: ghcr.io/alam00000/bentopdf-simple:latest
+    container_name: bentopdf
+    restart: unless-stopped
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bentopdf.rule=Host(`pdf.localhost`)"
+      - "traefik.http.routers.bentopdf.entrypoints=web,websecure"
+      - "traefik.http.routers.bentopdf.tls=true"
+      - "traefik.http.services.bentopdf.loadbalancer.server.port=8080"
+      - "io.containers.autoupdate=registry"
+
+
+  # 🐘 PostgreSQL Database (Local Dev Storage)
+  local-postgres:
+    image: docker.io/library/postgres:16-alpine
+    container_name: local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: devdb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - local-mesh
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres-data:

@@ -1,0 +1,63 @@
+# ==============================================================================
+# Justfile - Local Service Mesh Manager
+# Usage: just -f <path-to-justfile> <command>  (or 'jl <command>')
+# ==============================================================================
+
+COMPOSE_CMD := if `command -v podman-compose >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman-compose" } else { "docker compose" }
+
+export LOCAL_SERVICES_DIR := justfile_directory()
+export COMPOSE_PROJECT_NAME := "local-services"
+
+default:
+    @just --list -f {{justfile()}}
+
+# Start all local container services
+up:
+    @echo "==> Starting local container mesh via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml up -d
+
+# Stop all local container services
+down:
+    @echo "==> Stopping local container mesh..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml down
+
+# View status of running containers
+status:
+    @echo "==> Service Status:"
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml ps
+
+# View container logs (optional service name: just logs bentopdf)
+logs service="":
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml logs -f {{service}}
+
+# Restart all local container services
+restart: down up
+
+# Run Podman auto-update on tagged containers
+update:
+    @echo "==> Running Podman auto-update for tagged container services..."
+    podman auto-update
+
+# Generate / regenerate mkcert SSL certificates for *.localhost
+certs:
+    @echo "==> Generating wildcard SSL certificates for *.localhost..."
+    @mkdir -p {{justfile_directory()}}/certs
+    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "127.0.0.1" "::1"
+
+# Output OpenCode & Hermes MCP config snippets (on-demand containerized stdio)
+mcp-info:
+    @echo "======================================================================"
+    @echo "👉 OpenCode MCP Configuration (~/.config/opencode/opencode.json):"
+    @echo '  "mcp": {'
+    @echo '    "puppeteer": {'
+    @echo '      "type": "local",'
+    @echo '      "command": ["podman", "run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"]'
+    @echo '    }'
+    @echo '  }'
+    @echo "======================================================================"
+    @echo "👉 Hermes Agent MCP Configuration (~/.hermes/config.yaml):"
+    @echo 'mcp_servers:'
+    @echo '  puppeteer:'
+    @echo '    command: "podman"'
+    @echo '    args: ["run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"]'
+    @echo "======================================================================"
