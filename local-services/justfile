@@ -42,7 +42,7 @@ update:
 certs:
     @echo "==> Generating wildcard SSL certificates for *.localhost..."
     @mkdir -p {{justfile_directory()}}/certs
-    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "127.0.0.1" "::1"
+    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "127.0.0.1" "::1"
 
 # Output OpenCode & Hermes MCP config snippets (on-demand containerized stdio)
 mcp-info:
