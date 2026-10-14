@@ -84,16 +84,27 @@ exec bash
 Instead, every repository declares its own isolated compilers and tools via [Devenv](https://devenv.sh/).
 
 ### Quick Project Initialization
-To initialize a new project workspace using this repository's starter template:
+Initialize a new project workspace using any of the built-in stack templates:
 
 ```bash
 mkdir my-new-project && cd my-new-project
+
+# 1. Standard Minimal Starter
 nix flake init -t github:TonyHsieh/setup-linux-scripts
+
+# 2. Node.js & TypeScript (Node 22, pnpm, Biome)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#node
+
+# 3. Python AI / Backend (Python, uv, ruff)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#python
+
+# 4. Systems Rust (Rust toolchain, cargo-watch, rust-analyzer)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#rust
 ```
 
-This creates three starter files:
+This creates three starter files in your project directory:
 * **`flake.nix`**: The project Nix flake entry point.
-* **`devenv.nix`**: Your declarative project dependencies, compilers, and hooks.
+* **`devenv.nix`**: Your declarative project dependencies, compilers, and tools.
 * **`.envrc`**: Directs `direnv` to automatically load the project environment.
 
 ---

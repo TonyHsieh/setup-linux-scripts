@@ -25,11 +25,23 @@
       # 1. Reusable Devenv Module (Phase 4)
       devenvModules.common = import ./modules/devenv-common.nix;
 
-      # 2. Project Flake Templates (Phase 4)
+      # 2. Project Flake Templates
       templates = {
         default = {
           path = ./templates/devenv-starter;
           description = "Standard devenv project starter with common linting and toolchains";
+        };
+        node = {
+          path = ./templates/node;
+          description = "Node.js (v22), TypeScript, pnpm, and Biome";
+        };
+        python = {
+          path = ./templates/python;
+          description = "Python 3.12 with uv fast package manager and ruff";
+        };
+        rust = {
+          path = ./templates/rust;
+          description = "Rust toolchain with clippy, rustfmt, and rust-analyzer";
         };
       };
 
