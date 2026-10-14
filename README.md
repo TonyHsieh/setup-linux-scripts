@@ -301,11 +301,14 @@ home-manager switch --generation <ID>
 
 ---
 
-## ⚠️ 8. Legacy Scripts (v1.x Imperative Setup)
+## ⚠️ 8. Legacy Scripts Archive (v1.x)
 
-The procedural scripts [`install-dev-env.sh`](install-dev-env.sh) and [`install-local-services.sh`](install-local-services.sh) are retained as **legacy v1.x fallbacks**. They are maintained for backward compatibility, but all new features and multi-platform standards are developed within the **v2.0 Declarative Nix Flake architecture** (`bootstrap.sh`).
+The original procedural scripts and templates are archived under [`legacy/`](legacy/README.md) for historical reference:
+- [`legacy/install-dev-env.sh`](legacy/install-dev-env.sh)
+- [`legacy/install-local-services.sh`](legacy/install-local-services.sh)
+- [`legacy/uninstall-dev-env.sh`](legacy/uninstall-dev-env.sh)
 
-If you ever need to clean up legacy packages installed prior to v2.0:
-```bash
-./uninstall-dev-env.sh
-```
+> [!CAUTION]
+> **Do not run `legacy/uninstall-dev-env.sh` on an active Nix installation.**  
+> It was designed for the imperative v1.x setup and will delete or unlink active Home Manager symlinks. For safe legacy pruning steps, consult [`2026-10-13-0016_context.md`](2026-10-13-0016_context.md).
+
