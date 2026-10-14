@@ -14,21 +14,23 @@
 
 ---
 
-## ⚙️ Installation & Architecture in this Repository
+## ⚙️ Installation & Architecture in this Repository (v2.0)
 
-Our setup script ([`install-dev-env.sh`](file:///home/tonyh/_Projects/setup-linux-scripts/install-dev-env.sh)) automates the setup of Devenv and Nix in an **idempotent** manner:
+Our unified bootstrap script ([`bootstrap.sh`](../bootstrap.sh)) automates the setup of Devenv and Nix in a declarative, reproducible manner:
 
 1. **Conflict Inspection**:
    - Checks if an active Conda environment (`$CONDA_PREFIX`) or conflicting Nix installation is present.
    - Outputs clear diagnostic guidance if Conda is active to prevent dynamic library and `PATH` conflicts.
 
-2. **Nix Package Manager Setup**:
-   - If Nix is missing, installs Nix using the cross-platform [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer) with Flakes and `nix-command` enabled out-of-the-box.
+2. **Determinate Nix Installation**:
+   - If Nix is missing, installs Determinate Nix with Flakes and `nix-command` enabled out-of-the-box.
 
-3. **Devenv CLI Installation**:
-   - **Arch Linux / CachyOS**: Installed via `devenv-bin` in AUR (or official installer script fallback).
-   - **macOS**: Installed via Homebrew (`brew install devenv`).
-   - **Debian / Ubuntu**: Installed via official installer script (`curl -fsSL https://devenv.sh/install | sh`).
+3. **Declarative Devenv Delivery**:
+   - `devenv` is provisioned declaratively via Home Manager ([`home/packages.nix`](../home/packages.nix)).
+   - No imperative distribution package managers (`apt`, `aur`, or `brew`) are used.
+
+> [!TIP]
+> For day-to-day project workflows, scaffolding templates, and real-world case studies, see **[`docs/day-to-day-workflow.md`](day-to-day-workflow.md)**.
 
 ---
 
@@ -232,7 +234,7 @@ If you experience long initial startup times or terminal input freezing when ent
   ble/path#remove-glob PATH '/nix/store/*'
   ble/path#remove-glob PATH '/nix/*'
   ```
-- **Re-deploy Configuration**: Run `./install-dev-env.sh` or `source ~/.bashrc` to apply this optimization to your active shell session.
+- **Re-deploy Configuration**: Run `./bootstrap.sh` or `exec bash` to apply this optimization to your active shell session.
 
 ---
 
@@ -247,7 +249,9 @@ devenv gc
 nix-collect-garbage -d
 ```
 
-To completely uninstall `devenv` and Nix from your system:
+To roll back or inspect previous user environment generations:
 ```bash
-./uninstall-dev-env.sh
+home-manager generations
+home-manager switch --generation <ID>
 ```
+

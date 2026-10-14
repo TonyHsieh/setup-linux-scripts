@@ -232,6 +232,38 @@ Drops you into an interactive subshell with all project tools loaded. Type `exit
 }
 ```
 
+#### Example 4: Kubernetes & CKAD Study Stack
+```nix
+{ pkgs, ... }:
+
+{
+  packages = with pkgs; [
+    kubectl
+    minikube
+    kubernetes-helm
+    k9s
+    kustomize
+    yq-go
+    jq
+  ];
+
+  enterShell = ''
+    alias k=kubectl
+    complete -o default -F __start_kubectl k 2>/dev/null || true
+    source <(kubectl completion bash 2>/dev/null) 2>/dev/null || true
+
+    export do="--dry-run=client -o yaml"
+    export now="--force --grace-period=0"
+
+    echo "☸️  CKAD & Kubernetes Environment Loaded!"
+  '';
+}
+```
+
+> [!TIP]
+> **Taking Kubernetes courses like Sander van Vugt's CKAD?**  
+> Never run course scripts that mutate `/usr/local/bin` or `apt`. Follow our step-by-step case study in **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)** to run course labs in an isolated Minikube + Podman container environment.
+
 ---
 
 ## 🚦 4. Local Services & Rootless Container Mesh (Tier 2)
@@ -298,6 +330,10 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 | **Git Shorthands** | `gs`, `gd`, `gl`, `gc`, `gp` | Fast git status, diff, log graph, commit, push |
 | **AI Agents** | `oc` / `ha` | Shorthand for `opencode` and `hermes` |
 | **Kubernetes** | `k` | Shorthand for `kubectl` |
+
+> [!TIP]
+> For detailed instructions on adding global CLI tools, routing new web services through Traefik, or adapting third-party course repositories, consult the complete **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)**.
+
 
 ---
 
