@@ -100,6 +100,9 @@ nix flake init -t github:TonyHsieh/setup-linux-scripts#python
 
 # 4. Systems Rust (Rust toolchain, cargo-watch, rust-analyzer)
 nix flake init -t github:TonyHsieh/setup-linux-scripts#rust
+
+# 5. Kubernetes & CKAD (kubectl, minikube, helm, k9s, exam aliases)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#kubernetes
 ```
 
 This creates three starter files in your project directory:

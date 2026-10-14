@@ -43,6 +43,14 @@
           path = ./templates/rust;
           description = "Rust toolchain with clippy, rustfmt, and rust-analyzer";
         };
+        kubernetes = {
+          path = ./templates/kubernetes;
+          description = "Kubernetes & CKAD study stack (kubectl, minikube, helm, k9s, exam aliases)";
+        };
+        ckad = {
+          path = ./templates/kubernetes;
+          description = "Alias for kubernetes template";
+        };
       };
 
       # 3. User Home Manager Configurations across your machines
