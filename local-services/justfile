@@ -13,6 +13,10 @@ default:
 
 # Start all local container services
 up:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        echo "==> SSL certificates missing. Generating now..."; \
+        just -f {{justfile()}} certs; \
+    fi
     @echo "==> Starting local container mesh via {{COMPOSE_CMD}}..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml up -d
 
