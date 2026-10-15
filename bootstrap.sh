@@ -112,12 +112,16 @@ if [ "$INSTALL_HOST_DEPS" = true ]; then
   install_host_dependencies
 fi
 
-# 1. Ensure Nix is installed
-if ! command -v nix >/dev/null 2>&1 && [ ! -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ] && [ ! -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-  echo "==> Nix not found. Installing Nix via Determinate Systems Installer..."
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
-else
-  echo "   ✓ Nix installation detected."
+# 1. Ensure Nix is installed and available in PATH
+# Unset any inherited guard so profile scripts can re-export PATH if needed
+unset __ETC_PROFILE_NIX_SOURCED 2>/dev/null || true
+
+# Explicitly ensure multi-user and user nix profile bin directories are in PATH
+if [ -d "/nix/var/nix/profiles/default/bin" ]; then
+  export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+fi
+if [ -d "$HOME/.nix-profile/bin" ]; then
+  export PATH="$HOME/.nix-profile/bin:$PATH"
 fi
 
 # Source Nix profile for current execution session if present
@@ -127,10 +131,22 @@ if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
 elif [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
   # shellcheck source=/dev/null
   . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+elif [ -f /etc/profile.d/nix.sh ]; then
+  # shellcheck source=/dev/null
+  . /etc/profile.d/nix.sh
 fi
 
-if [ -d "$HOME/.nix-profile/bin" ]; then
-  export PATH="$HOME/.nix-profile/bin:$PATH"
+if ! command -v nix >/dev/null 2>&1; then
+  echo "==> Nix not found. Installing Nix via Determinate Systems Installer..."
+  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+  if [ -d "/nix/var/nix/profiles/default/bin" ]; then
+    export PATH="/nix/var/nix/profiles/default/bin:$PATH"
+  fi
+  if [ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+    . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+  fi
+else
+  echo "   ✓ Nix installation detected ($(command -v nix))."
 fi
 
 # 1.5. Ensure Nix Flakes and nix-command are enabled permanently

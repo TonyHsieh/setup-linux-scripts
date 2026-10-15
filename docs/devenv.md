@@ -228,11 +228,11 @@ If you experience long initial startup times or terminal input freezing when ent
   ```
 
 ### 2. Eliminating Terminal Freeze & Input Lag (`ble.sh` / Starship)
-- **The Issue**: When entering a `devenv` shell, Nix prepends `/nix/store/...` paths containing thousands of executables to your `$PATH`. Interactive Bash line editors like `ble.sh` attempt to recursively scan every Nix store binary for autocompletion, causing input processing stalls like `(98.1% processing input...)` and triggering `devenv paused`.
-- **The Fix**: In our system `.bashrc`, we explicitly exclude `/nix/store/*` from `ble.sh` path scanning:
+- **The Issue**: When entering complex subshells, interactive Bash line editors like `ble.sh` attempt to synchronously evaluate completions and highlight syntax across extensive PATH entries, which can cause input processing stalls like `(98.1% processing input...)` and triggering `devenv paused`.
+- **The Fix**: In our system `.bashrc`, we configure asynchronous syntax highlighting and a typing delay so auto-completion triggers smoothly without freezing input:
   ```bash
-  ble/path#remove-glob PATH '/nix/store/*'
-  ble/path#remove-glob PATH '/nix/*'
+  bleopt complete_auto_delay=200
+  bleopt highlight_timeout_sync=0
   ```
 - **Re-deploy Configuration**: Run `./bootstrap.sh` or `exec bash` to apply this optimization to your active shell session.
 

@@ -24,10 +24,10 @@ if [[ $- == *i* ]]; then
     bleopt complete_auto_delay=200
     # Process syntax highlighting asynchronously to prevent large folder scans from locking input
     bleopt highlight_timeout_sync=0
-    # Disable auto-complete scanning of slow WSL Windows mount paths & Nix store directories
-    ble/path#remove-glob PATH '/mnt/*'
-    ble/path#remove-glob PATH '/nix/store/*'
-    ble/path#remove-glob PATH '/nix/*'
+    # Exclude slow WSL Windows mount paths if running under WSL
+    if grep -qsi Microsoft /proc/version 2>/dev/null; then
+      ble/path#remove-glob PATH '/mnt/*'
+    fi
   fi
 fi
 

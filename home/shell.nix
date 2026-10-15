@@ -54,9 +54,10 @@
         if type bleopt >/dev/null 2>&1; then
           bleopt complete_auto_delay=200
           bleopt highlight_timeout_sync=0
-          ble/path#remove-glob PATH '/mnt/*'
-          ble/path#remove-glob PATH '/nix/store/*'
-          ble/path#remove-glob PATH '/nix/*'
+          # Exclude slow WSL Windows mount paths if running under WSL
+          if grep -qsi Microsoft /proc/version 2>/dev/null; then
+            ble/path#remove-glob PATH '/mnt/*'
+          fi
         fi
       fi
 
@@ -71,7 +72,7 @@
       PROMPT_COMMAND='history -a; history -n'
 
       ##### 2. User Paths & Core Environment #####
-      export PATH="$HOME/.nix-profile/bin:$HOME/.local/bin:$HOME/bin:$HOME/.opencode/bin:$PATH"
+      export PATH="/nix/var/nix/profiles/default/bin:$HOME/.nix-profile/bin:$HOME/.local/bin:$HOME/bin:$HOME/.opencode/bin:$PATH"
 
       # SSH Agent (avoids duplicate processes)
       if [[ -z "$SSH_AUTH_SOCK" ]]; then
