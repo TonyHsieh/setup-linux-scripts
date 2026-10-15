@@ -535,6 +535,13 @@ EOF
     chmod 600 "$HOME/.bashrc.local"
   fi
 
+  # 7.6. Bootstrap OpenCode configuration (~/.config/opencode/opencode.json) if missing
+  if [ ! -f "$HOME/.config/opencode/opencode.json" ] && [ -f "$SCRIPT_DIR/dotfiles/opencode/opencode.json" ]; then
+    echo "==> Scaffolding initial OpenCode configuration (~/.config/opencode/opencode.json)..."
+    mkdir -p "$HOME/.config/opencode"
+    cp "$SCRIPT_DIR/dotfiles/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
+  fi
+
   echo ""
   echo "🎉 Environment successfully activated via Nix Home Manager!"
   echo "👉 Your declarative CLI packages are now linked into ~/.nix-profile/bin"

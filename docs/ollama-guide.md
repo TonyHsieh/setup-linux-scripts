@@ -151,25 +151,73 @@ Ollama exposes an **OpenAI-compatible REST API** on:
 * Standard HTTP: `http://localhost:11434/v1`
 * Trusted HTTPS: `https://ollama.localhost/v1`
 
-### 6.1 Configuring OpenCode (`oc`)
-OpenCode can use local Ollama as a zero-cost, private coding partner.
+### 6.1 Configuring OpenCode (`oc`) for Multiple Ollama Models
+OpenCode natively supports connecting to multiple Ollama models simultaneously via `~/.config/opencode/opencode.json`.
 
-1. Add the following to `~/.bashrc.local`:
-   ```bash
-   # Route OpenAI-compatible requests to local Ollama
-   export OPENAI_BASE_URL="http://localhost:11434/v1"
-   export OPENAI_API_KEY="ollama"
-   ```
-2. Reload shell:
-   ```bash
-   exec bash
-   ```
-3. Run OpenCode with your downloaded local model:
-   ```bash
-   oc --model qwen2.5-coder:1.5b
-   # or:
-   oc --model qwen2.5-coder:7b
-   ```
+#### Option A: Declarative Configuration (`~/.config/opencode/opencode.json`)
+You can register multiple local models under the `ollama` provider:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/qwen2.5-coder:1.5b",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local Ollama",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:1.5b": { "name": "qwen2.5-coder:1.5b" },
+        "qwen2.5-coder:7b": { "name": "qwen2.5-coder:7b" },
+        "llama3.2:3b": { "name": "llama3.2:3b" },
+        "deepseek-coder-v2:lite": { "name": "deepseek-coder-v2:lite" }
+      }
+    }
+  }
+}
+```
+
+Verify that OpenCode recognizes all configured models:
+```bash
+opencode models ollama
+# Output:
+# ollama/deepseek-coder-v2:lite
+# ollama/llama3.2:3b
+# ollama/qwen2.5-coder:1.5b
+# ollama/qwen2.5-coder:7b
+```
+
+#### Switching Models in OpenCode:
+* **At Launch**: Pass the `--model` flag:
+  ```bash
+  oc --model ollama/qwen2.5-coder:1.5b
+  # or:
+  oc --model ollama/qwen2.5-coder:7b
+  ```
+* **Inside OpenCode (Interactive TUI)**: Type `/model` or use the model switcher UI to swap between models on the fly during a coding session!
+
+#### Connecting to Multiple Ollama Servers (Local + Remote Rig):
+You can also connect to multiple separate Ollama server instances (e.g. your local laptop mesh + a secondary GPU homelab server) by declaring separate provider keys:
+```json
+{
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local Ollama (Laptop)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": { "qwen2.5-coder:1.5b": { "name": "qwen2.5-coder:1.5b" } }
+    },
+    "ollama-rig": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Homelab GPU Rig",
+      "options": { "baseURL": "http://192.168.1.100:11434/v1" },
+      "models": { "qwen2.5-coder:32b": { "name": "qwen2.5-coder:32b" } }
+    }
+  }
+}
+```
+OpenCode will expose both as `ollama/qwen2.5-coder:1.5b` and `ollama-rig/qwen2.5-coder:32b`.
 
 ### 6.2 Configuring Hermes Agent (`ha`)
 Hermes Agent uses LiteLLM provider notation. You can configure it via `~/.hermes/config.yaml`:

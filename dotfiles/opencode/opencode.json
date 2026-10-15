@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/qwen2.5-coder:1.5b",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Local Ollama (Podman Mesh)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "qwen2.5-coder:1.5b": {
+          "name": "qwen2.5-coder:1.5b"
+        },
+        "qwen2.5-coder:7b": {
+          "name": "qwen2.5-coder:7b"
+        },
+        "llama3.2:3b": {
+          "name": "llama3.2:3b"
+        },
+        "deepseek-coder-v2:lite": {
+          "name": "deepseek-coder-v2:lite"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "puppeteer": {
+      "type": "local",
+      "command": [
+        "podman",
+        "run",
+        "-i",
+        "--rm",
+        "--init",
+        "docker.io/mcp/puppeteer:latest"
+      ],
+      "enabled": true
+    }
+  }
+}
