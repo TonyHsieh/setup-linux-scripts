@@ -68,8 +68,21 @@
           ];
         };
 
-        # 2. CachyOS / Arch Linux (User: thsieh01, Home: /home/thsieh01)
+        # 2. CachyOS / Arch Linux (User: thsieh, Home: /home/thsieh)
         "cachyos" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages."x86_64-linux";
+          extraSpecialArgs = { inherit inputs; isWSL = false; };
+          modules = [
+            ./home/default.nix
+            {
+              home.username = "thsieh";
+              home.homeDirectory = "/home/thsieh";
+            }
+          ];
+        };
+
+        # 2b. CachyOS / Arch Linux (User: thsieh01, Home: /home/thsieh01)
+        "cachyos-thsieh01" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages."x86_64-linux";
           extraSpecialArgs = { inherit inputs; isWSL = false; };
           modules = [
@@ -80,6 +93,7 @@
             }
           ];
         };
+
 
         # 3. macOS Darwin (User: thsieh01, Home: /Users/thsieh01)
         "darwin" = home-manager.lib.homeManagerConfiguration {

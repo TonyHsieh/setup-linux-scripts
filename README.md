@@ -56,20 +56,105 @@ flowchart TD
 
 The unified [`bootstrap.sh`](bootstrap.sh) script automatically detects your platform (WSL2, CachyOS, macOS), installs Determinate Nix if missing, and activates your Home Manager configuration.
 
-### Fresh System Installation
+### ⚙️ Step 0: Host System Preparation (Optional, Highly Recommended)
+
+Before running the bootstrap script—especially on rolling-release systems like CachyOS/Arch or machines that haven't updated package databases recently—it is strongly recommended to refresh system mirrors and update host packages. This eliminates HTTP 404 package errors during container runtime and host tool setup:
+
+#### CachyOS / Arch Linux
+```bash
+# 1. Update and rank mirrors to the fastest, active servers
+sudo cachyos-rate-mirrors   # or: rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist
+
+# 2. Synchronize databases & upgrade system packages
+sudo pacman -Syu
+```
+
+#### Ubuntu / Debian (WSL2)
+```bash
+sudo apt-get update && sudo apt-get upgrade -y
+```
+
+#### macOS (Darwin)
+```bash
+brew update && brew upgrade
+```
+
+---
+
+### 🌟 Recommended All-In-One Bootstrap Command
+
+To deploy or upgrade your entire developer environment with host container prerequisites, local SSL ingress, automated self-tests, and legacy artifact cleanup in a single execution:
+
 ```bash
 git clone https://github.com/TonyHsieh/setup-linux-scripts.git ~/setup-linux-scripts
 cd ~/setup-linux-scripts
 
-# Bootstrap user environment + host dependencies (Podman & port sysctl)
-./bootstrap.sh --with-host-deps
+# Comprehensive bootstrap (Host dependencies + automated legacy cleanup verification):
+./bootstrap.sh --with-host-deps --cleanup
 ```
 
+#### What this combined command does:
+1. **`--with-host-deps`**:
+   - Synchronizes databases and installs Podman and container tools via host package managers (`pacman`, `apt`, `brew`).
+   - Enables the rootless Podman user systemd socket (`podman.socket`).
+   - Configures `/etc/sysctl.d/` unprivileged port start (`80`/`443`) for Traefik ingress.
+   - Installs and registers the local root CA and generates wildcard `*.localhost` SSL certificates via `mkcert`.
+2. **`--cleanup`** (or `--clean`):
+   - Catalogs any legacy v1.x tools, duplicate binaries in `/usr/local/bin`, stale dotfile backups, and obsolete directories.
+   - Atomically switches to the new declarative Nix Home Manager profile.
+   - Executes an automated verification self-test on core tools (`starship`, `git`, `tmux`, `nvim`, `direnv`, `just`).
+   - Automatically prunes confirmed legacy residue without requiring interactive prompts.
+
+*(Optional dry-run preview)*: If you want to evaluate and verify flake generation without modifying `$HOME` or installing files:
+```bash
+./bootstrap.sh --build
+```
+
+### 🔄 Installing Over an Existing Version or Upgrading
+
+If you are running `bootstrap.sh` on an existing machine—whether upgrading an active Nix Home Manager configuration or migrating from the legacy v1.x imperative shell scripts—`bootstrap.sh` safeguards your workflow through an automated 4-stage lifecycle:
+
+```mermaid
+flowchart LR
+    A["1. Pre-Flight Detection\n(Scan legacy bins & dotfile backups)"] --> B["2. Atomic Switch\n(Home Manager build & auto-backup)"]
+    B --> C["3. Self-Test Verification\n(Verify starship, git, nvim, direnv, mesh)"]
+    C --> D["4. Safe Cleanup Offer\n(Prompt or --cleanup flag to prune residue)"]
+```
+
+1. **Pre-Flight Detection**:
+   Scans for historical artifacts from previous installs without modifying them:
+   - **Shadowed / Duplicate Host Binaries**: Stale binaries in `/usr/local/bin` or `~/.local/bin` (e.g., `nvim`, `k9s`, `starship`, `minikube`, `flux`, `argocd`, `sops`) that could shadow or collide with Nix packages.
+   - **Stale Dotfile Backups**: Obsolete backup files (`~/.bashrc.bak`, `~/.tmux.conf.bak`, and older `~/.bashrc.backup-*`).
+   - **Obsolete Residue Directories**: Legacy tool directories superseded by declarative Nix (e.g., `~/.tmux/plugins/tpm`, `~/.local/share/blesh`, `~/.local/share/lunarvim`).
+   - **Imperative Nix Profile Collisions**: Packages imperatively installed via `nix profile install` (e.g., legacy `devenv`).
+
+2. **Atomic Switch & Safe Backup**:
+   Home Manager compiles your new environment first. Existing active dotfiles (`~/.bashrc`, `~/.tmux.conf`) are backed up automatically with a timestamp (`.$BACKUP_EXT`) before new declarative symlinks are applied.
+
+3. **Self-Test Verification**:
+   Before asking to delete any old files, `bootstrap.sh` executes an automated health check:
+   - Verifies core CLI tools (`starship`, `git`, `tmux`, `nvim`, `direnv`, `just`) in `~/.nix-profile/bin`.
+   - Verifies shell integration in `~/.bashrc`.
+   - Verifies Tier 2 container mesh configs in `~/.local/share/local-services/`.
+
+4. **Interactive or Automated Cleanup Offer**:
+   - **Interactive Terminal**: Displays an itemized inventory of detected legacy files and offers an interactive confirmation prompt:
+     ```bash
+     Would you like to clean up these legacy / duplicate artifacts now? (y/N)
+     ```
+   - **Automatic Cleanup (`--cleanup` or `--clean`)**: Runs the switch, passes self-tests, and automatically cleans up detected legacy artifacts without prompting.
+   - **Preserve All Backups (`--no-cleanup`)**: Skips the cleanup prompt and leaves all existing backups intact.
+
 ### Available Bootstrap Flags
-* `./bootstrap.sh` — Standard Home Manager switch for current user and auto-detected OS.
-* `./bootstrap.sh --with-host-deps` — Also enables host container runtime, port 80/443 sysctl, and local SSL CA trust.
-* `./bootstrap.sh --build` — Dry-run build testing flake evaluation without mutating `$HOME`.
-* `./bootstrap.sh --profile <name>` — Manually force a profile (`wsl`, `cachyos`, `darwin`).
+
+| Flag | Purpose | Recommended Use |
+| :--- | :--- | :--- |
+| `./bootstrap.sh` | Standard declarative activation with interactive cleanup prompt | Upgrades and day-to-day sync |
+| `./bootstrap.sh --with-host-deps` | Enables rootless Podman, port 80/443 sysctl, and local SSL CA trust | First-time machine setup |
+| `./bootstrap.sh --cleanup` (or `--clean`) | Automatically cleans up detected legacy/duplicate artifacts after self-test verification | Automated installs & clean upgrades |
+| `./bootstrap.sh --no-cleanup` | Skips legacy artifact detection and keeps all backups intact | Safe testing without touching old files |
+| `./bootstrap.sh --build` (or `--dry-run`) | Dry-run build testing flake evaluation without mutating `$HOME` | CI, validation, syntax checks |
+| `./bootstrap.sh --profile <name>` | Manually specify target profile (`wsl`, `cachyos`, `darwin`) | Testing cross-platform profiles |
 
 After bootstrap completes, reload your shell:
 ```bash
@@ -360,5 +445,5 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 
 > [!CAUTION]
 > **Do not run `legacy/uninstall-dev-env.sh` on an active Nix installation.**  
-> It was designed for the imperative v1.x setup and will delete or unlink active Home Manager symlinks. For safe legacy pruning steps, consult [`2026-10-13-0016_context.md`](2026-10-13-0016_context.md).
+> It was designed for the imperative v1.x setup and will delete or unlink active Home Manager symlinks. To safely detect and prune legacy v1.x artifacts without harming your declarative environment, simply run [`./bootstrap.sh --cleanup`](bootstrap.sh) (see [Section 2](#-installing-over-an-existing-version-or-upgrading)).
 

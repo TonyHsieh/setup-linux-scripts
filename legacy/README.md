@@ -16,7 +16,7 @@ This directory preserves the original imperative bash scripts and static dotfile
 | `install-local-services.sh` | Podman local service deployment script | [`local-services/justfile`](../local-services/justfile) (`jl up`) |
 | `setup-starship.sh` | Manual Starship installer and config deployment | [`home/starship.nix`](../home/starship.nix) + [`dotfiles/starship.toml`](../dotfiles/starship.toml) |
 | `remove-lunarvim.sh` | LunarVim cleanup helper | Not needed; Neovim managed via Nix Flake |
-| `uninstall-dev-env.sh` | Imperative uninstaller for v1.x packages | `nix profile wipe-history` / `home-manager generations` |
+| `uninstall-dev-env.sh` | Imperative uninstaller for v1.x packages | [`./bootstrap.sh --cleanup`](../bootstrap.sh) / `home-manager generations` |
 | `uninstall-local-services.sh` | Imperative local services teardown | `jl down` in [`local-services/`](../local-services/) |
 | `.bashrc` | Imperative bash template copied to `~/.bashrc` | [`home/shell.nix`](../home/shell.nix) |
 | `.tmux.conf` | Imperative tmux template copied to `~/.tmux.conf` | [`home/tmux.nix`](../home/tmux.nix) |
