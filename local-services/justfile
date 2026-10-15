@@ -29,6 +29,25 @@ up-all:
     @echo "==> Starting all local container services via {{COMPOSE_CMD}}..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile all up -d
 
+# Stop all local container services
+down:
+    @echo "==> Stopping local container mesh via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml down
+
+# Show status of local container services
+status:
+    @echo "==> Local container service status:"
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml ps
+
+# View logs for local services (e.g. jl logs or jl logs traefik)
+logs service="":
+    @if [ -z "{{service}}" ]; then \
+        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml logs -f; \
+    else \
+        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml logs -f {{service}}; \
+    fi
+
+
 # --- 🦙 Ollama Local LLM Inference Engine Tasks ---
 # Start Ollama Local LLM service (https://ollama.localhost)
 up-llm:
