@@ -493,6 +493,32 @@ else
     fi
   fi
 
+  # 7.5. Bootstrap local secret overrides (~/.bashrc.local) template if missing
+  if [ ! -f "$HOME/.bashrc.local" ]; then
+    echo "==> Creating initial ~/.bashrc.local credential stubs template..."
+    cat << 'EOF' > "$HOME/.bashrc.local"
+# ~/.bashrc.local - Machine-specific & Private Environment Overrides
+# This file is sourced by ~/.bashrc and is ignored by Git.
+
+# --- ☁️ Hosted AI Agent Providers ---
+# Google Gemini (https://aistudio.google.com/app/apikey)
+# export GEMINI_API_KEY="AIzaSy..."
+# export GOOGLE_GENERATIVE_AI_API_KEY="$GEMINI_API_KEY"
+
+# OpenRouter Unified Multi-Model Gateway (https://openrouter.ai/keys)
+# export OPENROUTER_API_KEY="sk-or-v1-..."
+
+# Groq Ultra-Low Latency Inference (https://console.groq.com/keys)
+# export GROQ_API_KEY="gsk_..."
+
+# --- 🦙 Local Containerized LLM (Ollama / LocalAI / llama.cpp) ---
+# Uncomment to direct OpenCode or LiteLLM agents to your local mesh:
+# export OPENAI_BASE_URL="http://localhost:11434/v1"
+# export OPENAI_API_KEY="ollama"
+EOF
+    chmod 600 "$HOME/.bashrc.local"
+  fi
+
   echo ""
   echo "🎉 Environment successfully activated via Nix Home Manager!"
   echo "👉 Your declarative CLI packages are now linked into ~/.nix-profile/bin"

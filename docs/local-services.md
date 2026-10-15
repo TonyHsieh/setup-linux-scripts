@@ -56,26 +56,29 @@ flowchart TD
 
 ## 🌐 2. Active Services & Endpoints
 
-| Service | Local Domain / URL | Port Binding | Purpose |
-| :--- | :--- | :--- | :--- |
-| **BentoPDF Web UI** | `https://pdf.localhost` | Route via Traefik (80/443) | Privacy-first PDF merger, split, OCR, and editor |
-| **Traefik Dashboard** | `https://traefik.localhost/dashboard/` | 80/443 & `localhost:8088` | Real-time reverse proxy routing & health metrics |
-| **PostgreSQL Database** | `localhost:5432` | `0.0.0.0:5432` | Local dev database (`devuser` / `devpassword` / `devdb`) |
-| **Puppeteer MCP** | Stdio (On-demand) | None (zero idle RAM) | Headless Chromium web scraping for AI agents |
+| Service | Local Domain / URL | Profile | Port Binding | Purpose |
+| :--- | :--- | :--- | :--- | :--- |
+| **BentoPDF Web UI** | `https://pdf.localhost` | Default | 80/443 | Privacy-first PDF merger, split, OCR, and editor |
+| **Traefik Dashboard** | `https://traefik.localhost/dashboard/` | Default | 80/443 & `localhost:8088` | Real-time reverse proxy routing & health metrics |
+| **PostgreSQL Database** | `localhost:5432` | Default | `0.0.0.0:5432` | Local dev database (`devuser` / `devpassword` / `devdb`) |
+| **Ollama Local LLM** | `https://ollama.localhost` | `llm` | `0.0.0.0:11434` | Offline LLM inference engine & OpenAI API endpoint |
+| **Kavita Reader** | `https://kavita.localhost` | `books` / `apps` | 80/443 (internal 5000) | E-book, comic, and manga reader UI (mounts `$HOME/Books`) |
+| **Plex Media Server** | `https://plex.localhost` | `media` | `0.0.0.0:32400` | Local media streaming server (mounts `$HOME/Media`) |
+| **Puppeteer MCP** | Stdio (On-demand) | Agent Tool | None (zero idle RAM) | Headless Chromium web scraping for AI agents |
 
 > [!TIP]
-> All HTTP requests (e.g. `http://pdf.localhost`) automatically redirect to HTTPS with valid TLS certificates.
+> All HTTP requests (e.g. `http://pdf.localhost`, `http://ollama.localhost`) automatically redirect to HTTPS with valid TLS certificates.
 
 ---
 
 ## ⚡ 3. Managing Services with the Task Runner (`jl`)
 
-The task runner [`local-services/justfile`](file:///home/tonyh/_Projects/setup-linux-scripts/local-services/justfile) is installed to `~/.local/share/local-services/justfile` and aliased to **`jl`** in your shell.
+The task runner [`local-services/justfile`](../local-services/justfile) is linked to `~/.local/share/local-services/justfile` and aliased to **`jl`** in your shell.
 
 | Command | Action |
 | :--- | :--- |
 | `jl status` | View container health, IDs, and mapped ports |
-| `jl up` | Start or converge all services in background (`-d`) |
+| `jl up` | Start default core container mesh (Traefik, BentoPDF, PostgreSQL) |
 | `jl down` | Stop all containers without deleting data volumes |
 | `jl restart` | Quick restart of the entire mesh |
 | `jl logs` | Follow aggregate logs from all mesh containers |
@@ -83,6 +86,16 @@ The task runner [`local-services/justfile`](file:///home/tonyh/_Projects/setup-l
 | `jl certs` | Regenerate local wildcard SSL certificates via `mkcert` |
 | `jl update` | Pull updated images for containers tagged `io.containers.autoupdate` |
 | `jl mcp-info` | Display configuration snippets for OpenCode & Hermes |
+| `jl up-llm` | Start Ollama service on `https://ollama.localhost` and port 11434 |
+| `jl down-llm` | Stop Ollama container |
+| `jl llm-pull <model>` | Download an LLM model into Ollama (e.g., `jl llm-pull qwen2.5-coder:7b`) |
+| `jl llm-list` | List downloaded local models in Ollama |
+| `jl llm-status` | Display available models and size via local API |
+| `jl up-books` | Start Kavita e-book and manga reader (`https://kavita.localhost`) |
+| `jl down-books` | Stop Kavita container |
+| `jl up-media` | Start Plex media server (`https://plex.localhost`) |
+| `jl down-media` | Stop Plex container |
+| `jl up-all` | Start ALL services (core + LLM + books + media) |
 
 ---
 
@@ -155,7 +168,71 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 
 ---
 
-## ➕ 6. How to Add a New Service to the Mesh (Step-by-Step)
+## 🦙 6. Using the Ollama Local LLM Inference Engine
+
+The local inference engine runs under the `llm` profile so it only consumes RAM and GPU compute when you explicitly launch it.
+
+### Lifecycle Management
+```bash
+jl up-llm       # Start Ollama on https://ollama.localhost and port 11434
+jl down-llm     # Stop Ollama and release host memory
+```
+
+### Pulling Recommended Models
+```bash
+# Primary daily coding assistant (7B params, ~5GB RAM):
+jl llm-pull qwen2.5-coder:7b
+
+# Fast, ultra-lightweight model for quick terminal tasks & battery mode:
+jl llm-pull qwen2.5-coder:1.5b
+
+# Strong instruction follower for Hermes research tasks:
+jl llm-pull llama3.2:3b
+
+# Check status and downloaded models:
+jl llm-list
+jl llm-status
+```
+
+### Connecting AI Agents to Local Ollama
+Ollama exposes an OpenAI-compatible API at `http://localhost:11434/v1` and `https://ollama.localhost/v1`.
+
+Enable local inference in `~/.bashrc.local`:
+```bash
+export OPENAI_BASE_URL="http://localhost:11434/v1"
+export OPENAI_API_KEY="ollama"
+```
+
+In OpenCode:
+```bash
+oc --model openai/qwen2.5-coder:7b
+```
+
+---
+
+## 📚 7. Homelab On-Demand Services (Kavita & Plex)
+
+Homelab services are isolated under the `books` and `media` profiles so they do not consume resources during daily coding sessions:
+
+### Kavita E-Book & Manga Reader
+* **Web UI**: [https://kavita.localhost](https://kavita.localhost)
+* **Library Directory**: `${BOOKS_DIR:-$HOME/Books}`
+```bash
+jl up-books     # Start Kavita service
+jl down-books   # Stop Kavita service
+```
+
+### Plex Media Server
+* **Web UI**: [https://plex.localhost](https://plex.localhost) or `http://localhost:32400/web`
+* **Media Directory**: `${MEDIA_DIR:-$HOME/Media}`
+```bash
+jl up-media     # Start Plex service
+jl down-media   # Stop Plex service
+```
+
+---
+
+## ➕ 8. How to Add a New Service to the Mesh (Step-by-Step)
 
 Adding custom developer tools or services (such as Redis, pgAdmin, MailHog, or custom web APIs) is fully declarative and repeatable.
 
@@ -191,10 +268,9 @@ While `*.localhost` covers single-level subdomains, explicitly adding the subdom
    ```
 2. Run `jl certs`.
 
-#### Step 3: Sync to Live Directory & Deploy
-Deploy the changes:
+#### Step 3: Apply Declarative Changes & Deploy
+Because `~/.local/share/local-services/` is managed declaratively by Home Manager, run `./bootstrap.sh` (or `jl restart` if running from repo clone):
 ```bash
-cp -f local-services/docker-compose.yml local-services/justfile ~/.local/share/local-services/
 jl up
 ```
 
@@ -203,7 +279,7 @@ Navigate directly to [https://pgadmin.localhost](https://pgadmin.localhost) in y
 
 ---
 
-## 🔧 7. Troubleshooting & Maintenance
+## 🔧 9. Troubleshooting & Maintenance
 
 ### Port 80 / 443 Permission Denied on Reboot
 If WSL restarts and Traefik fails to start with:

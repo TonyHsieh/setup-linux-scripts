@@ -71,5 +71,76 @@ services:
     ports:
       - "5432:5432"
 
+  # 🦙 Ollama Local LLM Inference Engine (On-Demand)
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    container_name: local-ollama
+    restart: unless-stopped
+    profiles: ["llm", "all"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ollama.rule=Host(`ollama.localhost`)"
+      - "traefik.http.routers.ollama.entrypoints=web,websecure"
+      - "traefik.http.routers.ollama.tls=true"
+      - "traefik.http.services.ollama.loadbalancer.server.port=11434"
+      - "io.containers.autoupdate=registry"
+
+  # 📚 Kavita E-Book, Comic, & Manga Reader UI (On-Demand)
+  kavita:
+    image: docker.io/kavitareader/kavita:latest
+    container_name: local-kavita
+    restart: unless-stopped
+    profiles: ["apps", "books", "all"]
+    environment:
+      - TZ=America/Los_Angeles
+    volumes:
+      - kavita-data:/kavita/data
+      - "${BOOKS_DIR:-$HOME/Books}:/books:ro"
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kavita.rule=Host(`kavita.localhost`)"
+      - "traefik.http.routers.kavita.entrypoints=web,websecure"
+      - "traefik.http.routers.kavita.tls=true"
+      - "traefik.http.services.kavita.loadbalancer.server.port=5000"
+      - "io.containers.autoupdate=registry"
+
+  # 🎬 Plex Media Server (On-Demand)
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: local-plex
+    restart: unless-stopped
+    profiles: ["media", "all"]
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - VERSION=docker
+    ports:
+      - "32400:32400"
+    volumes:
+      - plex-config:/config
+      - "${MEDIA_DIR:-$HOME/Media}:/media"
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.plex.rule=Host(`plex.localhost`)"
+      - "traefik.http.routers.plex.entrypoints=web,websecure"
+      - "traefik.http.routers.plex.tls=true"
+      - "traefik.http.services.plex.loadbalancer.server.port=32400"
+      - "io.containers.autoupdate=registry"
+
 volumes:
   postgres-data:
+  ollama-models:
+  kavita-data:
+  plex-config:
+

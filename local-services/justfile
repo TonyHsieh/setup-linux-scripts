@@ -11,7 +11,7 @@ export COMPOSE_PROJECT_NAME := "local-services"
 default:
     @just --list -f {{justfile()}}
 
-# Start all local container services
+# Start all local container services (default core profile)
 up:
     @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         echo "==> SSL certificates missing. Generating now..."; \
@@ -20,33 +20,80 @@ up:
     @echo "==> Starting local container mesh via {{COMPOSE_CMD}}..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml up -d
 
-# Stop all local container services
-down:
-    @echo "==> Stopping local container mesh..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml down
+# Start ALL services including optional profiles (LLM, Books, Media)
+up-all:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        echo "==> SSL certificates missing. Generating now..."; \
+        just -f {{justfile()}} certs; \
+    fi
+    @echo "==> Starting all local container services via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile all up -d
 
-# View status of running containers
-status:
-    @echo "==> Service Status:"
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml ps
+# --- 🦙 Ollama Local LLM Inference Engine Tasks ---
+# Start Ollama Local LLM service (https://ollama.localhost)
+up-llm:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        just -f {{justfile()}} certs; \
+    fi
+    @echo "==> Starting Ollama Local LLM service via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile llm up -d ollama
+    @echo "👉 Ollama is available at http://localhost:11434 and https://ollama.localhost"
 
-# View container logs (optional service name: just logs bentopdf)
-logs service="":
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml logs -f {{service}}
+# Stop Ollama Local LLM service
+down-llm:
+    @echo "==> Stopping Ollama Local LLM service..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ollama
 
-# Restart all local container services
-restart: down up
+# Pull a model into Ollama (e.g. jl llm-pull qwen2.5-coder:7b)
+llm-pull model:
+    @echo "==> Pulling model '{{model}}' into Ollama..."
+    podman exec -it local-ollama ollama pull {{model}}
 
-# Run Podman auto-update on tagged containers
-update:
-    @echo "==> Running Podman auto-update for tagged container services..."
-    podman auto-update
+# List downloaded models in Ollama
+llm-list:
+    @podman exec -i local-ollama ollama list
+
+# Check Ollama status and available models
+llm-status:
+    @curl -s http://localhost:11434/api/tags 2>/dev/null | jq -r '.models[]? | "\(.name) (\(.size / 1024 / 1024 | floor) MB)"' 2>/dev/null || echo "Ollama not running or no models pulled yet."
+
+# --- 📚 Kavita E-Book & Manga Server Tasks ---
+# Start Kavita E-Book & Manga Server (https://kavita.localhost)
+up-books:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        just -f {{justfile()}} certs; \
+    fi
+    @mkdir -p ${BOOKS_DIR:-$HOME/Books}
+    @echo "==> Starting Kavita E-Book server via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile books up -d kavita
+    @echo "👉 Kavita is available at https://kavita.localhost (Library: ${BOOKS_DIR:-$HOME/Books})"
+
+# Stop Kavita E-Book Server
+down-books:
+    @echo "==> Stopping Kavita..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop kavita
+
+# --- 🎬 Plex Media Server Tasks ---
+# Start Plex Media Server (https://plex.localhost)
+up-media:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        just -f {{justfile()}} certs; \
+    fi
+    @mkdir -p ${MEDIA_DIR:-$HOME/Media}
+    @echo "==> Starting Plex Media Server via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile media up -d plex
+    @echo "👉 Plex is available at https://plex.localhost and http://localhost:32400/web"
+
+# Stop Plex Media Server
+down-media:
+    @echo "==> Stopping Plex..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop plex
 
 # Generate / regenerate mkcert SSL certificates for *.localhost
 certs:
     @echo "==> Generating wildcard SSL certificates for *.localhost..."
     @mkdir -p {{justfile_directory()}}/certs
-    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "127.0.0.1" "::1"
+    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
 
 # Output OpenCode & Hermes MCP config snippets (on-demand containerized stdio)
 mcp-info:

@@ -357,24 +357,42 @@ The repository provides a rootless Podman stack with Traefik v3 ingress and auto
 
 ### Available Services
 
-| Service | Local Endpoint | Description |
-| :--- | :--- | :--- |
-| **BentoPDF UI** | [https://pdf.localhost](https://pdf.localhost) | Privacy-first PDF merger, compressor, split, and editor |
-| **Traefik Dashboard** | [https://traefik.localhost/dashboard/](https://traefik.localhost/dashboard/) | Real-time proxy metrics, router rules, and health |
-| **PostgreSQL Database** | `localhost:5432` | Local dev DB (`devuser` / `devpassword` / `devdb`) |
-| **Puppeteer MCP** | Stdio (On-demand) | Headless browser scraping tool for AI agents |
+| Service | Local Endpoint | Profile | Description |
+| :--- | :--- | :--- | :--- |
+| **BentoPDF UI** | [https://pdf.localhost](https://pdf.localhost) | Default | Privacy-first PDF merger, compressor, split, and editor |
+| **Traefik Dashboard** | [https://traefik.localhost/dashboard/](https://traefik.localhost/dashboard/) | Default | Real-time proxy metrics, router rules, and health (port 8088) |
+| **PostgreSQL Database** | `localhost:5432` | Default | Local dev DB (`devuser` / `devpassword` / `devdb`) |
+| **Ollama Local LLM** | [https://ollama.localhost](https://ollama.localhost) | `llm` | Offline LLM inference engine & OpenAI-compatible endpoint (port 11434) |
+| **Kavita Reader** | [https://kavita.localhost](https://kavita.localhost) | `books` / `apps` | E-book, digital comic, and manga reader UI (mounts `$HOME/Books`) |
+| **Plex Media Server** | [https://plex.localhost](https://plex.localhost) | `media` | Local media streaming server (mounts `$HOME/Media`, port 32400) |
+| **Puppeteer MCP** | Stdio (On-demand) | Agent Tool | Headless browser scraping tool for AI agents (zero idle RAM) |
 
 ### Task Runner Commands (`jl` Alias)
 Manage the local services using the `jl` task runner:
 
 ```bash
-jl status    # View status of running container services
-jl up        # Start all local container services in background
-jl down      # Stop all local container services
-jl restart   # Restart all container services
-jl logs      # Follow real-time service logs (or: jl logs bentopdf)
-jl certs     # Regenerate local wildcard SSL certificates
-jl mcp-info  # Show OpenCode & Hermes MCP connection snippets
+# Core Services
+jl status       # View status of running container services
+jl up           # Start core container mesh (Traefik, BentoPDF, PostgreSQL)
+jl down         # Stop all local container services
+jl restart      # Restart all container services
+jl logs         # Follow real-time service logs (or: jl logs bentopdf)
+jl certs        # Regenerate local wildcard SSL certificates (*.localhost)
+jl mcp-info     # Show OpenCode & Hermes MCP connection snippets
+
+# 🦙 On-Demand Local LLM (Ollama)
+jl up-llm       # Start Ollama service on https://ollama.localhost & port 11434
+jl down-llm     # Stop Ollama service
+jl llm-pull <m> # Pull model into Ollama (e.g., jl llm-pull qwen2.5-coder:7b)
+jl llm-list     # List downloaded local models
+jl llm-status   # Display active models and memory footprint
+
+# 📚 On-Demand Homelab Services
+jl up-books     # Start Kavita e-book/manga server (https://kavita.localhost)
+jl down-books   # Stop Kavita server
+jl up-media     # Start Plex media server (https://plex.localhost)
+jl down-media   # Stop Plex server
+jl up-all       # Start ALL core and optional profile services simultaneously
 ```
 
 > [!TIP]
