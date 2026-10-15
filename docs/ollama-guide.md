@@ -1,0 +1,251 @@
+# 🦙 Ollama Local LLM & Rootless Podman Guide
+
+**Runtime**: Rootless Podman & Podman Compose  
+**Container**: `local-ollama`  
+**Compose Profile**: `profiles: ["llm", "all"]`  
+**Host Ports**: `0.0.0.0:11434` (Direct TCP / OpenAI API)  
+**Ingress Domain**: `https://ollama.localhost` (Traefik v3 with SSL)  
+**Task Runner**: `just` (aliased as `jl`)  
+
+---
+
+## 🏛️ 1. Architecture & Design
+
+Ollama provides private, offline, zero-token-cost Large Language Model inference for coding and agent automation. In this setup, Ollama is containerized within our rootless Podman mesh rather than installed directly as an unmanaged system package.
+
+```mermaid
+flowchart TD
+    User["Developer Terminal / Host CLI"]
+    Browser["Web Browser"]
+    Agents["AI Agents (OpenCode, Hermes, Neovim)"]
+
+    subgraph Host["Host Machine (CachyOS / Linux / WSL)"]
+        CLI["ollama wrapper function (in ~/.bashrc)"]
+        JL["jl task runner (in ~/.local/share/local-services/justfile)"]
+    end
+
+    subgraph Mesh["Rootless Podman Container Mesh"]
+        Traefik["Traefik v3 Proxy (https://ollama.localhost)"]
+        Ollama["local-ollama container (Port 11434)"]
+        Volume[("ollama-models (Persistent Podman Volume)")]
+    end
+
+    User -->|'ollama run ...'| CLI
+    CLI -->|'podman exec -it local-ollama'| Ollama
+    User -->|'jl up-llm' / 'jl llm-pull'| JL
+    JL --> Ollama
+    Browser -->|HTTPS| Traefik
+    Traefik --> Ollama
+    Agents -->|'http://localhost:11434/v1'| Ollama
+    Ollama <--> Volume
+```
+
+### Why does `https://ollama.localhost` only say *"Ollama is running"*?
+* **Ollama is a headless REST API engine**, not a graphical web application.
+* That plain text message (`"Ollama is running"`) is Ollama's official HTTP health-check confirmation indicating that the inference server is online and accepting API calls on port 11434.
+* To interact with models visually in a browser, you can attach a web interface like **Open WebUI** (see [Section 7](#7-optional-adding-a-chatgpt-style-web-gui-open-webui)).
+
+---
+
+## ⚡ 2. Quickstart & Service Lifecycle
+
+Ollama runs under the on-demand `llm` profile so it consumes zero CPU or RAM until you explicitly launch it.
+
+### Start and Stop the Service
+```bash
+# Start Ollama container in the background
+jl up-llm
+
+# Check running status and port bindings
+jl status
+
+# Stop Ollama container when done (frees all RAM/VRAM)
+jl down-llm
+```
+
+---
+
+## 💻 3. Command-Line Usage (Host CLI Wrapper)
+
+Because Ollama runs inside a container, a transparent wrapper function is provided in `~/.bashrc`:
+```bash
+ollama() {
+  if [ -t 0 ] && [ -t 1 ]; then
+    podman exec -it local-ollama ollama "$@"
+  else
+    podman exec -i local-ollama ollama "$@"
+  fi
+}
+```
+
+Once your shell is loaded (`exec bash`), you can run `ollama` commands natively on the host:
+
+| Command | Shorthand / Alternative | Description |
+| :--- | :--- | :--- |
+| `ollama pull <model>` | `jl llm-pull <model>` | Download a model into the container |
+| `ollama run <model>` | `jl llm-run <model>` | Launch an interactive chat prompt |
+| `ollama list` | `jl llm-list` | List downloaded models on disk |
+| `ollama ps` | `podman exec -i local-ollama ollama ps` | View currently loaded models in memory |
+| `ollama rm <model>` | `podman exec -i local-ollama ollama rm <model>` | Delete a model to free disk space |
+| `jl llm-status` | — | Check API connectivity and model file sizes |
+
+---
+
+## 💬 4. Interactive Terminal Chat Experience
+
+### 1. Pull a Recommended Model
+For quick CPU execution, download the lightweight `qwen2.5-coder:1.5b` model (~986 MB):
+```bash
+ollama pull qwen2.5-coder:1.5b
+```
+
+### 2. Start Chatting
+```bash
+ollama run qwen2.5-coder:1.5b
+```
+
+You will enter the interactive REPL:
+```text
+>>> Write a python function to validate an email address using regex
+...
+```
+
+### 3. Essential REPL In-Chat Commands
+* `/bye` or `Ctrl+D`: Exit the chat session and return to your shell.
+* `/clear`: Clear the active conversation context.
+* `/show info`: Display active model parameters, context window, and quantization.
+* `/?`: Show full help menu for interactive commands.
+
+### 4. One-Shot Piping & Scripting
+You can pipe text directly into `ollama` without entering interactive mode:
+```bash
+# Code review a local file:
+cat bootstrap.sh | ollama run qwen2.5-coder:1.5b "Summarize what this bash script does in 3 bullet points"
+
+# Generate git commit messages:
+git diff | ollama run qwen2.5-coder:1.5b "Write a conventional git commit message for this diff"
+```
+
+---
+
+## 🧠 5. Recommended Models for Coding & Agents
+
+| Model | Parameter Size | Download Size | RAM / VRAM Req. | Best Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **`qwen2.5-coder:1.5b`** | 1.5 Billion | ~986 MB | ~2 GB | Ultra-fast CPU coding, quick bash/python scripts, battery mode |
+| **`llama3.2:3b`** | 3.2 Billion | ~2.0 GB | ~3.5 GB | Hermes autonomous agent tasks, summarization, research |
+| **`qwen2.5-coder:7b`** | 7.6 Billion | ~4.7 GB | ~6–8 GB | **Daily coding partner**: State-of-the-art coding and tool calling |
+| **`qwen2.5-coder:14b`** | 14.7 Billion | ~9.0 GB | ~12–16 GB | High-accuracy refactoring and complex multi-turn logic |
+| **`deepseek-coder-v2:lite`** | 16B (MoE) | ~8.9 GB | ~12–16 GB | Mixture-of-Experts coding quality with low active parameter overhead |
+
+To pull any model:
+```bash
+ollama pull qwen2.5-coder:7b
+```
+
+---
+
+## 🤖 6. Connecting AI Agents to Local Ollama
+
+Ollama exposes an **OpenAI-compatible REST API** on:
+* Standard HTTP: `http://localhost:11434/v1`
+* Trusted HTTPS: `https://ollama.localhost/v1`
+
+### 6.1 Configuring OpenCode (`oc`)
+OpenCode can use local Ollama as a zero-cost, private coding partner.
+
+1. Add the following to `~/.bashrc.local`:
+   ```bash
+   # Route OpenAI-compatible requests to local Ollama
+   export OPENAI_BASE_URL="http://localhost:11434/v1"
+   export OPENAI_API_KEY="ollama"
+   ```
+2. Reload shell:
+   ```bash
+   exec bash
+   ```
+3. Run OpenCode with your downloaded local model:
+   ```bash
+   oc --model qwen2.5-coder:1.5b
+   # or:
+   oc --model qwen2.5-coder:7b
+   ```
+
+### 6.2 Configuring Hermes Agent (`ha`)
+Hermes Agent uses LiteLLM provider notation. You can configure it via `~/.hermes/config.yaml`:
+```yaml
+model: "ollama/qwen2.5-coder:7b"
+api_base: "http://localhost:11434"
+```
+
+### 6.3 Direct REST API & `curl` Examples
+Verify API connectivity directly from your terminal:
+
+```bash
+# List available models via REST API:
+curl -s http://localhost:11434/api/tags | jq .
+
+# Send a chat completion request (OpenAI-compatible format):
+curl -s http://localhost:11434/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen2.5-coder:1.5b",
+    "messages": [
+      {"role": "user", "content": "Explain what a Nix Flake is in one sentence."}
+    ],
+    "temperature": 0.2
+  }' | jq '.choices[0].message.content'
+```
+
+---
+
+## 🌐 7. Optional: Adding a ChatGPT-Style Web GUI (Open WebUI)
+
+If you would like a graphical chat interface in your browser (with conversation history, model switching dropdowns, document analysis, and web search) at `https://chat.localhost`, you can add **Open WebUI** to the container mesh:
+
+1. Add the following service definition to [`local-services/docker-compose.yml`](../local-services/docker-compose.yml):
+   ```yaml
+     # 💬 Open WebUI - Graphical Browser Chat Interface
+     open-webui:
+       image: ghcr.io/open-webui/open-webui:main
+       container_name: local-open-webui
+       restart: unless-stopped
+       profiles: ["llm", "all"]
+       environment:
+         - OLLAMA_BASE_URL=http://local-ollama:11434
+         - WEBUI_AUTH=false
+       volumes:
+         - open-webui-data:/app/backend/data
+       networks:
+         - local-mesh
+       labels:
+         - "traefik.enable=true"
+         - "traefik.http.routers.webui.rule=Host(`chat.localhost`)"
+         - "traefik.http.routers.webui.entrypoints=web,websecure"
+         - "traefik.http.routers.webui.tls=true"
+         - "traefik.http.services.webui.loadbalancer.server.port=8080"
+   ```
+2. Add volume under `volumes:`:
+   ```yaml
+   volumes:
+     open-webui-data:
+   ```
+3. Add `chat.localhost` to the `mkcert` SAN list in `local-services/justfile` and regenerate certs (`jl certs`).
+
+---
+
+## 🧹 8. Data Storage & Maintenance
+
+* **Model Storage Location**: Models are stored persistently in the rootless Podman named volume `local-services_ollama-models`.
+* **Inspect Storage**:
+  ```bash
+  podman volume inspect local-services_ollama-models
+  ```
+* **Reclaim Disk Space**:
+  ```bash
+  # Delete a specific model
+  ollama rm qwen2.5-coder:7b
+
+  # Check total container disk usage
+  podman system df
+  ```

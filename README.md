@@ -384,6 +384,7 @@ jl mcp-info     # Show OpenCode & Hermes MCP connection snippets
 jl up-llm       # Start Ollama service on https://ollama.localhost & port 11434
 jl down-llm     # Stop Ollama service
 jl llm-pull <m> # Pull model into Ollama (e.g., jl llm-pull qwen2.5-coder:7b)
+jl llm-run <m>  # Start interactive chat REPL (e.g., jl llm-run qwen2.5-coder:1.5b)
 jl llm-list     # List downloaded local models
 jl llm-status   # Display active models and memory footprint
 
@@ -396,7 +397,8 @@ jl up-all       # Start ALL core and optional profile services simultaneously
 ```
 
 > [!TIP]
-> For a full guide on connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
+> * For a full guide on connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
+> * For local LLM chat workflows, host CLI wrappers, and AI agent routing, read **[docs/ollama-guide.md](docs/ollama-guide.md)**.
 
 ---
 

@@ -172,26 +172,31 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 
 The local inference engine runs under the `llm` profile so it only consumes RAM and GPU compute when you explicitly launch it.
 
+> [!TIP]
+> **Complete Dedicated Guide**: See [docs/ollama-guide.md](ollama-guide.md) for detailed terminal chat workflows, Open WebUI browser setup, OpenAI-compatible REST API examples, and model sizing tiers.
+
+### Headless REST API vs. Web Interface
+When accessing `https://ollama.localhost` or `http://localhost:11434`, Ollama returns plain text: `"Ollama is running"`. This is normal — Ollama is a headless backend engine designed for CLI interaction, agent tooling, and API requests.
+
 ### Lifecycle Management
 ```bash
 jl up-llm       # Start Ollama on https://ollama.localhost and port 11434
+jl status       # Verify container health and port bindings
 jl down-llm     # Stop Ollama and release host memory
 ```
 
-### Pulling Recommended Models
+### Native Host CLI & Interactive Chat
+A transparent wrapper function in `~/.bashrc` delegates `ollama` commands from your host shell directly into the container:
 ```bash
-# Primary daily coding assistant (7B params, ~5GB RAM):
-jl llm-pull qwen2.5-coder:7b
+# Pull a fast coding model:
+ollama pull qwen2.5-coder:1.5b    # or: jl llm-pull qwen2.5-coder:1.5b
 
-# Fast, ultra-lightweight model for quick terminal tasks & battery mode:
-jl llm-pull qwen2.5-coder:1.5b
+# Start an interactive terminal chat REPL:
+ollama run qwen2.5-coder:1.5b     # or: jl llm-run qwen2.5-coder:1.5b
 
-# Strong instruction follower for Hermes research tasks:
-jl llm-pull llama3.2:3b
-
-# Check status and downloaded models:
-jl llm-list
-jl llm-status
+# Check active models in RAM and disk:
+ollama ps
+ollama list                       # or: jl llm-list
 ```
 
 ### Connecting AI Agents to Local Ollama
@@ -205,8 +210,9 @@ export OPENAI_API_KEY="ollama"
 
 In OpenCode:
 ```bash
-oc --model openai/qwen2.5-coder:7b
+oc --model qwen2.5-coder:1.5b
 ```
+
 
 ---
 
