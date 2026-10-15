@@ -68,6 +68,11 @@ llm-pull model:
     @echo "==> Pulling model '{{model}}' into Ollama..."
     podman exec -it local-ollama ollama pull {{model}}
 
+# Run interactive chat session with a model (e.g. jl llm-run qwen2.5-coder:1.5b)
+llm-run model:
+    @podman exec -it local-ollama ollama run {{model}}
+
+
 # List downloaded models in Ollama
 llm-list:
     @podman exec -i local-ollama ollama list

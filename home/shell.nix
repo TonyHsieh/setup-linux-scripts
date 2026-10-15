@@ -84,6 +84,15 @@
         mkdir -p "$1" && cd "$1" || return
       }
 
+      # Seamless Ollama container CLI passthrough
+      ollama() {
+        if [ -t 0 ] && [ -t 1 ]; then
+          podman exec -it local-ollama ollama "$@"
+        else
+          podman exec -i local-ollama ollama "$@"
+        fi
+      }
+
       ##### 4. Python SSL Certificate Bundle (if present) #####
       if python3 -c "import certifi" >/dev/null 2>&1; then
         CERT_PATH=$(python3 -m certifi)
