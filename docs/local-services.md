@@ -62,12 +62,13 @@ flowchart TD
 | **Traefik Dashboard** | `https://traefik.localhost/dashboard/` | Default | 80/443 & `localhost:8088` | Real-time reverse proxy routing & health metrics |
 | **PostgreSQL Database** | `localhost:5432` | Default | `0.0.0.0:5432` | Local dev database (`devuser` / `devpassword` / `devdb`) |
 | **Ollama Local LLM** | `https://ollama.localhost` | `llm` | `0.0.0.0:11434` | Offline LLM inference engine & OpenAI API endpoint |
+| **Open WebUI** | `https://chat.localhost` | `llm` / `webui` | 80/443 (internal 8080) | ChatGPT-style browser chat UI for Ollama & cloud LLMs |
 | **Kavita Reader** | `https://kavita.localhost` | `books` / `apps` | 80/443 (internal 5000) | E-book, comic, and manga reader UI (mounts `$HOME/Books`) |
 | **Plex Media Server** | `https://plex.localhost` | `media` | `0.0.0.0:32400` | Local media streaming server (mounts `$HOME/Media`) |
 | **Puppeteer MCP** | Stdio (On-demand) | Agent Tool | None (zero idle RAM) | Headless Chromium web scraping for AI agents |
 
 > [!TIP]
-> All HTTP requests (e.g. `http://pdf.localhost`, `http://ollama.localhost`) automatically redirect to HTTPS with valid TLS certificates.
+> All HTTP requests (e.g. `http://pdf.localhost`, `http://ollama.localhost`, `http://chat.localhost`) automatically redirect to HTTPS with valid TLS certificates.
 
 ---
 
@@ -88,14 +89,18 @@ The task runner [`local-services/justfile`](../local-services/justfile) is linke
 | `jl mcp-info` | Display configuration snippets for OpenCode & Hermes |
 | `jl up-llm` | Start Ollama service on `https://ollama.localhost` and port 11434 |
 | `jl down-llm` | Stop Ollama container |
+| `jl up-webui` | Start Open WebUI at `https://chat.localhost` (auto-starts Ollama) |
+| `jl down-webui` | Stop Open WebUI container |
 | `jl llm-pull <model>` | Download an LLM model into Ollama (e.g., `jl llm-pull qwen2.5-coder:7b`) |
+| `jl llm-run <model>` | Start interactive terminal chat with an Ollama model |
 | `jl llm-list` | List downloaded local models in Ollama |
 | `jl llm-status` | Display available models and size via local API |
 | `jl up-books` | Start Kavita e-book and manga reader (`https://kavita.localhost`) |
 | `jl down-books` | Stop Kavita container |
 | `jl up-media` | Start Plex media server (`https://plex.localhost`) |
 | `jl down-media` | Stop Plex container |
-| `jl up-all` | Start ALL services (core + LLM + books + media) |
+| `jl up-all` | Start ALL services (core + LLM + WebUI + books + media) |
+
 
 ---
 

@@ -247,38 +247,29 @@ curl -s http://localhost:11434/v1/chat/completions \
 
 ---
 
-## 🌐 7. Optional: Adding a ChatGPT-Style Web GUI (Open WebUI)
+## 🌐 7. Using the ChatGPT-Style Browser UI (Open WebUI)
 
-If you would like a graphical chat interface in your browser (with conversation history, model switching dropdowns, document analysis, and web search) at `https://chat.localhost`, you can add **Open WebUI** to the container mesh:
+Open WebUI is integrated directly into the container mesh to provide a complete browser-based chat experience connected directly to Ollama.
 
-1. Add the following service definition to [`local-services/docker-compose.yml`](../local-services/docker-compose.yml):
-   ```yaml
-     # 💬 Open WebUI - Graphical Browser Chat Interface
-     open-webui:
-       image: ghcr.io/open-webui/open-webui:main
-       container_name: local-open-webui
-       restart: unless-stopped
-       profiles: ["llm", "all"]
-       environment:
-         - OLLAMA_BASE_URL=http://local-ollama:11434
-         - WEBUI_AUTH=false
-       volumes:
-         - open-webui-data:/app/backend/data
-       networks:
-         - local-mesh
-       labels:
-         - "traefik.enable=true"
-         - "traefik.http.routers.webui.rule=Host(`chat.localhost`)"
-         - "traefik.http.routers.webui.entrypoints=web,websecure"
-         - "traefik.http.routers.webui.tls=true"
-         - "traefik.http.services.webui.loadbalancer.server.port=8080"
-   ```
-2. Add volume under `volumes:`:
-   ```yaml
-   volumes:
-     open-webui-data:
-   ```
-3. Add `chat.localhost` to the `mkcert` SAN list in `local-services/justfile` and regenerate certs (`jl certs`).
+### Features
+* **Browser Access**: Available over trusted local HTTPS at [https://chat.localhost](https://chat.localhost).
+* **Direct Ollama Integration**: Automatically discovers all models downloaded via `ollama pull` (`qwen2.5-coder`, `llama3.2`, etc.).
+* **Conversation History & Dark Mode**: Retains past chat sessions in a dedicated persistent volume (`open-webui-data`).
+* **Document & PDF Q&A**: Upload local PDF/text files to perform Retrieval-Augmented Generation (RAG) using your local models.
+* **Hybrid Cloud Support**: You can optionally paste your Google Gemini or OpenAI API keys in the WebUI settings to chat with both local and cloud models in one place.
+
+### Lifecycle Management
+```bash
+# Launch Open WebUI (automatically starts Ollama if not already running):
+jl up-webui
+
+# Open in your browser:
+# https://chat.localhost
+
+# Stop Open WebUI when done:
+jl down-webui
+```
+
 
 ---
 

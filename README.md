@@ -380,13 +380,16 @@ jl logs         # Follow real-time service logs (or: jl logs bentopdf)
 jl certs        # Regenerate local wildcard SSL certificates (*.localhost)
 jl mcp-info     # Show OpenCode & Hermes MCP connection snippets
 
-# 🦙 On-Demand Local LLM (Ollama)
+# 🦙 On-Demand Local LLM & Web UI (Ollama & Open WebUI)
 jl up-llm       # Start Ollama service on https://ollama.localhost & port 11434
 jl down-llm     # Stop Ollama service
+jl up-webui     # Start Open WebUI on https://chat.localhost (auto-starts Ollama)
+jl down-webui   # Stop Open WebUI service
 jl llm-pull <m> # Pull model into Ollama (e.g., jl llm-pull qwen2.5-coder:7b)
 jl llm-run <m>  # Start interactive chat REPL (e.g., jl llm-run qwen2.5-coder:1.5b)
 jl llm-list     # List downloaded local models
 jl llm-status   # Display active models and memory footprint
+
 
 # 📚 On-Demand Homelab Services
 jl up-books     # Start Kavita e-book/manga server (https://kavita.localhost)

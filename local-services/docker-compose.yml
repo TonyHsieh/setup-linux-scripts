@@ -91,6 +91,28 @@ services:
       - "traefik.http.services.ollama.loadbalancer.server.port=11434"
       - "io.containers.autoupdate=registry"
 
+  # 💬 Open WebUI - ChatGPT-Style Web Interface for Ollama
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: local-open-webui
+    restart: unless-stopped
+    profiles: ["llm", "webui", "all"]
+    environment:
+      - OLLAMA_BASE_URL=http://local-ollama:11434
+      - WEBUI_AUTH=false
+      - WEBUI_NAME=Local AI Hub
+    volumes:
+      - open-webui-data:/app/backend/data
+    networks:
+      - local-mesh
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.webui.rule=Host(`chat.localhost`)"
+      - "traefik.http.routers.webui.entrypoints=web,websecure"
+      - "traefik.http.routers.webui.tls=true"
+      - "traefik.http.services.webui.loadbalancer.server.port=8080"
+      - "io.containers.autoupdate=registry"
+
   # 📚 Kavita E-Book, Comic, & Manga Reader UI (On-Demand)
   kavita:
     image: docker.io/kavitareader/kavita:latest
@@ -141,6 +163,8 @@ services:
 volumes:
   postgres-data:
   ollama-models:
+  open-webui-data:
   kavita-data:
   plex-config:
+
 

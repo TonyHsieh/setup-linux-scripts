@@ -81,6 +81,21 @@ llm-list:
 llm-status:
     @curl -s http://localhost:11434/api/tags 2>/dev/null | jq -r '.models[]? | "\(.name) (\(.size / 1024 / 1024 | floor) MB)"' 2>/dev/null || echo "Ollama not running or no models pulled yet."
 
+# --- 💬 Open WebUI Tasks ---
+# Start Open WebUI and Ollama (https://chat.localhost)
+up-webui:
+    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+        just -f {{justfile()}} certs; \
+    fi
+    @echo "==> Ensuring Ollama and Open WebUI are running via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile llm --profile webui up -d ollama open-webui
+    @echo "👉 Open WebUI is available at https://chat.localhost"
+
+# Stop Open WebUI service
+down-webui:
+    @echo "==> Stopping Open WebUI..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop open-webui
+
 # --- 📚 Kavita E-Book & Manga Server Tasks ---
 # Start Kavita E-Book & Manga Server (https://kavita.localhost)
 up-books:
@@ -117,7 +132,8 @@ down-media:
 certs:
     @echo "==> Generating wildcard SSL certificates for *.localhost..."
     @mkdir -p {{justfile_directory()}}/certs
-    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
+    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "chat.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
+
 
 # Output OpenCode & Hermes MCP config snippets (on-demand containerized stdio)
 mcp-info:
