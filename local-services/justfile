@@ -133,6 +133,10 @@ certs:
     @echo "==> Generating wildcard SSL certificates for *.localhost..."
     @mkdir -p {{justfile_directory()}}/certs
     mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "chat.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
+    @if podman ps -q -f name=traefik-ingress 2>/dev/null | grep -q .; then \
+        echo "==> Reloading Traefik to apply updated certificates..."; \
+        podman restart traefik-ingress >/dev/null 2>&1 || true; \
+    fi
 
 
 # Output OpenCode & Hermes MCP config snippets (on-demand containerized stdio)

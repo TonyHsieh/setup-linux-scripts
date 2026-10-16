@@ -495,9 +495,25 @@ else
       "${HOME}/.nix-profile/bin/just" -f "$HOME/.local/share/local-services/justfile" certs 2>/dev/null || true
     fi
 
+    # Register Root CA in Firefox profiles (especially XDG paths on Arch / CachyOS)
+    ROOT_CA="$("${HOME}/.nix-profile/bin/mkcert" -CAROOT 2>/dev/null || mkcert -CAROOT 2>/dev/null || echo "$HOME/.local/share/mkcert")/rootCA.pem"
+    if [ -f "$ROOT_CA" ] && command -v certutil >/dev/null 2>&1; then
+      if [ -d "$HOME/.config/mozilla/firefox" ] && [ ! -e "$HOME/.mozilla/firefox" ]; then
+        mkdir -p "$HOME/.mozilla"
+        ln -s "$HOME/.config/mozilla/firefox" "$HOME/.mozilla/firefox" 2>/dev/null || true
+      fi
+
+      while IFS= read -r db_path; do
+        prof_dir="$(dirname "$db_path")"
+        if ! certutil -L -d "sql:$prof_dir" 2>/dev/null | grep -q "mkcert development CA"; then
+          echo "==> Registering mkcert Root CA in Firefox profile ($prof_dir)..."
+          certutil -A -d "sql:$prof_dir" -t "C,," -n "mkcert development CA" -i "$ROOT_CA" 2>/dev/null || true
+        fi
+      done < <(find "$HOME/.mozilla/firefox" "$HOME/.config/mozilla/firefox" -name "cert9.db" 2>/dev/null || true)
+    fi
+
     # Register Root CA in Windows Trust Store if running in WSL2
     if grep -qsi Microsoft /proc/version 2>/dev/null; then
-      ROOT_CA="$HOME/.local/share/mkcert/rootCA.pem"
       if [ -f "$ROOT_CA" ] && command -v wslpath >/dev/null 2>&1; then
         WIN_CA="$(wslpath -w "$ROOT_CA" 2>/dev/null || true)"
         WIN_PS="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
