@@ -9,6 +9,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ACTION="switch"
 INSTALL_HOST_DEPS=false
+INSTALL_OFFICE=false
+UNINSTALL_OFFICE=false
 TARGET_OVERRIDE=""
 CLEANUP_MODE="prompt" # options: "prompt", "auto", "skip"
 
@@ -21,6 +23,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-host-deps|--host-deps|--all)
       INSTALL_HOST_DEPS=true
+      shift
+      ;;
+    --with-office|--office)
+      INSTALL_OFFICE=true
+      shift
+      ;;
+    --uninstall-office)
+      UNINSTALL_OFFICE=true
       shift
       ;;
     --clean|--cleanup)
@@ -41,6 +51,8 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --build, --dry-run      Build the Home Manager generation without activating it"
       echo "  --with-host-deps, --all Install host system prerequisites (Podman, port 80 sysctl, mkcert CA)"
+      echo "  --with-office, --office Install local office suite (ONLYOFFICE Desktop Editors & Microsoft fonts)"
+      echo "  --uninstall-office      Uninstall ONLYOFFICE Desktop Editors and Microsoft fonts"
       echo "  --cleanup, --clean      Automatically clean up detected legacy artifacts after verification"
       echo "  --no-cleanup            Skip detection and cleanup of legacy deployment artifacts"
       echo "  --profile <name>        Manually specify profile (wsl, cachyos, darwin)"
@@ -108,8 +120,82 @@ install_host_dependencies() {
   fi
 }
 
+# 0.5. Optional: Install local office suite (ONLYOFFICE Desktop Editors & Microsoft TrueType fonts)
+install_office_suite() {
+  echo "==> Setting up local office suite (ONLYOFFICE Desktop Editors & Microsoft TrueType fonts)..."
+  if [ "$(uname)" = "Darwin" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      echo "==> Installing ONLYOFFICE via Homebrew Cask..."
+      brew install --cask onlyoffice font-microsoft-office 2>/dev/null || brew install --cask onlyoffice
+    else
+      echo "⚠️ Homebrew not found. Please install ONLYOFFICE manually on macOS."
+    fi
+  elif command -v pacman >/dev/null 2>&1; then
+    if command -v paru >/dev/null 2>&1; then
+      echo "==> Installing ONLYOFFICE & Microsoft TrueType fonts via paru..."
+      paru -S --needed --noconfirm --skipreview onlyoffice-bin ttf-ms-fonts
+    elif command -v yay >/dev/null 2>&1; then
+      echo "==> Installing ONLYOFFICE & Microsoft TrueType fonts via yay..."
+      yay -S --needed --noconfirm onlyoffice-bin ttf-ms-fonts
+    else
+      echo "==> Installing onlyoffice-bin via pacman..."
+      sudo pacman -S --needed --noconfirm onlyoffice-bin
+      echo "👉 Tip: Install paru or yay to automatically install ttf-ms-fonts from AUR."
+    fi
+    # Refresh font cache so new Microsoft fonts are immediately available
+    if command -v fc-cache >/dev/null 2>&1; then
+      echo "==> Refreshing system font cache (fc-cache)..."
+      fc-cache -f >/dev/null 2>&1 || true
+    fi
+    echo "🎉 ONLYOFFICE Desktop Editors and Microsoft fonts successfully installed!"
+  elif command -v apt-get >/dev/null 2>&1; then
+    echo "==> Setting up ONLYOFFICE and Microsoft Core fonts on Debian/Ubuntu..."
+    echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | sudo debconf-set-selections 2>/dev/null || true
+    sudo apt-get update -y
+    sudo apt-get install -y ttf-mscorefonts-installer
+    if command -v flatpak >/dev/null 2>&1; then
+      flatpak install -y flathub org.onlyoffice.extra.DesktopEditors
+    elif command -v snap >/dev/null 2>&1; then
+      sudo snap install onlyoffice-desktopeditors
+    else
+      echo "👉 For ONLYOFFICE on Debian/Ubuntu, install via Flatpak or download the .deb from https://www.onlyoffice.com/download-desktop.aspx"
+    fi
+  fi
+}
+
+# 0.6. Optional: Uninstall local office suite
+uninstall_office_suite() {
+  echo "==> Uninstalling ONLYOFFICE Desktop Editors and Microsoft TrueType fonts..."
+  if [ "$(uname)" = "Darwin" ]; then
+    if command -v brew >/dev/null 2>&1; then
+      brew uninstall --cask onlyoffice font-microsoft-office 2>/dev/null || brew uninstall --cask onlyoffice 2>/dev/null || true
+    fi
+  elif command -v pacman >/dev/null 2>&1; then
+    if command -v paru >/dev/null 2>&1; then
+      paru -R --noconfirm onlyoffice-bin ttf-ms-fonts 2>/dev/null || true
+    else
+      sudo pacman -R --noconfirm onlyoffice-bin 2>/dev/null || true
+    fi
+    command -v fc-cache >/dev/null 2>&1 && fc-cache -f >/dev/null 2>&1 || true
+    echo "🎉 ONLYOFFICE and Microsoft fonts successfully uninstalled."
+  elif command -v apt-get >/dev/null 2>&1; then
+    command -v flatpak >/dev/null 2>&1 && flatpak uninstall -y org.onlyoffice.extra.DesktopEditors 2>/dev/null || true
+    command -v snap >/dev/null 2>&1 && sudo snap remove onlyoffice-desktopeditors 2>/dev/null || true
+    sudo apt-get remove -y ttf-mscorefonts-installer 2>/dev/null || true
+  fi
+}
+
+if [ "$UNINSTALL_OFFICE" = true ]; then
+  uninstall_office_suite
+  exit 0
+fi
+
 if [ "$INSTALL_HOST_DEPS" = true ]; then
   install_host_dependencies
+fi
+
+if [ "$INSTALL_OFFICE" = true ]; then
+  install_office_suite
 fi
 
 # 1. Ensure Nix is installed and available in PATH
@@ -266,6 +352,13 @@ verify_deployment() {
 
   if [ -f "$HOME/.local/share/local-services/justfile" ]; then
     echo "   ✓ Local services task runner: ~/.local/share/local-services/justfile linked"
+  fi
+
+  # Check optional office suite if installed
+  if command -v onlyoffice-desktopeditors >/dev/null 2>&1; then
+    echo "   ✓ Office suite: ONLYOFFICE Desktop Editors ready"
+  elif command -v libreoffice >/dev/null 2>&1; then
+    echo "   ✓ Office suite: LibreOffice ready"
   fi
 
   if [ "$test_failures" -eq 0 ]; then

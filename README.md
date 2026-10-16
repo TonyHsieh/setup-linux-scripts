@@ -151,6 +151,8 @@ flowchart LR
 | :--- | :--- | :--- |
 | `./bootstrap.sh` | Standard declarative activation with interactive cleanup prompt | Upgrades and day-to-day sync |
 | `./bootstrap.sh --with-host-deps` | Enables rootless Podman, port 80/443 sysctl, and local SSL CA trust | First-time machine setup |
+| `./bootstrap.sh --with-office` (or `--office`) | Installs ONLYOFFICE Desktop Editors & Microsoft TrueType fonts | Local office suite setup |
+| `./bootstrap.sh --uninstall-office` | Uninstalls ONLYOFFICE Desktop Editors and Microsoft TrueType fonts | Remove local office suite |
 | `./bootstrap.sh --cleanup` (or `--clean`) | Automatically cleans up detected legacy/duplicate artifacts after self-test verification | Automated installs & clean upgrades |
 | `./bootstrap.sh --no-cleanup` | Skips legacy artifact detection and keeps all backups intact | Safe testing without touching old files |
 | `./bootstrap.sh --build` (or `--dry-run`) | Dry-run build testing flake evaluation without mutating `$HOME` | CI, validation, syntax checks |
