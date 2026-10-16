@@ -3,7 +3,7 @@
 {
   programs.starship = {
     enable = true;
-    enableBashIntegration = true;
+    enableBashIntegration = false; # Handled explicitly in shell.nix before ble-attach
   };
 
   # Deploy our custom starship.toml configuration

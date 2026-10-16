@@ -16,6 +16,7 @@
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;
+    enableBashIntegration = false; # Handled explicitly in shell.nix before ble-attach
   };
 
   # Common Environment Variables

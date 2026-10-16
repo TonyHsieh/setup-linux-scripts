@@ -107,7 +107,19 @@
       # Place private API keys, custom tokens, and employer settings here
       [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
 
-      ##### 7. Attach ble.sh at the very end of interactive session #####
+      ##### 7. Direnv & Starship Shell Integration #####
+      # Initialized BEFORE ble-attach so ble.sh captures the styled Starship prompt immediately on startup
+      if command -v direnv >/dev/null 2>&1; then
+        eval "$(direnv hook bash)"
+      fi
+
+      if [[ $TERM != "dumb" ]] && command -v starship >/dev/null 2>&1; then
+        eval "$(starship init bash --print-full-init)"
+        # Pre-render prompt once so $PS1 is populated before ble-attach captures it
+        type starship_precmd >/dev/null 2>&1 && starship_precmd
+      fi
+
+      ##### 8. Attach ble.sh at the very end of interactive session #####
       if [[ $- == *i* ]] && type ble-attach >/dev/null 2>&1; then
         ble-attach
       fi
