@@ -48,6 +48,12 @@ If you need a command-line tool available everywhere across your system:
    ```
 
 ### 2.2 Adding Custom Aliases & Shell Variables
+
+Depending on whether an alias or environment variable should be **shared across all your machines** or **kept private / machine-specific**, choose between:
+
+#### Option A: Permanent & Version-Controlled Aliases (`home/shell.nix`)
+Use this for developer shorthands you want tracked in Git and replicated across all your machines:
+
 1. Open [`home/shell.nix`](../home/shell.nix).
 2. Add your alias to `programs.bash.shellAliases`:
    ```nix
@@ -57,9 +63,24 @@ If you need a command-line tool available everywhere across your system:
 
      # Add your new alias:
      tf = "terraform";
+     ag = "antigravity";
    };
    ```
-3. Run `./bootstrap.sh` and reload your shell (`exec bash`).
+3. Apply changes with `./bootstrap.sh` and reload your shell (`exec bash`).
+
+#### Option B: Machine-Specific, Private, or Quick Aliases (`~/.bashrc.local`)
+Use this for private API keys, work-only tokens, machine-specific paths, or quick temporary aliases you don't want committed to Git:
+
+1. Open or create `~/.bashrc.local`:
+   ```bash
+   # Add machine-specific aliases:
+   alias ag="antigravity"
+   alias myproj="cd ~/work/client-project"
+
+   # Add private API keys (never committed to Git):
+   export GEMINI_API_KEY="AIzaSy..."
+   ```
+2. `~/.bashrc.local` is automatically sourced by `~/.bashrc` at startup and takes effect immediately without needing `./bootstrap.sh` or a Home Manager rebuild. Reload with `source ~/.bashrc`.
 
 ---
 

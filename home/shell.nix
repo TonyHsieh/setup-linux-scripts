@@ -11,6 +11,10 @@
     historyIgnore = [ "ls" "ll" "la" "pwd" "exit" "clear" ];
     shellOptions = [ "extglob" "nocaseglob" "autocd" "globstar" "histappend" ];
 
+    # Global, permanent aliases tracked in Git across all machines.
+    # Applied via: ./bootstrap.sh
+    # NOTE: For machine-specific, temporary, or private aliases (not in Git),
+    # add them to ~/.bashrc.local instead (sourced in Section 6 below).
     shellAliases = {
       ll = "ls -lah";
       la = "ls -A";
@@ -104,7 +108,8 @@
       export PATH=$(printf "%s" "$PATH" | awk -v RS=: -v ORS=: '!seen[$0]++')
 
       ##### 6. Local overrides (~/.bashrc.local) #####
-      # Place private API keys, custom tokens, and employer settings here
+      # Place machine-specific aliases, private API keys, custom tokens, and employer settings here.
+      # This file is ignored by Git, preserved across Home Manager updates, and takes effect immediately.
       [[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
 
       ##### 7. Direnv & Starship Shell Integration #####

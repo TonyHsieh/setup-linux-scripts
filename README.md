@@ -439,9 +439,15 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 | **AI Agents** | `oc` / `ha` | Shorthand for `opencode` and `hermes` |
 | **Kubernetes** | `k` | Shorthand for `kubectl` |
 
-> [!TIP]
-> For detailed instructions on adding global CLI tools, routing new web services through Traefik, or adapting third-party course repositories, consult the complete **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)**.
+### 💡 Customizing Shell Aliases & Secrets
 
+| Scope | Location | How to Apply | Tracked in Git? |
+| :--- | :--- | :--- | :--- |
+| **Permanent & Shared Aliases** | [`home/shell.nix`](home/shell.nix) (`shellAliases`) | Run `./bootstrap.sh` | ✅ Yes (replicated across all your machines) |
+| **Machine-Specific / Private** | `~/.bashrc.local` (aliases, secret tokens) | Takes effect immediately | ❌ No (safe for private keys & local paths) |
+
+> [!TIP]
+> For detailed instructions on adding global CLI tools, routing new web services through Traefik, or configuring project environments, consult the complete **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)**.
 
 ---
 
