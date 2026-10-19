@@ -398,6 +398,13 @@ jl up-books     # Start Kavita e-book/manga server (https://kavita.localhost)
 jl down-books   # Stop Kavita server
 jl up-media     # Start Plex media server (https://plex.localhost)
 jl down-media   # Stop Plex server
+
+# 🌐 On-Demand Tailscale Private Mesh Ingress (Access Away from Home)
+jl up-remote    # Start Tailscale container & auto-serve private HTTPS endpoints
+jl down-remote  # Stop Tailscale container
+jl remote-info  # Show active MagicDNS private HTTPS endpoints
+jl remote-auth  # Display one-time browser login authorization link
+
 jl up-all       # Start ALL core and optional profile services simultaneously
 ```
 

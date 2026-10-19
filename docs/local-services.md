@@ -99,6 +99,11 @@ The task runner [`local-services/justfile`](../local-services/justfile) is linke
 | `jl down-books` | Stop Kavita container |
 | `jl up-media` | Start Plex media server (`https://plex.localhost`) |
 | `jl down-media` | Stop Plex container |
+| `jl up-remote` | Start Tailscale private mesh container (exposes services to your Tailnet) |
+| `jl down-remote` | Stop Tailscale remote mesh container |
+| `jl remote-status`| Check Tailscale mesh connection status and tailnet IP |
+| `jl remote-info` | Display active private HTTPS URLs and MagicDNS domain |
+| `jl remote-auth` | Display one-time browser authorization link if not yet logged in |
 | `jl up-all` | Start ALL services (core + LLM + WebUI + books + media) |
 
 
@@ -290,7 +295,56 @@ Navigate directly to [https://pgadmin.localhost](https://pgadmin.localhost) in y
 
 ---
 
-## 🔧 9. Troubleshooting & Maintenance
+## 🌐 9. Secure Remote Access via Tailscale Private Mesh
+
+To access your laptop services (Open WebUI, BentoPDF, Ollama, etc.) securely away from home or across different laptops and mobile devices without opening public router firewall ports, the stack includes an on-demand containerized **Tailscale** node.
+
+### How It Works
+* **Zero Root / Userspace WireGuard**: Tailscale runs completely within rootless Podman userspace (`TS_USERSPACE=true`), requiring no elevated host kernel TUN device privileges.
+* **Automatic HTTPS Termination**: Tailscale Serve automatically obtains and renews trusted Let's Encrypt certificates for your machine's MagicDNS domain (`<hostname>.<tailnet>.ts.net`).
+* **Multi-Service Port Mapping**: Private endpoints are mapped to individual containers on the `local-mesh` network:
+  * `https://<device>.<tailnet>.ts.net` (Port 443) ➔ **Open WebUI** (Chat)
+  * `https://<device>.<tailnet>.ts.net:8443` ➔ **BentoPDF**
+  * `https://<device>.<tailnet>.ts.net:11434` ➔ **Ollama Local LLM API**
+  * `https://<device>.<tailnet>.ts.net:5000` ➔ **Kavita E-Books**
+  * `https://<device>.<tailnet>.ts.net:32400` ➔ **Plex Media Server**
+  * `https://<device>.<tailnet>.ts.net:8088` ➔ **Traefik Dashboard**
+* **Strictly Private**: `AllowFunnel` is set to `false`, meaning only devices logged into your Tailscale account can access these endpoints.
+
+### Quick Start
+1. **Start the Remote Mesh**:
+   ```bash
+   jl up-remote
+   ```
+2. **Authorize the Laptop (First-Time Only)**:
+   If starting for the first time without a pre-configured auth key, `jl up-remote` prints an authorization link:
+   ```
+   To authenticate, visit: https://login.tailscale.com/a/xxxxxx
+   ```
+   Click the link in your browser to approve the laptop into your private tailnet. (State is saved in volume `tailscale-state`, so authorization persists across reboots).
+3. **Inspect Active Endpoints**:
+   ```bash
+   jl remote-info
+   ```
+4. **Stop Remote Ingress**:
+   ```bash
+   jl down-remote
+   ```
+
+### Multi-Laptop Configuration
+If running this setup across multiple laptops, customize the device name and optional reusable auth key in your `~/.bashrc.local`:
+```bash
+# In ~/.bashrc.local on Laptop A:
+export TS_HOSTNAME="cachyos-laptop"
+export TS_AUTHKEY="tskey-auth-..." # Optional: unattended registration
+
+# In ~/.bashrc.local on Laptop B:
+export TS_HOSTNAME="asus-laptop"
+```
+
+---
+
+## 🔧 10. Troubleshooting & Maintenance
 
 ### Port 80 / 443 Permission Denied on Reboot
 If WSL restarts and Traefik fails to start with:

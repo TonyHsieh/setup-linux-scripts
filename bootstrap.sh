@@ -354,6 +354,10 @@ verify_deployment() {
     echo "   ✓ Local services task runner: ~/.local/share/local-services/justfile linked"
   fi
 
+  if [ -f "$HOME/.local/share/local-services/tailscale/serve.json" ]; then
+    echo "   ✓ Tailscale remote mesh config: ~/.local/share/local-services/tailscale/serve.json linked"
+  fi
+
   # Check optional office suite if installed
   if command -v onlyoffice-desktopeditors >/dev/null 2>&1; then
     echo "   ✓ Office suite: ONLYOFFICE Desktop Editors ready"

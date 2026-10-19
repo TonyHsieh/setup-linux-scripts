@@ -39,4 +39,6 @@
   xdg.dataFile."local-services/docker-compose.yml".source = ../local-services/docker-compose.yml;
   xdg.dataFile."local-services/justfile".source = ../local-services/justfile;
   xdg.dataFile."local-services/traefik/dynamic.yml".source = ../local-services/traefik/dynamic.yml;
+  xdg.dataFile."local-services/tailscale/serve.json".source = ../local-services/tailscale/serve.json;
 }
+

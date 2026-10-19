@@ -160,11 +160,35 @@ services:
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
       - "io.containers.autoupdate=registry"
 
+  # 🌐 Tailscale Private Mesh Ingress (Remote Access On-Demand)
+  tailscale:
+    image: docker.io/tailscale/tailscale:latest
+    container_name: local-tailscale
+    restart: unless-stopped
+    profiles: ["remote", "all"]
+    hostname: "${TS_HOSTNAME:-laptop-services}"
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:-}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_ACCEPT_DNS=true
+      - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:-}
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - "${LOCAL_SERVICES_DIR:-$HOME/.local/share/local-services}/tailscale:/config:ro"
+    networks:
+      - local-mesh
+    labels:
+      - "io.containers.autoupdate=registry"
+
 volumes:
   postgres-data:
   ollama-models:
   open-webui-data:
   kavita-data:
   plex-config:
+  tailscale-state:
+
 
 
