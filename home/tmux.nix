@@ -78,9 +78,10 @@
       # Reload tmux config shortcut
       bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
 
-      # ble.sh cursor style compatibility
+      # ble.sh cursor style & escape passthrough compatibility
       set -g cursor-style underline
       set -ga terminal-overrides ',*:Ss=\E[%p1%d q:Se=\E[2 q'
+      set -g allow-passthrough on
     '';
   };
 }

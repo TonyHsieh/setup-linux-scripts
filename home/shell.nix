@@ -58,6 +58,7 @@
         if type bleopt >/dev/null 2>&1; then
           bleopt complete_auto_delay=200
           bleopt highlight_timeout_sync=0
+          bleopt char_width_mode=emacs
           # Exclude slow WSL Windows mount paths if running under WSL
           if grep -qsi Microsoft /proc/version 2>/dev/null; then
             ble/path#remove-glob PATH '/mnt/*'
