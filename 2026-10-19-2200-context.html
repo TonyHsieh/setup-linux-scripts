@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Linux Scripts - Project Status & Resumption Context (2026-10-19 22:00)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --badge-success-bg: rgba(52, 211, 153, 0.15);
+      --badge-success-border: #34d399;
+      --badge-warning-bg: rgba(251, 191, 36, 0.15);
+      --badge-warning-border: #fbbf24;
+      --badge-info-bg: rgba(56, 189, 248, 0.15);
+      --badge-info-border: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timestamp {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--badge-success-bg);
+      border: 1px solid var(--badge-success-border);
+      color: var(--accent-emerald);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meta-list {
+      list-style: none;
+    }
+
+    .meta-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .meta-list li:last-child {
+      border-bottom: none;
+    }
+
+    .meta-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .meta-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-blue);
+      text-align: right;
+    }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 36px 0 18px 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-box {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--accent-blue);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .alert-box.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--accent-emerald);
+    }
+
+    .alert-box.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-left-color: var(--accent-amber);
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--accent-blue);
+    }
+
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: var(--accent-indigo);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .step-priority {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .priority-high {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid var(--accent-rose);
+      color: var(--accent-rose);
+    }
+
+    .priority-medium {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .priority-low {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid var(--text-secondary);
+      color: var(--text-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    th {
+      background: #131d2e;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    td {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>🌙 Session Resumption & Architecture Context</h1>
+          <div class="timestamp">
+            <span>📅 <strong>Timestamp:</strong> 2026-10-19 22:00 (US/Pacific)</span>
+            <span>•</span>
+            <span>📍 <strong>Host:</strong> Ubuntu 24.04.5 LTS on WSL2 (<code>AsusGA403u</code>)</span>
+          </div>
+        </div>
+        <div class="status-badge">
+          ✓ Healthy • Subshell Bug Fixed • Ready for Tailscale
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: SYSTEM OVERVIEW & METRICS -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🖥️ Workspace Environment</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Primary Path</span><span class="meta-val">~/setup-linux-scripts</span></li>
+          <li><span class="meta-label">Primary User</span><span class="meta-val">tonyh</span></li>
+          <li><span class="meta-label">Git Branch</span><span class="meta-val">main (clean)</span></li>
+          <li><span class="meta-label">Git HEAD</span><span class="meta-val">3535c97</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">❄️ Declarative Stack</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Package Mgr</span><span class="meta-val">Nix Flakes 2.0</span></li>
+          <li><span class="meta-label">User Config</span><span class="meta-val">Home Manager 24.11</span></li>
+          <li><span class="meta-label">Container Mesh</span><span class="meta-val">Rootless Podman</span></li>
+          <li><span class="meta-label">Task Runner</span><span class="meta-val">just (jl)</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🌐 Multi-Machine Matrix</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">WSL2 Workstation</span><span class="meta-val">tonyh (active)</span></li>
+          <li><span class="meta-label">CachyOS Laptop</span><span class="meta-val">thsieh</span></li>
+          <li><span class="meta-label">Arch Linux</span><span class="meta-val">thsieh01</span></li>
+          <li><span class="meta-label">macOS (Darwin)</span><span class="meta-val">aarch64 / x86_64</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 2: CRITICAL DIAGNOSTIC & FIX (TODAY'S ACHIEVEMENT) -->
+    <section>
+      <h2 class="section-title">🔍 Incident Report: devenv shell Terminal Lockup Resolution</h2>
+      
+      <div class="alert-box success">
+        <div class="alert-title">✅ Issue Resolved & Verified Live</div>
+        The command prompt freezing after running <code>devenv shell</code> in <code>/home/tonyh/_Projects/resume-aligner</code> has been diagnosed, permanently fixed in code, and verified. <code>devenv shell</code> now launches and executes in <strong>under 200ms</strong> without terminal deadlocks or high CPU usage.
+      </div>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title">Technical Deep-Dive: Root Cause Analysis</div>
+        <p style="margin-bottom: 12px; color: var(--text-secondary);">
+          Using GDB to inspect the stuck bash process (PID 10299, spinning at 99.8% CPU), we uncovered an escape sequence recursion loop inside <code>ble.sh</code> (Bash Line Editor):
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Trigger & Failure Mechanism</th>
+              <th>Permanent Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>tmux (allow-passthrough)</strong></td>
+              <td>In tmux 3.3a+, <code>allow-passthrough</code> defaults to <code>off</code>. When <code>ble.sh</code> queried secondary device attributes (DA2 via <code>\e[>c</code>), tmux intercepted the query and replied <code>84;0;0</code> (identifying tmux). <code>ble.sh</code> tried querying through tmux via <code>\ePtmux;...\e\</code>, but tmux intercepted and replied again. This repeated 19 times until escape doubling (<code>${ret//$'\e'/$'\e\e'}</code>) created <strong>524,288 sequences (800+ KB)</strong>, freezing bash.</td>
+              <td>Added <code>set -g allow-passthrough on</code> to <code>home/tmux.nix</code>. Tmux now cleanly forwards passthrough queries to the host terminal.</td>
+            </tr>
+            <tr>
+              <td><strong>devenv PTY Proxy Collision</strong></td>
+              <td><code>devenv shell</code> creates its own nested pseudo-terminal (PTY) proxy. <code>ble.sh</code> was unconditionally executing <code>ble-attach</code> in every interactive bash session, trying to capture line editing inside devenv's child PTY where DCS escapes cannot pass.</td>
+              <td>Added an explicit subshell guard in <code>home/shell.nix</code>:
+                <br><code>if [[ $- == *i* && -z "${DEVENV_ROOT:-}" && -z "${IN_NIX_SHELL:-}" && -z "${BLE_SESSION_ID:-}" ]]; then</code>
+                <br><code>ble.sh</code> is now skipped inside <code>devenv</code>/<code>nix-shell</code>, providing clean standard GNU Readline inside subshells.</td>
+            </tr>
+            <tr>
+              <td><strong>Font Width Probing</strong></td>
+              <td>On startup, <code>ble.sh</code> emitted bursts of private-use characters (<code>[▽][▶][龼][鿄]...</code>) to measure terminal glyph widths.</td>
+              <td>Configured <code>bleopt char_width_mode=emacs</code> in <code>home/shell.nix</code>, eliminating probe glyph bursts and latency.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3: TAILSCALE PRIVATE MESH STATUS -->
+    <section>
+      <h2 class="section-title">🌐 Feature Status: Tailscale Private Mesh Ingress</h2>
+      <div class="card">
+        <p style="margin-bottom: 14px; color: var(--text-secondary);">
+          The Tailscale private mesh ingress feature is fully committed and symlinked. It allows secure remote access to all your local laptop microservices from your phone, tablet, or secondary computer without opening router ports or exposing services to the public Internet.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Container Name</th>
+              <th>Private Tailnet HTTPS URL</th>
+              <th>Local URL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Open WebUI (Chat Hub)</strong></td>
+              <td><code>local-open-webui</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net</code> (Port 443)</td>
+              <td><code>https://chat.localhost</code></td>
+            </tr>
+            <tr>
+              <td><strong>BentoPDF</strong></td>
+              <td><code>bentopdf</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:8443</code></td>
+              <td><code>https://pdf.localhost</code></td>
+            </tr>
+            <tr>
+              <td><strong>Ollama LLM API</strong></td>
+              <td><code>local-ollama</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:11434</code></td>
+              <td><code>https://ollama.localhost</code></td>
+            </tr>
+            <tr>
+              <td><strong>Kavita (E-Books)</strong></td>
+              <td><code>local-kavita</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:5000</code></td>
+              <td><code>https://kavita.localhost</code></td>
+            </tr>
+            <tr>
+              <td><strong>Plex Media Server</strong></td>
+              <td><code>local-plex</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:32400</code></td>
+              <td><code>https://plex.localhost</code></td>
+            </tr>
+            <tr>
+              <td><strong>Traefik Dashboard</strong></td>
+              <td><code>traefik-ingress</code></td>
+              <td><code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:8088</code></td>
+              <td><code>http://localhost:8088</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ACTIONABLE RESUMPTION CHECKLIST FOR TOMORROW -->
+    <section>
+      <h2 class="section-title">🚀 Prioritized Action Items for Tomorrow's Session</h2>
+
+      <!-- Step 1 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Activate & Authenticate Tailscale Private Mesh</div>
+          <span class="step-priority priority-high">High Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Spin up the containerized Tailscale node and authorize it into your private Tailnet:
+        </p>
+        <pre><code># 1. Start the Tailscale remote mesh container
+jl up-remote
+
+# 2. Retrieve one-time authentication link and authorize in browser
+jl remote-auth
+
+# 3. View your assigned MagicDNS name and active HTTPS endpoints
+jl remote-info</code></pre>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Verify Multi-Device Remote Connectivity</div>
+          <span class="step-priority priority-high">High Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          From your mobile phone or a second computer connected to your Tailnet:
+        </p>
+        <ul style="margin-left: 20px; color: var(--text-secondary); line-height: 1.8;">
+          <li>Open <code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net</code> to test conversational chat with your local Ollama models via Open WebUI.</li>
+          <li>Open <code>https://&lt;device&gt;.&lt;tailnet&gt;.ts.net:8443</code> to verify BentoPDF PDF manipulation tools over trusted TLS.</li>
+        </ul>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Configure direnv in resume-aligner (Quality of Life)</div>
+          <span class="step-priority priority-medium">Medium Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Enable zero-touch automatic environment activation upon directory entry so you never have to type <code>devenv shell</code> manually:
+        </p>
+        <pre><code>echo "use devenv" > /home/tonyh/_Projects/resume-aligner/.envrc
+direnv allow /home/tonyh/_Projects/resume-aligner</code></pre>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Multi-Machine Sync: CachyOS Laptop (envy-cachyos-x8664)</div>
+          <span class="step-priority priority-low">Next Machine</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          When switching to the native CachyOS hardware:
+        </p>
+        <pre><code># 1. Pull latest tmux, ble.sh subshell guards, and Tailscale configs
+git pull origin main
+
+# 2. Finalize ONLYOFFICE and Microsoft TrueType fonts
+./bootstrap.sh --with-office
+
+# 3. Ensure host Antigravity IDE package is current via paru
+paru -S --needed antigravity-ide</code></pre>
+      </div>
+    </section>
+
+    <!-- SECTION 5: GIT COMMIT AUDIT -->
+    <section>
+      <h2 class="section-title">📦 Recent Git Commits Reference</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Commit SHA</th>
+              <th>Message</th>
+              <th>Key Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>3535c97</code></td>
+              <td><code>fix(shell): guard ble.sh from attaching in subshells</code></td>
+              <td>Added subshell guards to <code>home/shell.nix</code> to prevent PTY recursion in devenv and nix-shell.</td>
+            </tr>
+            <tr>
+              <td><code>e7ecc21</code></td>
+              <td><code>fix(tmux): enable allow-passthrough and configure ble.sh char_width_mode</code></td>
+              <td>Added <code>set -g allow-passthrough on</code> to <code>home/tmux.nix</code> and <code>char_width_mode=emacs</code>.</td>
+            </tr>
+            <tr>
+              <td><code>8749e2f</code></td>
+              <td><code>Update: Added Tailscale capability to the setup.</code></td>
+              <td>Added Tailscale compose service, <code>serve.json</code> mapping, and <code>justfile</code> remote task runners.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">
+      Generated automatically by Antigravity IDE • Project: <code>setup-linux-scripts</code> • 2026-10-19 22:00
+    </div>
+
+  </div>
+</body>
+</html>
