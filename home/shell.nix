@@ -41,7 +41,10 @@
 
     initExtra = ''
       ##### 1. ble.sh (Bash Line Editor) Integration #####
-      if [[ $- == *i* ]]; then
+      # Only initialize in the top-level interactive shell.
+      # Skip in nested subshells (devenv, nix-shell, or existing ble.sh sessions)
+      # to prevent PTY proxy recursion loops, terminal lockups, and prompt conflicts.
+      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" && -z "''${BLE_SESSION_ID:-}" ]]; then
         if [[ -r "${pkgs.blesh}/share/blesh/ble.sh" ]]; then
           source "${pkgs.blesh}/share/blesh/ble.sh" --noattach
         elif [[ -r "$HOME/.local/share/blesh/ble.sh" ]]; then
@@ -126,7 +129,7 @@
       fi
 
       ##### 8. Attach ble.sh at the very end of interactive session #####
-      if [[ $- == *i* ]] && type ble-attach >/dev/null 2>&1; then
+      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" && -z "''${BLE_SESSION_ID:-}" ]] && type ble-attach >/dev/null 2>&1; then
         ble-attach
       fi
     '';
