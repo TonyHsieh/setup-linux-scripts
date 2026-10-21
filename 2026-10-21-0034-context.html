@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Linux Scripts - Project Status & Resumption Context (2026-10-21 00:34)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --badge-success-bg: rgba(52, 211, 153, 0.15);
+      --badge-success-border: #34d399;
+      --badge-warning-bg: rgba(251, 191, 36, 0.15);
+      --badge-warning-border: #fbbf24;
+      --badge-info-bg: rgba(56, 189, 248, 0.15);
+      --badge-info-border: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timestamp {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--badge-success-bg);
+      border: 1px solid var(--badge-success-border);
+      color: var(--accent-emerald);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meta-list {
+      list-style: none;
+    }
+
+    .meta-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .meta-list li:last-child {
+      border-bottom: none;
+    }
+
+    .meta-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .meta-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-blue);
+      text-align: right;
+    }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 36px 0 18px 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-box {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--accent-blue);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .alert-box.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--accent-emerald);
+    }
+
+    .alert-box.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-left-color: var(--accent-amber);
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--accent-blue);
+    }
+
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: var(--accent-indigo);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .step-priority {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .priority-high {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid var(--accent-rose);
+      color: var(--accent-rose);
+    }
+
+    .priority-medium {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .priority-low {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid var(--text-secondary);
+      color: var(--text-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    th {
+      background: #131d2e;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    td {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>🌙 Session Resumption & Architecture Context</h1>
+          <div class="timestamp">
+            <span>📅 <strong>Timestamp:</strong> 2026-10-21 00:34 (US/Pacific)</span>
+            <span>•</span>
+            <span>📍 <strong>Host:</strong> Ubuntu 24.04.5 LTS on WSL2 (<code>AsusGA403u</code>)</span>
+          </div>
+        </div>
+        <div class="status-badge">
+          ✓ 100% Operational • Tailscale Port 443 Ingress Live • iPhone Verified • Multi-Machine Parameterized
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: SYSTEM OVERVIEW & METRICS -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🖥️ Workspace Environment</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Primary Path</span><span class="meta-val">~/setup-linux-scripts</span></li>
+          <li><span class="meta-label">Primary User</span><span class="meta-val">tonyh</span></li>
+          <li><span class="meta-label">Git Branch</span><span class="meta-val">main (ahead by 8)</span></li>
+          <li><span class="meta-label">Git HEAD</span><span class="meta-val">38073ad</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">❄️ Declarative Stack</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Package Mgr</span><span class="meta-val">Nix Flakes 2.0</span></li>
+          <li><span class="meta-label">User Config</span><span class="meta-val">Home Manager 24.11</span></li>
+          <li><span class="meta-label">Container Mesh</span><span class="meta-val">Rootless Podman</span></li>
+          <li><span class="meta-label">Task Runner</span><span class="meta-val">just (jl)</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🌐 Multi-Machine Matrix</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">WSL2 Workstation</span><span class="meta-val">tonyh (asus - active)</span></li>
+          <li><span class="meta-label">CachyOS Laptop</span><span class="meta-val">thsieh (envy)</span></li>
+          <li><span class="meta-label">Arch Linux</span><span class="meta-val">thsieh01 (arch)</span></li>
+          <li><span class="meta-label">WSL2 Secondary</span><span class="meta-val">wsl-thsieh (flexible)</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 2: CRITICAL DIAGNOSTIC & FIXES (TODAY'S ACHIEVEMENTS) -->
+    <section>
+      <h2 class="section-title">🔍 Incident Report & Key Engineering Achievements</h2>
+      
+      <div class="alert-box success">
+        <div class="alert-title">✅ Milestone Complete: Dedicated Port 443 HTTPS Tailscale Ingress Live</div>
+        We transformed the remote ingress architecture from custom port numbers (e.g. <code>:8443</code>, <code>:5000</code>) to <strong>individual, dedicated MagicDNS hostnames on standard Port 443</strong> (e.g., <code>https://pdf-asus.komodo-sole.ts.net</code>). Live verified from iPhone with official automated Let's Encrypt certificates.
+      </div>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title">Technical Deep-Dive: Root Cause Analysis & Resolutions</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Trigger & Failure Mechanism</th>
+              <th>Permanent Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Tailscale Serve Hostnames</strong></td>
+              <td>Tailscale MagicDNS only issues Let's Encrypt certificates for direct node names (<code>&lt;node&gt;.&lt;tailnet&gt;.ts.net</code>), not two-level subdomains (<code>*.&lt;node&gt;...</code>). Single container routing forced users to type awkward port numbers.</td>
+              <td>Implemented <strong>Option 2</strong>: Created dedicated, lightweight Tailscale ingress containers (<code>tailscale-pdf</code>, <code>tailscale-chat</code>, <code>tailscale-traefik</code>, <code>tailscale-ollama</code>, <code>tailscale-books</code>), each taking ~15MB RAM and serving standard HTTPS on Port 443.</td>
+            </tr>
+            <tr>
+              <td><strong>Mobile Safari Port 80 Rejection</strong></td>
+              <td>When accessing <code>pdf-asus.komodo-sole.ts.net</code> on iOS Safari, iOS probes HTTP Port 80 before TLS negotiation. Tailscale Serve only listened on Port 443, returning <code>dial tcp 127.0.0.1:80: connect: connection refused</code>.</td>
+              <td>Updated all <code>serve-*.json</code> configuration templates to bind both <strong>Port 80 and Port 443</strong>. Mobile browsers now cleanly negotiate TLS without connection drops.</td>
+            </tr>
+            <tr>
+              <td><strong>Nix Store Symlink Mount Collision</strong></td>
+              <td>Home Manager deployed <code>~/.local/share/local-services/tailscale/serve.json</code> as a symlink pointing to <code>/nix/store/...</code>. Mounting the parent directory caused the container to see a broken symlink because <code>/nix/store</code> did not exist inside the container.</td>
+              <td>Directly bind-mounted the file target in <code>docker-compose.yml</code> (<code>tailscale/serve-*.json:/config/serve.json:ro</code>). Podman resolves the symlink on the host, passing real contents into the container.</td>
+            </tr>
+            <tr>
+              <td><strong>Docker Desktop Windows Credential Conflict</strong></td>
+              <td>Docker Compose failed to pull images in WSL2 due to <code>exec: "docker-credential-desktop.exe": executable file not found in $PATH</code> inherited from Windows Docker Desktop.</td>
+              <td>Cleaned <code>~/.docker/config.json</code> to eliminate the broken Windows helper in WSL2.</td>
+            </tr>
+            <tr>
+              <td><strong>Justfile Shell Variable PID Escaping</strong></td>
+              <td>Recipes like <code>remote-info</code> used Makefile-style <code>$$VAR</code>, which bash expanded to the shell PID (e.g. <code>94467SUFFIX</code>).</td>
+              <td>Corrected variables to standard bash <code>$VAR</code> format and added <code>${VAR%.}</code> parameter expansion to strip trailing DNS dots cleanly.</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Machine Hardcoding</strong></td>
+              <td>Tailscale hostnames initially had <code>-asus</code> hardcoded, which would collide when deployed on another laptop.</td>
+              <td>Parameterized hostnames with <code>TS_MACHINE_ID</code> (e.g. <code>pdf-${TS_MACHINE_ID:-asus}</code>), added <code>.env.example</code>, auto-detection in <code>bootstrap.sh</code>, and added <code>wsl-thsieh</code> in <code>flake.nix</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3: TAILSCALE REMOTE ENDPOINTS -->
+    <section>
+      <h2 class="section-title">🌐 Feature Status: Dedicated Port 443 Remote Endpoints</h2>
+      <div class="card">
+        <p style="margin-bottom: 14px; color: var(--text-secondary);">
+          Tailnet Domain: <code>komodo-sole.ts.net</code> • All endpoints run on standard <strong>Port 443 (HTTPS)</strong> with trusted TLS:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Container Name</th>
+              <th>Tailnet MagicDNS URL (Remote)</th>
+              <th>Local Laptop URL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BentoPDF</strong></td>
+              <td><code>local-tailscale-pdf</code></td>
+              <td><a href="https://pdf-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://pdf-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://pdf.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (iPhone Verified)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Open WebUI (Chat Hub)</strong></td>
+              <td><code>local-tailscale-chat</code></td>
+              <td><a href="https://chat-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://chat-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://chat.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (Ready)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Traefik Dashboard</strong></td>
+              <td><code>local-tailscale-traefik</code></td>
+              <td><a href="https://traefik-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://traefik-asus.komodo-sole.ts.net</a></td>
+              <td><code>http://localhost:8088</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (iPhone Verified)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Ollama LLM API</strong></td>
+              <td><code>local-tailscale-ollama</code></td>
+              <td><a href="https://ollama-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://ollama-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://ollama.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (Ready)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Kavita (E-Books)</strong></td>
+              <td><code>local-tailscale-books</code></td>
+              <td><a href="https://books-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://books-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://kavita.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (Ready)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ACTIONABLE RESUMPTION CHECKLIST -->
+    <section>
+      <h2 class="section-title">🚀 Prioritized Action Items for Resumption Tomorrow</h2>
+
+      <!-- Step 1 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Push Local Commits to GitHub Remote</div>
+          <span class="step-priority priority-high">High Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Your local <code>main</code> branch is ahead by 8 verified commits (parameterized Tailscale stack, bugfixes, documentation, and the new <code>save-current-context</code> skill):
+        </p>
+        <pre><code>git push origin main</code></pre>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Test Open WebUI & Mobile AI Chat from iPhone</div>
+          <span class="step-priority priority-medium">Medium Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Start the local Ollama and Open WebUI containers on the laptop, then test conversational chat from your iPhone:
+        </p>
+        <pre><code># 1. Start Ollama and Open WebUI on the laptop
+jl up-webui
+
+# 2. From your iPhone Safari, navigate to:
+# https://chat-asus.komodo-sole.ts.net</code></pre>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Deploy on Second Laptop (WSL2 or CachyOS)</div>
+          <span class="step-priority priority-medium">Multi-Machine</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          When cloning onto your next laptop, test the newly created zero-touch parameterization:
+        </p>
+        <pre><code># 1. Clone and bootstrap
+git clone git@github.com:tonyhsieh/setup-linux-scripts.git ~/setup-linux-scripts
+cd ~/setup-linux-scripts && ./bootstrap.sh
+
+# 2. Add your reusable auth key to ~/.local/share/local-services/.env
+# TS_AUTHKEY=tskey-auth-...
+
+# 3. Launch dedicated remote mesh for the new machine
+jl up-remote</code></pre>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">4</div>
+          <div class="step-title">Configure direnv in resume-aligner (QoL Backlog)</div>
+          <span class="step-priority priority-low">Quality of Life</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Enable zero-touch automatic environment activation upon directory entry:
+        </p>
+        <pre><code>echo "use devenv" > /home/tonyh/_Projects/resume-aligner/.envrc
+direnv allow /home/tonyh/_Projects/resume-aligner</code></pre>
+      </div>
+    </section>
+
+    <!-- SECTION 5: GIT COMMIT AUDIT -->
+    <section>
+      <h2 class="section-title">📦 Git Commits Audit (Session Log)</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Commit SHA</th>
+              <th>Message</th>
+              <th>Key Changes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>38073ad</code></td>
+              <td><code>feat(skills): add save-current-context agent skill</code></td>
+              <td>Created standalone skill in <code>~/.gemini/config/skills/</code> and <code>.agents/skills/</code>.</td>
+            </tr>
+            <tr>
+              <td><code>0be326b</code></td>
+              <td><code>docs: add comprehensive tailscale ingress guide and update README</code></td>
+              <td>Added <code>docs/tailscale-ingress.md</code> and updated main <code>README.md</code>.</td>
+            </tr>
+            <tr>
+              <td><code>bdae4bf</code></td>
+              <td><code>feat: parameterize machine ID for multi-device WSL2 and Linux deployments</code></td>
+              <td>Replaced hardcoded names with <code>TS_MACHINE_ID</code>, added <code>.env.example</code>, auto-detection in <code>bootstrap.sh</code>.</td>
+            </tr>
+            <tr>
+              <td><code>671090e</code></td>
+              <td><code>fix(tailscale): handle both HTTP (port 80) and HTTPS (port 443) in serve configs</code></td>
+              <td>Resolved mobile Safari connection drops by proxying both 80 and 443.</td>
+            </tr>
+            <tr>
+              <td><code>989249a</code></td>
+              <td><code>feat(tailscale): add dedicated ingress containers for standard HTTPS port 443 endpoints</code></td>
+              <td>Deployed 5 dedicated sidecars (<code>pdf-asus</code>, <code>chat-asus</code>, etc.) on Port 443.</td>
+            </tr>
+            <tr>
+              <td><code>9d647e1</code></td>
+              <td><code>fix(tailscale): mount serve.json directly to resolve nix symlink and add --reset flag</code></td>
+              <td>Fixed broken container mount caused by host Nix store symlink.</td>
+            </tr>
+            <tr>
+              <td><code>f8c84e6</code></td>
+              <td><code>feat(local-services): set default Tailscale hostname to laptop-services-asus</code></td>
+              <td>Updated base hostname to distinguish from other hardware.</td>
+            </tr>
+            <tr>
+              <td><code>136e9bf</code></td>
+              <td><code>fix(justfile): use podman compose and fix shell variable syntax in remote recipes</code></td>
+              <td>Switched compose runner from <code>podman-compose 1.0.6</code> to <code>podman compose</code> (v2).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">
+      Generated automatically by Antigravity IDE • Skill: <code>save-current-context</code> • 2026-10-21 00:34
+    </div>
+
+  </div>
+</body>
+</html>
