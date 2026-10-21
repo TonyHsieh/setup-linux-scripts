@@ -130,65 +130,60 @@ down-media:
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop plex
  
 # --- 🌐 Tailscale Private Mesh Ingress Tasks ---
-# Start Tailscale remote mesh ingress (exposes services to your private Tailnet)
+# Start Tailscale remote mesh ingress (exposes dedicated services on port 443)
 up-remote:
-    @echo "==> Starting Tailscale remote mesh ingress via {{COMPOSE_CMD}}..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote up -d tailscale
+    @echo "==> Starting Tailscale remote ingress nodes via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote up -d
     @echo ""
-    @echo "👉 Tailscale remote container is running!"
-    @echo "==> Checking Tailscale status (waiting 2s)..."
-    @sleep 2
-    @if {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -q "To authenticate, visit:"; then \
-        echo "======================================================================"; \
-        echo "🔑 First-Time Setup: Your Tailscale container needs authorization!"; \
-        echo "Open this link in your browser to approve this laptop into your tailnet:"; \
-        echo ""; \
-        {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -A 2 "To authenticate, visit:" | tail -n 2; \
-        echo "======================================================================"; \
-    else \
-        {{CONTAINER_CMD}} exec local-tailscale tailscale status 2>/dev/null || echo "Run 'jl remote-auth' to inspect login status."; \
-    fi
+    @echo "👉 Tailscale remote containers are starting up!"
+    @sleep 3
+    @just -f {{justfile()}} remote-info
 
 # Stop Tailscale remote mesh ingress
 down-remote:
     @echo "==> Stopping Tailscale remote mesh ingress..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop tailscale
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop tailscale-pdf tailscale-chat tailscale-traefik tailscale-ollama tailscale-books
 
-# Check Tailscale mesh connection status, assigned IP, and MagicDNS name
+# Check Tailscale mesh connection status across dedicated nodes
 remote-status:
-    @{{CONTAINER_CMD}} exec -it local-tailscale tailscale status
+    @for node in local-tailscale-pdf local-tailscale-chat local-tailscale-traefik local-tailscale-ollama local-tailscale-books; do \
+        if {{CONTAINER_CMD}} ps -q -f name=$$node 2>/dev/null | grep -q .; then \
+            echo "==> Node: $$node"; \
+            {{CONTAINER_CMD}} exec $$node tailscale status; \
+        fi \
+    done
 
 # View Tailscale Serve routing map and active HTTPS endpoints
 remote-info:
     @echo "======================================================================"
-    @echo "🌐 Tailscale Remote Mesh Service Map"
+    @echo "🌐 Tailscale Dedicated Remote Services (Standard HTTPS Port 443)"
     @echo "======================================================================"
-    @TS_NAME=$({{CONTAINER_CMD}} exec local-tailscale tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); \
-    TS_NAME="${TS_NAME%.}"; \
-    if [ -n "$TS_NAME" ]; then \
-        echo "Device MagicDNS: https://$TS_NAME"; \
+    @SUFFIX=$({{CONTAINER_CMD}} exec local-tailscale-pdf tailscale status --json 2>/dev/null | jq -r '.MagicDNSSuffix // empty'); \
+    if [ -n "$SUFFIX" ]; then \
+        echo "Tailnet Domain: $SUFFIX"; \
         echo ""; \
-        echo "Private HTTPS Endpoints (reachable from any device on your Tailnet):"; \
-        echo "  • Open WebUI (Chat):      https://$TS_NAME"; \
-        echo "  • BentoPDF:               https://$TS_NAME:8443"; \
-        echo "  • Ollama LLM API:         https://$TS_NAME:11434"; \
-        echo "  • Kavita E-Books:         https://$TS_NAME:5000"; \
-        echo "  • Plex Media Server:      https://$TS_NAME:32400"; \
-        echo "  • Traefik Dashboard:      https://$TS_NAME:8088"; \
+        echo "Dedicated HTTPS Endpoints (Reachable from any device on your Tailnet):"; \
+        echo "  • BentoPDF:               https://pdf-asus.$SUFFIX"; \
+        echo "  • Open WebUI (AI Chat):   https://chat-asus.$SUFFIX"; \
+        echo "  • Traefik Dashboard:      https://traefik-asus.$SUFFIX"; \
+        echo "  • Ollama LLM API:         https://ollama-asus.$SUFFIX"; \
+        echo "  • Kavita E-Books:         https://books-asus.$SUFFIX"; \
     else \
-        echo "⚠️ Tailscale is not running or not authenticated yet."; \
-        echo "Run 'jl up-remote' or 'jl remote-auth' to view the authorization link."; \
+        echo "⚠️ Tailscale services are starting up or not running."; \
+        echo "Run 'jl up-remote' to start all dedicated endpoints."; \
     fi
     @echo "======================================================================"
 
-# Show Tailscale login link if container is waiting for authorization
+# Show Tailscale login link if any container is waiting for authorization
 remote-auth:
-    @echo "==> Checking Tailscale authorization link..."
-    @if {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -q "To authenticate, visit:"; then \
-        {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -A 2 "To authenticate, visit:" | tail -n 2; \
-    else \
-        {{CONTAINER_CMD}} exec local-tailscale tailscale status 2>/dev/null || echo "Container not running. Run 'jl up-remote' first."; \
-    fi
+    @for node in local-tailscale-pdf local-tailscale-chat local-tailscale-traefik local-tailscale-ollama local-tailscale-books; do \
+        if {{CONTAINER_CMD}} ps -q -f name=$$node 2>/dev/null | grep -q .; then \
+            if {{CONTAINER_CMD}} logs $$node 2>&1 | grep -q "To authenticate, visit:"; then \
+                echo "==> Authorization required for $$node:"; \
+                {{CONTAINER_CMD}} logs $$node 2>&1 | grep -A 2 "To authenticate, visit:" | tail -n 2; \
+            fi \
+        fi \
+    done
 
 # Generate / regenerate mkcert SSL certificates for *.localhost
 certs:

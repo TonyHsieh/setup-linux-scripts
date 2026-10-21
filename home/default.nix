@@ -40,5 +40,10 @@
   xdg.dataFile."local-services/justfile".source = ../local-services/justfile;
   xdg.dataFile."local-services/traefik/dynamic.yml".source = ../local-services/traefik/dynamic.yml;
   xdg.dataFile."local-services/tailscale/serve.json".source = ../local-services/tailscale/serve.json;
+  xdg.dataFile."local-services/tailscale/serve-pdf.json".source = ../local-services/tailscale/serve-pdf.json;
+  xdg.dataFile."local-services/tailscale/serve-chat.json".source = ../local-services/tailscale/serve-chat.json;
+  xdg.dataFile."local-services/tailscale/serve-traefik.json".source = ../local-services/tailscale/serve-traefik.json;
+  xdg.dataFile."local-services/tailscale/serve-ollama.json".source = ../local-services/tailscale/serve-ollama.json;
+  xdg.dataFile."local-services/tailscale/serve-books.json".source = ../local-services/tailscale/serve-books.json;
 }
 

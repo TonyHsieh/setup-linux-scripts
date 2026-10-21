@@ -27,6 +27,9 @@ test/
 result
 result-*
 
-# Local SSL certificates
+# Local SSL certificates & secrets
 local-services/certs/*.pem
+.env
+*.env
+local-services/.env
 
