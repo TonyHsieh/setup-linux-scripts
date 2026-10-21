@@ -3,7 +3,7 @@
 # Usage: just -f <path-to-justfile> <command>  (or 'jl <command>')
 # ==============================================================================
 
-COMPOSE_CMD := if `command -v podman-compose >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman-compose" } else { "docker compose" }
+COMPOSE_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman compose" } else { "docker compose" }
 CONTAINER_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman" } else { "docker" }
 
 export LOCAL_SERVICES_DIR := justfile_directory()
@@ -143,7 +143,7 @@ up-remote:
         echo "🔑 First-Time Setup: Your Tailscale container needs authorization!"; \
         echo "Open this link in your browser to approve this laptop into your tailnet:"; \
         echo ""; \
-        {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep "To authenticate, visit:" | tail -n 1; \
+        {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -A 2 "To authenticate, visit:" | tail -n 2; \
         echo "======================================================================"; \
     else \
         {{CONTAINER_CMD}} exec local-tailscale tailscale status 2>/dev/null || echo "Run 'jl remote-auth' to inspect login status."; \
@@ -163,17 +163,17 @@ remote-info:
     @echo "======================================================================"
     @echo "🌐 Tailscale Remote Mesh Service Map"
     @echo "======================================================================"
-    @TS_NAME=$$({{CONTAINER_CMD}} exec local-tailscale tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty' | sed 's/\.$$//'); \
-    if [ -n "$$TS_NAME" ]; then \
-        echo "Device MagicDNS: https://$$TS_NAME"; \
+    @TS_NAME=$({{CONTAINER_CMD}} exec local-tailscale tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty' | sed 's/\.$$//'); \
+    if [ -n "$TS_NAME" ]; then \
+        echo "Device MagicDNS: https://$TS_NAME"; \
         echo ""; \
         echo "Private HTTPS Endpoints (reachable from any device on your Tailnet):"; \
-        echo "  • Open WebUI (Chat):      https://$$TS_NAME"; \
-        echo "  • BentoPDF:               https://$$TS_NAME:8443"; \
-        echo "  • Ollama LLM API:         https://$$TS_NAME:11434"; \
-        echo "  • Kavita E-Books:         https://$$TS_NAME:5000"; \
-        echo "  • Plex Media Server:      https://$$TS_NAME:32400"; \
-        echo "  • Traefik Dashboard:      https://$$TS_NAME:8088"; \
+        echo "  • Open WebUI (Chat):      https://$TS_NAME"; \
+        echo "  • BentoPDF:               https://$TS_NAME:8443"; \
+        echo "  • Ollama LLM API:         https://$TS_NAME:11434"; \
+        echo "  • Kavita E-Books:         https://$TS_NAME:5000"; \
+        echo "  • Plex Media Server:      https://$TS_NAME:32400"; \
+        echo "  • Traefik Dashboard:      https://$TS_NAME:8088"; \
     else \
         echo "⚠️ Tailscale is not running or not authenticated yet."; \
         echo "Run 'jl up-remote' or 'jl remote-auth' to view the authorization link."; \
@@ -183,9 +183,8 @@ remote-info:
 # Show Tailscale login link if container is waiting for authorization
 remote-auth:
     @echo "==> Checking Tailscale authorization link..."
-    @AUTH_URL=$$({{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep "To authenticate, visit:" | tail -n 1); \
-    if [ -n "$$AUTH_URL" ]; then \
-        echo "$$AUTH_URL"; \
+    @if {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -q "To authenticate, visit:"; then \
+        {{CONTAINER_CMD}} logs local-tailscale 2>&1 | grep -A 2 "To authenticate, visit:" | tail -n 2; \
     else \
         {{CONTAINER_CMD}} exec local-tailscale tailscale status 2>/dev/null || echo "Container not running. Run 'jl up-remote' first."; \
     fi
