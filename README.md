@@ -400,16 +400,18 @@ jl up-media     # Start Plex media server (https://plex.localhost)
 jl down-media   # Stop Plex server
 
 # 🌐 On-Demand Tailscale Private Mesh Ingress (Access Away from Home)
-jl up-remote    # Start Tailscale container & auto-serve private HTTPS endpoints
-jl down-remote  # Stop Tailscale container
-jl remote-info  # Show active MagicDNS private HTTPS endpoints
-jl remote-auth  # Display one-time browser login authorization link
+jl up-remote     # Start all dedicated Tailscale ingress nodes on standard Port 443
+jl down-remote   # Stop all Tailscale ingress nodes
+jl remote-info   # Show active MagicDNS private HTTPS endpoints (pdf-<id>, chat-<id>, etc.)
+jl remote-status # Check connection status across all dedicated nodes
+jl remote-auth   # Display authorization link if any node needs first-time login
 
-jl up-all       # Start ALL core and optional profile services simultaneously
+jl up-all        # Start ALL core and optional profile services simultaneously
 ```
 
 > [!TIP]
-> * For a full guide on connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
+> * For a full guide on remote mobile access, dedicated Port 443 HTTPS endpoints, and multi-machine parameterization, read **[docs/tailscale-ingress.md](docs/tailscale-ingress.md)**.
+> * For connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
 > * For local LLM chat workflows, host CLI wrappers, and AI agent routing, read **[docs/ollama-guide.md](docs/ollama-guide.md)**.
 
 ---
