@@ -163,7 +163,8 @@ remote-info:
     @echo "======================================================================"
     @echo "🌐 Tailscale Remote Mesh Service Map"
     @echo "======================================================================"
-    @TS_NAME=$({{CONTAINER_CMD}} exec local-tailscale tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty' | sed 's/\.$$//'); \
+    @TS_NAME=$({{CONTAINER_CMD}} exec local-tailscale tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); \
+    TS_NAME="${TS_NAME%.}"; \
     if [ -n "$TS_NAME" ]; then \
         echo "Device MagicDNS: https://$TS_NAME"; \
         echo ""; \
