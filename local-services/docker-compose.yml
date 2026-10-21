@@ -166,7 +166,7 @@ services:
     container_name: local-tailscale
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_HOSTNAME:-laptop-services}"
+    hostname: "${TS_HOSTNAME:-laptop-services-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
