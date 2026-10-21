@@ -68,6 +68,19 @@
           ];
         };
 
+        # 1b. WSL2 Ubuntu (User: thsieh, Home: /home/thsieh)
+        "wsl-thsieh" = home-manager.lib.homeManagerConfiguration {
+          pkgs = nixpkgs.legacyPackages."x86_64-linux";
+          extraSpecialArgs = { inherit inputs; isWSL = true; };
+          modules = [
+            ./home/default.nix
+            {
+              home.username = "thsieh";
+              home.homeDirectory = "/home/thsieh";
+            }
+          ];
+        };
+
         # 2. CachyOS / Arch Linux (User: thsieh, Home: /home/thsieh)
         "cachyos" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages."x86_64-linux";

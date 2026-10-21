@@ -159,15 +159,20 @@ remote-info:
     @echo "🌐 Tailscale Dedicated Remote Services (Standard HTTPS Port 443)"
     @echo "======================================================================"
     @SUFFIX=$({{CONTAINER_CMD}} exec local-tailscale-pdf tailscale status --json 2>/dev/null | jq -r '.MagicDNSSuffix // empty'); \
+    PDF_NAME=$({{CONTAINER_CMD}} exec local-tailscale-pdf tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); PDF_NAME="${PDF_NAME%.}"; \
+    CHAT_NAME=$({{CONTAINER_CMD}} exec local-tailscale-chat tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); CHAT_NAME="${CHAT_NAME%.}"; \
+    TRAEFIK_NAME=$({{CONTAINER_CMD}} exec local-tailscale-traefik tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); TRAEFIK_NAME="${TRAEFIK_NAME%.}"; \
+    OLLAMA_NAME=$({{CONTAINER_CMD}} exec local-tailscale-ollama tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); OLLAMA_NAME="${OLLAMA_NAME%.}"; \
+    BOOKS_NAME=$({{CONTAINER_CMD}} exec local-tailscale-books tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty'); BOOKS_NAME="${BOOKS_NAME%.}"; \
     if [ -n "$SUFFIX" ]; then \
         echo "Tailnet Domain: $SUFFIX"; \
         echo ""; \
         echo "Dedicated HTTPS Endpoints (Reachable from any device on your Tailnet):"; \
-        echo "  • BentoPDF:               https://pdf-asus.$SUFFIX"; \
-        echo "  • Open WebUI (AI Chat):   https://chat-asus.$SUFFIX"; \
-        echo "  • Traefik Dashboard:      https://traefik-asus.$SUFFIX"; \
-        echo "  • Ollama LLM API:         https://ollama-asus.$SUFFIX"; \
-        echo "  • Kavita E-Books:         https://books-asus.$SUFFIX"; \
+        [ -n "$PDF_NAME" ] && echo "  • BentoPDF:               https://$PDF_NAME"; \
+        [ -n "$CHAT_NAME" ] && echo "  • Open WebUI (AI Chat):   https://$CHAT_NAME"; \
+        [ -n "$TRAEFIK_NAME" ] && echo "  • Traefik Dashboard:      https://$TRAEFIK_NAME"; \
+        [ -n "$OLLAMA_NAME" ] && echo "  • Ollama LLM API:         https://$OLLAMA_NAME"; \
+        [ -n "$BOOKS_NAME" ] && echo "  • Kavita E-Books:         https://$BOOKS_NAME"; \
     else \
         echo "⚠️ Tailscale services are starting up or not running."; \
         echo "Run 'jl up-remote' to start all dedicated endpoints."; \

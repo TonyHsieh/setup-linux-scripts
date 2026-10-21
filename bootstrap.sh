@@ -530,7 +530,11 @@ if [ -n "${TARGET_OVERRIDE:-}" ]; then
 elif [ "$(uname)" = "Darwin" ]; then
   TARGET_PROFILE="darwin"
 elif grep -qsi Microsoft /proc/version 2>/dev/null; then
-  TARGET_PROFILE="wsl"
+  if [ "$USER" = "thsieh" ]; then
+    TARGET_PROFILE="wsl-thsieh"
+  else
+    TARGET_PROFILE="wsl"
+  fi
 elif [ "$USER" = "thsieh01" ]; then
   TARGET_PROFILE="cachyos-thsieh01"
 elif [ "$USER" = "thsieh" ] || command -v pacman >/dev/null 2>&1; then
@@ -653,6 +657,22 @@ EOF
     echo "==> Scaffolding initial OpenCode configuration (~/.config/opencode/opencode.json)..."
     mkdir -p "$HOME/.config/opencode"
     cp "$SCRIPT_DIR/dotfiles/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
+  fi
+
+  # 7.7. Bootstrap local-services environment (~/.local/share/local-services/.env) if missing
+  LOCAL_SERVICES_ENV="$HOME/.local/share/local-services/.env"
+  if [ ! -f "$LOCAL_SERVICES_ENV" ]; then
+    mkdir -p "$HOME/.local/share/local-services"
+    AUTO_MACHINE_ID="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c 1-12)"
+    AUTO_MACHINE_ID="${AUTO_MACHINE_ID:-laptop}"
+    echo "==> Scaffolding initial local-services .env (Machine ID: $AUTO_MACHINE_ID)..."
+    cat << EOF > "$LOCAL_SERVICES_ENV"
+# Local Services Environment Configuration
+TS_MACHINE_ID=${AUTO_MACHINE_ID}
+TS_AUTHKEY=
+EOF
+    chmod 600 "$LOCAL_SERVICES_ENV"
+    echo "👉 Tip: Edit $LOCAL_SERVICES_ENV to set your TS_AUTHKEY or customize TS_MACHINE_ID"
   fi
 
   echo ""

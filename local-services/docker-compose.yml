@@ -160,13 +160,13 @@ services:
       - "traefik.http.services.plex.loadbalancer.server.port=32400"
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: BentoPDF (https://pdf-asus.<tailnet>.ts.net)
+  # 🌐 Tailscale Ingress: BentoPDF
   tailscale-pdf:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-pdf
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_PDF_HOSTNAME:-pdf-asus}"
+    hostname: "pdf-${TS_MACHINE_ID:-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -182,13 +182,13 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: Open WebUI (https://chat-asus.<tailnet>.ts.net)
+  # 🌐 Tailscale Ingress: Open WebUI
   tailscale-chat:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-chat
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_CHAT_HOSTNAME:-chat-asus}"
+    hostname: "chat-${TS_MACHINE_ID:-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -204,13 +204,13 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: Traefik Dashboard (https://traefik-asus.<tailnet>.ts.net)
+  # 🌐 Tailscale Ingress: Traefik Dashboard
   tailscale-traefik:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-traefik
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_TRAEFIK_HOSTNAME:-traefik-asus}"
+    hostname: "traefik-${TS_MACHINE_ID:-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -226,13 +226,13 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: Ollama LLM API (https://ollama-asus.<tailnet>.ts.net)
+  # 🌐 Tailscale Ingress: Ollama LLM API
   tailscale-ollama:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-ollama
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_OLLAMA_HOSTNAME:-ollama-asus}"
+    hostname: "ollama-${TS_MACHINE_ID:-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -248,13 +248,13 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: Kavita E-Books (https://books-asus.<tailnet>.ts.net)
+  # 🌐 Tailscale Ingress: Kavita E-Books
   tailscale-books:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-books
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "${TS_BOOKS_HOSTNAME:-books-asus}"
+    hostname: "books-${TS_MACHINE_ID:-asus}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
