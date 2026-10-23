@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Setup Linux Scripts - Project Status & Resumption Context (2026-10-23 01:11)</title>
+  <title>Setup Linux Scripts - Master Resumption & Architectural Context (2026-10-23)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -164,6 +164,16 @@
       gap: 10px;
     }
 
+    h3.subsection-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin: 24px 0 14px 0;
+      color: var(--accent-blue);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .alert-box {
       background: rgba(56, 189, 248, 0.1);
       border-left: 4px solid var(--accent-blue);
@@ -320,28 +330,31 @@
     <header>
       <div class="header-top">
         <div>
-          <h1>🌙 Session Resumption & Architecture Context</h1>
+          <h1>🌙 Master Resumption & Architectural Context</h1>
           <div class="timestamp">
-            <span>📅 <strong>Timestamp:</strong> 2026-10-23 01:11 (US/Pacific)</span>
+            <span>📅 <strong>Updated:</strong> 2026-10-23 01:46 (US/Pacific)</span>
             <span>•</span>
             <span>📍 <strong>Host:</strong> Ubuntu 24.04.5 LTS on WSL2 (<code>AsusGA403u</code>)</span>
+            <span>•</span>
+            <span>🔗 <strong>Integrated:</strong> 2026-10-21 & 2026-10-23 Workflows</span>
           </div>
         </div>
         <div class="status-badge">
-          ✓ ble.sh Restored • Tmux Tiled Layouts Fixed (N-Panes Safe) • Ghost Sessions Eliminated • Zero Downtime
+          ✓ 100% Operational • ble.sh & Tmux Multi-Pane Restored • Dedicated Port 443 Ingress Live
         </div>
       </div>
     </header>
 
-    <!-- SECTION 1: SYSTEM OVERVIEW & METRICS -->
+    <!-- SECTION 1: SYSTEM OVERVIEW & METRICS GRID -->
     <div class="grid-3">
       <div class="card">
         <div class="card-title">🖥️ Workspace Environment</div>
         <ul class="meta-list">
           <li><span class="meta-label">Primary Path</span><span class="meta-val">~/setup-linux-scripts</span></li>
           <li><span class="meta-label">Primary User</span><span class="meta-val">tonyh</span></li>
-          <li><span class="meta-label">Git Branch</span><span class="meta-val">main (ahead by 3)</span></li>
-          <li><span class="meta-label">Git HEAD</span><span class="meta-val">c52f4d1</span></li>
+          <li><span class="meta-label">Git Branch</span><span class="meta-val">main</span></li>
+          <li><span class="meta-label">Git HEAD</span><span class="meta-val">85e1e89</span></li>
+          <li><span class="meta-label">Working Tree</span><span class="meta-val" style="color: var(--accent-emerald);">Clean & Synced</span></li>
         </ul>
       </div>
 
@@ -350,8 +363,9 @@
         <ul class="meta-list">
           <li><span class="meta-label">Package Mgr</span><span class="meta-val">Nix Flakes 2.0 (Nix 2.34.7)</span></li>
           <li><span class="meta-label">User Config</span><span class="meta-val">Home Manager 24.11</span></li>
-          <li><span class="meta-label">Tmux Version</span><span class="meta-val">tmux 3.7c (Nixpkgs 2026-10)</span></li>
-          <li><span class="meta-label">Task Runner</span><span class="meta-val">just (jl)</span></li>
+          <li><span class="meta-label">Tmux Core</span><span class="meta-val">tmux 3.7c (Nixpkgs 2026-10)</span></li>
+          <li><span class="meta-label">Container Mesh</span><span class="meta-val">Rootless Podman</span></li>
+          <li><span class="meta-label">Task Runner</span><span class="meta-val">just (jl shortcut)</span></li>
         </ul>
       </div>
 
@@ -362,21 +376,25 @@
           <li><span class="meta-label">CachyOS Laptop</span><span class="meta-val">thsieh (envy)</span></li>
           <li><span class="meta-label">Arch Linux</span><span class="meta-val">thsieh01 (arch)</span></li>
           <li><span class="meta-label">WSL2 Secondary</span><span class="meta-val">wsl-thsieh (flexible)</span></li>
+          <li><span class="meta-label">Tailscale Param</span><span class="meta-val">TS_MACHINE_ID</span></li>
         </ul>
       </div>
     </div>
 
-    <!-- SECTION 2: CRITICAL DIAGNOSTIC & FIXES (TODAY'S ACHIEVEMENTS) -->
+    <!-- SECTION 2: CRITICAL DIAGNOSTIC & FIXES (ACCUMULATED ACHIEVEMENTS) -->
     <section>
-      <h2 class="section-title">🔍 Incident Report & Key Engineering Achievements</h2>
+      <h2 class="section-title">🔍 Comprehensive Incident Reports & Architectural Solutions</h2>
+
+      <!-- SUBSECTION A: 2026-10-23 SHELL & MULTIPLEXER ACHIEVEMENTS -->
+      <h3 class="subsection-title">⚡ Session 2026-10-23: ble.sh Restoration, Tmux Multi-Pane Layouts & Session Pruning</h3>
       
       <div class="alert-box success">
-        <div class="alert-title">✅ Milestone Complete: ble.sh & Tmux Layout Resumption Fully Resolved</div>
-        Resolved terminal line editor suppression, eliminated headless detached layout clashing across arbitrary N-pane configurations (3, 4, 6+ panes), prevented ghost session proliferation, and verified live with zero disruption to the active tmux server.
+        <div class="alert-title">✅ Milestone Complete: Shell Modernization & Multiplexer Resilience</div>
+        Fully restored <code>ble.sh</code> terminal line editor across interactive sessions while maintaining safe <code>devenv shell</code> subshell suppression; configured Tmux detached canvas to <code>350x90</code> to ensure arbitrary multi-pane tiled layouts (3, 4, 6+ panes) restore without clipping; eliminated ghost session proliferation; hot-reloaded configuration with zero downtime to the user's active session.
       </div>
 
       <div class="card" style="margin-bottom: 24px;">
-        <div class="card-title">Technical Deep-Dive: Root Cause Analysis & Resolutions</div>
+        <div class="card-title">Technical Deep-Dive: Shell & Tmux Resolutions</div>
         <table>
           <thead>
             <tr>
@@ -414,14 +432,67 @@
           </tbody>
         </table>
       </div>
+
+      <!-- SUBSECTION B: 2026-10-21 TAILSCALE & MULTI-DEVICE ACHIEVEMENTS -->
+      <h3 class="subsection-title">🌐 Session 2026-10-21: Dedicated Port 443 Tailscale Ingress & Multi-Machine Parameterization</h3>
+      
+      <div class="alert-box success">
+        <div class="alert-title">✅ Milestone Complete: Dedicated Port 443 HTTPS Tailscale Ingress Live</div>
+        Transformed remote ingress architecture from custom port numbers (e.g. <code>:8443</code>, <code>:5000</code>) to <strong>individual, dedicated MagicDNS hostnames on standard Port 443</strong> (e.g., <code>https://pdf-asus.komodo-sole.ts.net</code>). Live verified from iPhone with official automated Let's Encrypt certificates.
+      </div>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title">Technical Deep-Dive: Networking & Remote Mesh Resolutions</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Trigger & Failure Mechanism</th>
+              <th>Permanent Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Tailscale Serve Hostnames</strong></td>
+              <td>Tailscale MagicDNS only issues Let's Encrypt certificates for direct node names (<code>&lt;node&gt;.&lt;tailnet&gt;.ts.net</code>), not two-level subdomains (<code>*.&lt;node&gt;...</code>). Single container routing forced users to type awkward port numbers.</td>
+              <td>Implemented <strong>Option 2</strong>: Created dedicated, lightweight Tailscale ingress containers (<code>tailscale-pdf</code>, <code>tailscale-chat</code>, <code>tailscale-traefik</code>, <code>tailscale-ollama</code>, <code>tailscale-books</code>), each taking ~15MB RAM and serving standard HTTPS on Port 443.</td>
+            </tr>
+            <tr>
+              <td><strong>Mobile Safari Port 80 Rejection</strong></td>
+              <td>When accessing <code>pdf-asus.komodo-sole.ts.net</code> on iOS Safari, iOS probes HTTP Port 80 before TLS negotiation. Tailscale Serve only listened on Port 443, returning <code>dial tcp 127.0.0.1:80: connect: connection refused</code>.</td>
+              <td>Updated all <code>serve-*.json</code> configuration templates to bind both <strong>Port 80 and Port 443</strong>. Mobile browsers now cleanly negotiate TLS without connection drops.</td>
+            </tr>
+            <tr>
+              <td><strong>Nix Store Symlink Mount Collision</strong></td>
+              <td>Home Manager deployed <code>~/.local/share/local-services/tailscale/serve.json</code> as a symlink pointing to <code>/nix/store/...</code>. Mounting the parent directory caused the container to see a broken symlink because <code>/nix/store</code> did not exist inside the container.</td>
+              <td>Directly bind-mounted the file target in <code>docker-compose.yml</code> (<code>tailscale/serve-*.json:/config/serve.json:ro</code>). Podman resolves the symlink on the host, passing real contents into the container.</td>
+            </tr>
+            <tr>
+              <td><strong>Docker Desktop Windows Credential Conflict</strong></td>
+              <td>Docker Compose failed to pull images in WSL2 due to <code>exec: "docker-credential-desktop.exe": executable file not found in $PATH</code> inherited from Windows Docker Desktop.</td>
+              <td>Cleaned <code>~/.docker/config.json</code> to eliminate the broken Windows helper in WSL2.</td>
+            </tr>
+            <tr>
+              <td><strong>Justfile Shell Variable PID Escaping</strong></td>
+              <td>Recipes like <code>remote-info</code> used Makefile-style <code>$$VAR</code>, which bash expanded to the shell PID (e.g. <code>94467SUFFIX</code>).</td>
+              <td>Corrected variables to standard bash <code>$VAR</code> format and added <code>${VAR%.}</code> parameter expansion to strip trailing DNS dots cleanly.</td>
+            </tr>
+            <tr>
+              <td><strong>Multi-Machine Hardcoding</strong></td>
+              <td>Tailscale hostnames initially had <code>-asus</code> hardcoded, which would collide when deployed on another laptop.</td>
+              <td>Parameterized hostnames with <code>TS_MACHINE_ID</code> (e.g. <code>pdf-${TS_MACHINE_ID:-asus}</code>), added <code>.env.example</code>, auto-detection in <code>bootstrap.sh</code>, and added <code>wsl-thsieh</code> in <code>flake.nix</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <!-- SECTION 3: TAILSCALE & LOCAL SERVICES MATRIX -->
+    <!-- SECTION 3: FEATURE STATUS & ENDPOINTS MATRIX -->
     <section>
-      <h2 class="section-title">🌐 Feature Status: Endpoints Matrix</h2>
+      <h2 class="section-title">🌐 Feature Status: Complete Endpoints Matrix</h2>
       <div class="card">
         <p style="margin-bottom: 14px; color: var(--text-secondary);">
-          Tailnet Domain: <code>komodo-sole.ts.net</code> • All endpoints run on standard <strong>Port 443 (HTTPS)</strong> with trusted TLS:
+          Tailnet Domain: <code>komodo-sole.ts.net</code> • All endpoints run on standard <strong>Port 443 (HTTPS)</strong> with trusted Let's Encrypt TLS:
         </p>
         <table>
           <thead>
@@ -430,7 +501,7 @@
               <th>Container Name</th>
               <th>Tailnet MagicDNS URL (Remote)</th>
               <th>Local Laptop URL</th>
-              <th>Status</th>
+              <th>Operational Status</th>
             </tr>
           </thead>
           <tbody>
@@ -439,21 +510,21 @@
               <td><code>local-tailscale-pdf</code></td>
               <td><a href="https://pdf-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://pdf-asus.komodo-sole.ts.net</a></td>
               <td><code>https://pdf.localhost</code></td>
-              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active</span></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (iPhone Verified)</span></td>
             </tr>
             <tr>
               <td><strong>Open WebUI (Chat Hub)</strong></td>
-              <td><code>local-open-webui</code></td>
+              <td><code>local-open-webui</code> / <code>local-tailscale-chat</code></td>
               <td><a href="https://chat-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://chat-asus.komodo-sole.ts.net</a></td>
               <td><code>https://chat.localhost</code></td>
-              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Running (Up ~1 hr)</span></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Running (Active)</span></td>
             </tr>
             <tr>
               <td><strong>Traefik Dashboard</strong></td>
               <td><code>local-tailscale-traefik</code></td>
               <td><a href="https://traefik-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://traefik-asus.komodo-sole.ts.net</a></td>
               <td><code>http://localhost:8088</code></td>
-              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active</span></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active (iPhone Verified)</span></td>
             </tr>
             <tr>
               <td><strong>Ollama LLM API</strong></td>
@@ -476,82 +547,135 @@
 
     <!-- SECTION 4: ACTIONABLE RESUMPTION CHECKLIST -->
     <section>
-      <h2 class="section-title">🚀 Prioritized Action Items for Resumption Tomorrow</h2>
+      <h2 class="section-title">🚀 Unified Action Items for Resumption</h2>
 
       <!-- Step 1 -->
       <div class="step-card">
         <div class="step-header">
           <div class="step-number">1</div>
-          <div class="step-title">Push Local Commits to GitHub Remote</div>
+          <div class="step-title">Test Open WebUI & Mobile AI Chat from iPhone</div>
           <span class="step-priority priority-high">High Priority</span>
         </div>
         <p style="color: var(--text-secondary); margin-bottom: 10px;">
-          Your local <code>main</code> branch is ahead by 3 verified commits (ble.sh restoration, tmux multi-pane layout fix, ghost session pruning, and README documentation):
+          The local container stack is up. Open Safari on your iPhone connected to Tailscale and verify the full mobile chat experience:
         </p>
-        <pre><code>git push origin main</code></pre>
+        <pre><code># On iPhone Safari:
+https://chat-asus.komodo-sole.ts.net</code></pre>
       </div>
 
       <!-- Step 2 -->
       <div class="step-card">
         <div class="step-header">
           <div class="step-number">2</div>
-          <div class="step-title">Test Open WebUI Mobile Chat from iPhone</div>
-          <span class="step-priority priority-medium">Medium Priority</span>
+          <div class="step-title">Deploy on Second Laptop (WSL2 or CachyOS)</div>
+          <span class="step-priority priority-medium">Multi-Machine</span>
         </div>
         <p style="color: var(--text-secondary); margin-bottom: 10px;">
-          The <code>local-open-webui</code> container is already running. Test conversational chat over your private Tailscale network from Safari:
+          Test the parameterized zero-touch deployment on your secondary machine (auto-detects <code>TS_MACHINE_ID</code>):
         </p>
-        <pre><code># From your iPhone Safari:
-https://chat-asus.komodo-sole.ts.net</code></pre>
+        <pre><code># 1. Clone repository
+git clone git@github.com:tonyhsieh/setup-linux-scripts.git ~/setup-linux-scripts
+cd ~/setup-linux-scripts && ./bootstrap.sh
+
+# 2. Add auth key in ~/.local/share/local-services/.env:
+# TS_AUTHKEY=tskey-auth-...
+
+# 3. Launch dedicated remote mesh
+jl up-remote</code></pre>
       </div>
 
       <!-- Step 3 -->
       <div class="step-card">
         <div class="step-header">
           <div class="step-number">3</div>
-          <div class="step-title">Deploy on Second Laptop (WSL2 or CachyOS)</div>
-          <span class="step-priority priority-medium">Multi-Machine</span>
+          <div class="step-title">Configure direnv in resume-aligner (QoL Backlog)</div>
+          <span class="step-priority priority-low">Quality of Life</span>
         </div>
         <p style="color: var(--text-secondary); margin-bottom: 10px;">
-          Test the parameterized zero-touch setup on your secondary machine:
+          Enable zero-touch automatic environment activation upon directory entry:
         </p>
-        <pre><code>git clone git@github.com:tonyhsieh/setup-linux-scripts.git ~/setup-linux-scripts
-cd ~/setup-linux-scripts && ./bootstrap.sh</code></pre>
+        <pre><code>echo "use devenv" > /home/tonyh/_Projects/resume-aligner/.envrc
+direnv allow /home/tonyh/_Projects/resume-aligner</code></pre>
       </div>
     </section>
 
-    <!-- SECTION 5: GIT AUDIT -->
+    <!-- SECTION 5: UNIFIED GIT COMMIT AUDIT -->
     <section>
-      <h2 class="section-title">📦 Recent Git Commits Audit</h2>
+      <h2 class="section-title">📦 Unified Git Commits Audit (Sessions 2026-10-21 & 2026-10-23)</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
               <th>Commit SHA</th>
-              <th>Description</th>
-              <th>Files Modified</th>
+              <th>Message</th>
+              <th>Key Changes & Scope</th>
             </tr>
           </thead>
           <tbody>
             <tr>
+              <td><code>85e1e89</code></td>
+              <td><code>docs: save session resumption context (2026-10-23 01:11)</code></td>
+              <td>Recorded initial Oct 23 resumption context and active metrics.</td>
+            </tr>
+            <tr>
               <td><code>c52f4d1</code></td>
-              <td>docs: add comprehensive troubleshooting and architectural changes section to README</td>
-              <td><code>README.md</code></td>
+              <td><code>docs: add comprehensive troubleshooting and architectural changes section to README</code></td>
+              <td>Documented root causes and solutions for ble.sh, tmux layout, and ghost sessions in <code>README.md</code>.</td>
             </tr>
             <tr>
               <td><code>55b4ab9</code></td>
-              <td>fix(tmux): remove client-attached hook to preserve custom pane split ratios</td>
-              <td><code>home/tmux.nix</code></td>
+              <td><code>fix(tmux): remove client-attached hook to preserve custom pane split ratios</code></td>
+              <td>Prevented forced pane equalizing; preserved custom 55/23 split proportions in <code>home/tmux.nix</code>.</td>
             </tr>
             <tr>
               <td><code>99f896d</code></td>
-              <td>fix(shell,tmux): restore ble.sh, fix tiled layout restore, and eliminate ghost sessions</td>
-              <td><code>home/shell.nix</code>, <code>home/tmux.nix</code>, <code>2026-10-23-troubleshooting-plan.html</code></td>
+              <td><code>fix(shell,tmux): restore ble.sh, fix tiled layout restore, and eliminate ghost sessions</code></td>
+              <td>Removed <code>BLE_SESSION_ID</code> poison guard, set <code>default-size 350x90</code>, added smart <code>tmux()</code> wrapper.</td>
             </tr>
             <tr>
               <td><code>604409e</code></td>
-              <td>docs: save session resumption context (2026-10-21 00:34)</td>
-              <td><code>2026-10-21-0034-context.html</code></td>
+              <td><code>docs: save session resumption context (2026-10-21 00:34)</code></td>
+              <td>Recorded Oct 21 resumption context and dedicated Port 443 Tailscale milestones.</td>
+            </tr>
+            <tr>
+              <td><code>38073ad</code></td>
+              <td><code>feat(skills): add save-current-context agent skill</code></td>
+              <td>Created standalone context-saving skill in <code>~/.gemini/config/skills/</code> and <code>.agents/skills/</code>.</td>
+            </tr>
+            <tr>
+              <td><code>0be326b</code></td>
+              <td><code>docs: add comprehensive tailscale ingress guide and update README</code></td>
+              <td>Added <code>docs/tailscale-ingress.md</code> and updated main <code>README.md</code>.</td>
+            </tr>
+            <tr>
+              <td><code>bdae4bf</code></td>
+              <td><code>feat: parameterize machine ID for multi-device WSL2 and Linux deployments</code></td>
+              <td>Replaced hardcoded names with <code>TS_MACHINE_ID</code> across <code>.env.example</code>, <code>bootstrap.sh</code>, and <code>flake.nix</code>.</td>
+            </tr>
+            <tr>
+              <td><code>671090e</code></td>
+              <td><code>fix(tailscale): handle both HTTP (port 80) and HTTPS (port 443) in serve configs</code></td>
+              <td>Resolved mobile Safari connection drops by proxying both 80 and 443.</td>
+            </tr>
+            <tr>
+              <td><code>989249a</code></td>
+              <td><code>feat(tailscale): add dedicated ingress containers for standard HTTPS port 443 endpoints</code></td>
+              <td>Deployed 5 dedicated sidecars (<code>pdf-asus</code>, <code>chat-asus</code>, etc.) on standard Port 443.</td>
+            </tr>
+            <tr>
+              <td><code>9d647e1</code></td>
+              <td><code>fix(tailscale): mount serve.json directly to resolve nix symlink and add --reset flag</code></td>
+              <td>Fixed broken container mount caused by host Nix store symlink.</td>
+            </tr>
+            <tr>
+              <td><code>f8c84e6</code></td>
+              <td><code>feat(local-services): set default Tailscale hostname to laptop-services-asus</code></td>
+              <td>Updated base hostname to distinguish from other hardware.</td>
+            </tr>
+            <tr>
+              <td><code>136e9bf</code></td>
+              <td><code>fix(justfile): use podman compose and fix shell variable syntax in remote recipes</code></td>
+              <td>Switched compose runner from <code>podman-compose 1.0.6</code> to <code>podman compose</code> (v2).</td>
             </tr>
           </tbody>
         </table>
@@ -559,7 +683,7 @@ cd ~/setup-linux-scripts && ./bootstrap.sh</code></pre>
     </section>
 
     <div class="footer">
-      Generated automatically for <code>tonyh@AsusGA403u</code> • Setup Linux Scripts Project Resumption • 2026-10-23 01:11
+      Generated automatically for <code>tonyh@AsusGA403u</code> • Setup Linux Scripts Project Resumption • 2026-10-23 01:46
     </div>
 
   </div>
