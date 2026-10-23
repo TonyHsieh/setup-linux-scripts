@@ -487,3 +487,53 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 > **Do not run `legacy/uninstall-dev-env.sh` on an active Nix installation.**  
 > It was designed for the imperative v1.x setup and will delete or unlink active Home Manager symlinks. To safely detect and prune legacy v1.x artifacts without harming your declarative environment, simply run [`./bootstrap.sh --cleanup`](bootstrap.sh) (see [Section 2](#-installing-over-an-existing-version-or-upgrading)).
 
+---
+
+## 📝 9. Changes & Architectural Fixes (CHANGES)
+
+### 2026-10-23: ble.sh Restoration, Tmux Tiled Layout Fix & Ghost Session Elimination
+
+#### 1. ble.sh Terminal Line Editor Restoration
+* **Problem**: `ble.sh` stopped functioning completely across all interactive terminal sessions and tmux panes.
+* **Root Cause**: Commit `3535c97` added `-z "${BLE_SESSION_ID:-}"` to guard against subshells. However, `ble.sh` explicitly executes `export BLE_SESSION_ID=...` on startup (line 9703 of `ble.sh`). Because this variable was exported into the environment, all child processes, subshells, new terminal tabs, and tmux panes inherited `$BLE_SESSION_ID`. The guard condition evaluated to false, completely preventing `ble.sh` from initializing anywhere.
+* **Solution**:
+  * **[`home/shell.nix`](home/shell.nix)**: Removed `-z "''${BLE_SESSION_ID:-}"` from both early initialization (`initExtra`) and late attachment blocks (`ble-attach`).
+  * **Subshell Protection**: Preserved `-z "''${DEVENV_ROOT:-}"` and `-z "''${IN_NIX_SHELL:-}"` so that entering interactive `devenv shell` or `nix-shell` environments continues to cleanly suppress `ble.sh` and prevent PTY recursion loops.
+
+#### 2. Tmux Multi-Pane Tiled Layout Restoration (3, 4, 6+ Panes)
+* **Problem**: After restarting or recovering sessions via `tmux-resurrect` and `tmux-continuum`, multi-pane tiled layouts failed to restore properly, leaving panes vertically stacked or untiled.
+* **Root Cause**: When `tmux-continuum` automatically restores sessions on server startup, the server runs in a headless/detached state with a fallback geometry of **80x24** (`default-size 80x24`). When `resurrect`'s `restore.sh` attempted to run `tmux select-layout "<layout>"`, the saved high-resolution tiled layout (e.g., 346x79 with multiple splits) was rejected because it exceeded the 80x24 canvas and minimum pane cell constraints. Because `restore.sh` suppresses layout errors (`>/dev/null 2>&1`), the command failed silently.
+* **Solution**:
+  * **[`home/tmux.nix`](home/tmux.nix)**: Added `set -g default-size 350x90`, allocating 31,500 virtual character cells to detached sessions. This ensures that arbitrary multi-pane tiled layouts (3, 4, 6+ panes) restore without geometry rejection.
+  * **Preserving Custom Split Ratios**: Avoided forced equalize hooks (`select-layout -E`) so that custom vertical and horizontal height proportions (e.g. 55-line top pane vs 23-line bottom panes) remain intact on restore and attachment.
+  * **Pane Contents**: Enabled `set -g @resurrect-capture-pane-contents 'on'`.
+  * **Reload Keybinding**: Fixed `bind r` in [`home/tmux.nix`](home/tmux.nix) to source `~/.config/tmux/tmux.conf` (Home Manager XDG path) with a fallback to `~/.tmux.conf`.
+
+#### 3. Ghost Session Elimination & Smart Session Launcher
+* **Problem**: Invoking `tmux` without arguments repeatedly spawned empty single-pane numbered sessions (`3`, `4`, `5`, `6`). Continuum saved `state 6` (the latest single-pane ghost session), restoring the user into a blank pane and forcing manual `Ctrl-B s` navigation every time.
+* **Solution**:
+  * **[`home/shell.nix`](home/shell.nix)**: Added a smart `tmux()` shell wrapper and `t` alias. When invoked interactively with no arguments, it automatically re-attaches to the primary Session 0 (or creates it if absent) instead of spawning ghost sessions:
+    ```bash
+    tmux() {
+      if [ $# -eq 0 ] && [ -t 0 ] && [ -z "''${TMUX:-}" ]; then
+        command tmux attach -t 0 2>/dev/null || command tmux attach 2>/dev/null || command tmux new-session -s 0
+      else
+        command tmux "$@"
+      fi
+    }
+    alias t="tmux"
+    ```
+  * **Snapshot Cleanup**: Pruned empty ghost sessions (3, 4, 5, 6) and refreshed `~/.tmux/resurrect/last` to cleanly target Session 0 with `state 0`.
+
+#### 4. Package & Plugin Versions Audit (2026 vs 2022)
+* **Tmux Core**: Running `tmux 3.7c` packaged from Nixpkgs unstable (locked to October 10, 2026).
+* **Tmux Plugins**: `tmux-sensible` (2022-08-14), `tmux-resurrect` (2022-05-01), and `tmux-continuum` (2022-01-25) show "2022" in their Nix store paths because upstream GitHub repositories have had zero new releases since 2022–2024. These are mature, stable POSIX shell scripts considered feature-complete by upstream maintainers.
+
+---
+
+### 2026-10-21: Multi-Device Host Parameterization & Port 443 Tailscale Ingress
+* **Dedicated Port 443 Ingress**: Replaced custom port URLs (`:8443`, `:5000`) with dedicated MagicDNS hostnames (e.g. `https://pdf-asus.komodo-sole.ts.net`) using lightweight Tailscale ingress containers.
+* **Mobile Safari Handshake**: Bound both Port 80 and Port 443 in Tailscale Serve configurations to prevent mobile TLS dropouts.
+* **Multi-Machine Parameterization**: Parameterized machine ID via `TS_MACHINE_ID` across `.env.example`, [`bootstrap.sh`](bootstrap.sh), and [`flake.nix`](flake.nix) to support simultaneous deployments on Asus, Envy, Arch, and WSL2.
+
+
