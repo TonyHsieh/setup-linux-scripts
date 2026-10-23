@@ -30,11 +30,9 @@
 
     extraConfig = ''
       # Default window geometry for headless/detached sessions (e.g. continuum auto-restore)
-      # Provides ample virtual canvas so large tiled layouts (e.g. 346x79) are never rejected
+      # Provides ample virtual canvas (350x90) so arbitrarily complex multi-pane tiled
+      # layouts (3, 4, 6+ panes) with custom split ratios fit and restore without rejection.
       set -g default-size 350x90
-
-      # Automatically re-balance / expand tiled layout when client attaches
-      set-hook -g client-attached 'select-layout -E'
 
       # Start pane index at 1
       setw -g pane-base-index 1
