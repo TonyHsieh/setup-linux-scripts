@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Linux Scripts - Project Status & Resumption Context (2026-10-23 01:11)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --accent-purple: #c084fc;
+      --badge-success-bg: rgba(52, 211, 153, 0.15);
+      --badge-success-border: #34d399;
+      --badge-warning-bg: rgba(251, 191, 36, 0.15);
+      --badge-warning-border: #fbbf24;
+      --badge-info-bg: rgba(56, 189, 248, 0.15);
+      --badge-info-border: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timestamp {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--badge-success-bg);
+      border: 1px solid var(--badge-success-border);
+      color: var(--accent-emerald);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 22px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meta-list {
+      list-style: none;
+    }
+
+    .meta-list li {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.9rem;
+    }
+
+    .meta-list li:last-child {
+      border-bottom: none;
+    }
+
+    .meta-label {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .meta-val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-blue);
+      text-align: right;
+    }
+
+    h2.section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 36px 0 18px 0;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-box {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--accent-blue);
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 24px;
+      color: var(--text-primary);
+    }
+
+    .alert-box.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--accent-emerald);
+    }
+
+    .alert-box.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-left-color: var(--accent-amber);
+    }
+
+    .alert-title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--accent-blue);
+    }
+
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.88rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+
+    .step-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 18px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .step-card:hover {
+      border-color: var(--accent-indigo);
+    }
+
+    .step-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .step-priority {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .priority-high {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid var(--accent-rose);
+      color: var(--accent-rose);
+    }
+
+    .priority-medium {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--accent-blue);
+      color: var(--accent-blue);
+    }
+
+    .priority-low {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid var(--text-secondary);
+      color: var(--text-secondary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 14px 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    th {
+      background: #131d2e;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+
+    td {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>🌙 Session Resumption & Architecture Context</h1>
+          <div class="timestamp">
+            <span>📅 <strong>Timestamp:</strong> 2026-10-23 01:11 (US/Pacific)</span>
+            <span>•</span>
+            <span>📍 <strong>Host:</strong> Ubuntu 24.04.5 LTS on WSL2 (<code>AsusGA403u</code>)</span>
+          </div>
+        </div>
+        <div class="status-badge">
+          ✓ ble.sh Restored • Tmux Tiled Layouts Fixed (N-Panes Safe) • Ghost Sessions Eliminated • Zero Downtime
+        </div>
+      </div>
+    </header>
+
+    <!-- SECTION 1: SYSTEM OVERVIEW & METRICS -->
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">🖥️ Workspace Environment</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Primary Path</span><span class="meta-val">~/setup-linux-scripts</span></li>
+          <li><span class="meta-label">Primary User</span><span class="meta-val">tonyh</span></li>
+          <li><span class="meta-label">Git Branch</span><span class="meta-val">main (ahead by 3)</span></li>
+          <li><span class="meta-label">Git HEAD</span><span class="meta-val">c52f4d1</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">❄️ Declarative Stack</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">Package Mgr</span><span class="meta-val">Nix Flakes 2.0 (Nix 2.34.7)</span></li>
+          <li><span class="meta-label">User Config</span><span class="meta-val">Home Manager 24.11</span></li>
+          <li><span class="meta-label">Tmux Version</span><span class="meta-val">tmux 3.7c (Nixpkgs 2026-10)</span></li>
+          <li><span class="meta-label">Task Runner</span><span class="meta-val">just (jl)</span></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🌐 Multi-Machine Matrix</div>
+        <ul class="meta-list">
+          <li><span class="meta-label">WSL2 Workstation</span><span class="meta-val">tonyh (asus - active)</span></li>
+          <li><span class="meta-label">CachyOS Laptop</span><span class="meta-val">thsieh (envy)</span></li>
+          <li><span class="meta-label">Arch Linux</span><span class="meta-val">thsieh01 (arch)</span></li>
+          <li><span class="meta-label">WSL2 Secondary</span><span class="meta-val">wsl-thsieh (flexible)</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 2: CRITICAL DIAGNOSTIC & FIXES (TODAY'S ACHIEVEMENTS) -->
+    <section>
+      <h2 class="section-title">🔍 Incident Report & Key Engineering Achievements</h2>
+      
+      <div class="alert-box success">
+        <div class="alert-title">✅ Milestone Complete: ble.sh & Tmux Layout Resumption Fully Resolved</div>
+        Resolved terminal line editor suppression, eliminated headless detached layout clashing across arbitrary N-pane configurations (3, 4, 6+ panes), prevented ghost session proliferation, and verified live with zero disruption to the active tmux server.
+      </div>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-title">Technical Deep-Dive: Root Cause Analysis & Resolutions</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Trigger & Failure Mechanism</th>
+              <th>Permanent Resolution</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>ble.sh Subshell Suppression</strong></td>
+              <td>In commit <code>3535c97</code>, <code>-z "${BLE_SESSION_ID:-}"</code> was added as a subshell guard. However, <code>ble.sh</code> explicitly exports <code>BLE_SESSION_ID</code> on line 9703. Every child process, terminal window, and tmux pane inherited this exported environment variable, causing the guard to evaluate to false and completely disabling <code>ble.sh</code> across the entire machine.</td>
+              <td>Removed <code>-z "${BLE_SESSION_ID:-}"</code> in <code>home/shell.nix</code> while retaining <code>-z "${DEVENV_ROOT:-}"</code> and <code>-z "${IN_NIX_SHELL:-}"</code>. <code>ble.sh</code> attaches cleanly in interactive bash/tmux, and remains properly suppressed inside <code>devenv shell</code> subshells.</td>
+            </tr>
+            <tr>
+              <td><strong>Tmux Tiled Window Restoration (N-Panes)</strong></td>
+              <td>Headless/detached sessions spawned by <code>tmux-continuum</code> default to <code>default-size 80x24</code>. Complex multi-pane tiled layouts (e.g. 346x79 with 3, 4, or 6 panes) were rejected by tmux because they exceeded the 80x24 canvas and minimum pane cell constraints. Layout errors were silenced (<code>>/dev/null 2>&1</code>), leaving panes vertically stacked.</td>
+              <td>Added <code>set -g default-size 350x90</code> in <code>home/tmux.nix</code>, providing 31,500 virtual character cells so multi-pane layouts restore cleanly. Preserved custom split ratios (e.g. 55-line top vs 23-line bottom) by avoiding aggressive equalize hooks. Enabled <code>@resurrect-capture-pane-contents 'on'</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Tmux Ghost Sessions & Manual Session Selection</strong></td>
+              <td>Invoking <code>tmux</code> without arguments repeatedly created unattached single-pane numbered sessions (3, 4, 5, 6). Continuum saved <code>state 6</code>, so upon restore, the user landed in a blank single pane and had to press <code>Ctrl-B s</code> to find Session 0.</td>
+              <td>Added a smart <code>tmux()</code> shell launcher and <code>t</code> alias in <code>home/shell.nix</code> that automatically connects to the primary Session 0 if available. Pruned ghost sessions from the live server and saved resurrect snapshot with <code>state 0</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Tmux Config Reload Keybinding</strong></td>
+              <td>In <code>home/tmux.nix</code>, <code>bind r</code> pointed to <code>~/.tmux.conf</code>, but Home Manager deploys config to <code>~/.config/tmux/tmux.conf</code>.</td>
+              <td>Updated keybinding to source <code>~/.config/tmux/tmux.conf</code> with fallback to <code>~/.tmux.conf</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Package & Plugin Versions Audit</strong></td>
+              <td>The user observed <code>2022</code> in Nix store paths and questioned package currency.</td>
+              <td>Verified <code>tmux 3.7c</code> from the Oct 10, 2026 Nixpkgs lock. Confirmed upstream GitHub repositories for <code>tmux-sensible</code>, <code>tmux-resurrect</code>, and <code>tmux-continuum</code> have had no new releases since 2022–2024; they are mature, stable POSIX bash scripts. Documented in <code>README.md</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 3: TAILSCALE & LOCAL SERVICES MATRIX -->
+    <section>
+      <h2 class="section-title">🌐 Feature Status: Endpoints Matrix</h2>
+      <div class="card">
+        <p style="margin-bottom: 14px; color: var(--text-secondary);">
+          Tailnet Domain: <code>komodo-sole.ts.net</code> • All endpoints run on standard <strong>Port 443 (HTTPS)</strong> with trusted TLS:
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Container Name</th>
+              <th>Tailnet MagicDNS URL (Remote)</th>
+              <th>Local Laptop URL</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BentoPDF</strong></td>
+              <td><code>local-tailscale-pdf</code></td>
+              <td><a href="https://pdf-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://pdf-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://pdf.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>Open WebUI (Chat Hub)</strong></td>
+              <td><code>local-open-webui</code></td>
+              <td><a href="https://chat-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://chat-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://chat.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Running (Up ~1 hr)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Traefik Dashboard</strong></td>
+              <td><code>local-tailscale-traefik</code></td>
+              <td><a href="https://traefik-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://traefik-asus.komodo-sole.ts.net</a></td>
+              <td><code>http://localhost:8088</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>Ollama LLM API</strong></td>
+              <td><code>local-tailscale-ollama</code></td>
+              <td><a href="https://ollama-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://ollama-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://ollama.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Ready</span></td>
+            </tr>
+            <tr>
+              <td><strong>Kavita (E-Books)</strong></td>
+              <td><code>local-tailscale-books</code></td>
+              <td><a href="https://books-asus.komodo-sole.ts.net" target="_blank" style="color: var(--accent-blue);">https://books-asus.komodo-sole.ts.net</a></td>
+              <td><code>https://kavita.localhost</code></td>
+              <td><span style="color: var(--accent-emerald); font-weight: 600;">✓ Ready</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 4: ACTIONABLE RESUMPTION CHECKLIST -->
+    <section>
+      <h2 class="section-title">🚀 Prioritized Action Items for Resumption Tomorrow</h2>
+
+      <!-- Step 1 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Push Local Commits to GitHub Remote</div>
+          <span class="step-priority priority-high">High Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Your local <code>main</code> branch is ahead by 3 verified commits (ble.sh restoration, tmux multi-pane layout fix, ghost session pruning, and README documentation):
+        </p>
+        <pre><code>git push origin main</code></pre>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Test Open WebUI Mobile Chat from iPhone</div>
+          <span class="step-priority priority-medium">Medium Priority</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          The <code>local-open-webui</code> container is already running. Test conversational chat over your private Tailscale network from Safari:
+        </p>
+        <pre><code># From your iPhone Safari:
+https://chat-asus.komodo-sole.ts.net</code></pre>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step-card">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Deploy on Second Laptop (WSL2 or CachyOS)</div>
+          <span class="step-priority priority-medium">Multi-Machine</span>
+        </div>
+        <p style="color: var(--text-secondary); margin-bottom: 10px;">
+          Test the parameterized zero-touch setup on your secondary machine:
+        </p>
+        <pre><code>git clone git@github.com:tonyhsieh/setup-linux-scripts.git ~/setup-linux-scripts
+cd ~/setup-linux-scripts && ./bootstrap.sh</code></pre>
+      </div>
+    </section>
+
+    <!-- SECTION 5: GIT AUDIT -->
+    <section>
+      <h2 class="section-title">📦 Recent Git Commits Audit</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Commit SHA</th>
+              <th>Description</th>
+              <th>Files Modified</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>c52f4d1</code></td>
+              <td>docs: add comprehensive troubleshooting and architectural changes section to README</td>
+              <td><code>README.md</code></td>
+            </tr>
+            <tr>
+              <td><code>55b4ab9</code></td>
+              <td>fix(tmux): remove client-attached hook to preserve custom pane split ratios</td>
+              <td><code>home/tmux.nix</code></td>
+            </tr>
+            <tr>
+              <td><code>99f896d</code></td>
+              <td>fix(shell,tmux): restore ble.sh, fix tiled layout restore, and eliminate ghost sessions</td>
+              <td><code>home/shell.nix</code>, <code>home/tmux.nix</code>, <code>2026-10-23-troubleshooting-plan.html</code></td>
+            </tr>
+            <tr>
+              <td><code>604409e</code></td>
+              <td>docs: save session resumption context (2026-10-21 00:34)</td>
+              <td><code>2026-10-21-0034-context.html</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer">
+      Generated automatically for <code>tonyh@AsusGA403u</code> • Setup Linux Scripts Project Resumption • 2026-10-23 01:11
+    </div>
+
+  </div>
+</body>
+</html>
