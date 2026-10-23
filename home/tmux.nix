@@ -13,7 +13,13 @@
 
     plugins = with pkgs.tmuxPlugins; [
       sensible
-      resurrect
+      {
+        plugin = resurrect;
+        extraConfig = ''
+          set -g @resurrect-capture-pane-contents 'on'
+          set -g @resurrect-strategy-nvim 'session'
+        '';
+      }
       {
         plugin = continuum;
         extraConfig = ''
@@ -23,6 +29,13 @@
     ];
 
     extraConfig = ''
+      # Default window geometry for headless/detached sessions (e.g. continuum auto-restore)
+      # Provides ample virtual canvas so large tiled layouts (e.g. 346x79) are never rejected
+      set -g default-size 350x90
+
+      # Automatically re-balance / expand tiled layout when client attaches
+      set-hook -g client-attached 'select-layout -E'
+
       # Start pane index at 1
       setw -g pane-base-index 1
 
@@ -75,8 +88,10 @@
       set -g status-left "#[fg=colour40] #S "
       set -g status-right "#[fg=colour244]%Y-%m-%d %H:%M "
 
-      # Reload tmux config shortcut
-      bind r source-file ~/.tmux.conf \; display-message "tmux.conf reloaded"
+      # Reload tmux config shortcut (supports Home Manager XDG path)
+      bind r if-shell "[ -f ~/.config/tmux/tmux.conf ]" \
+        "source-file ~/.config/tmux/tmux.conf; display-message '~/.config/tmux/tmux.conf reloaded'" \
+        "source-file ~/.tmux.conf; display-message '~/.tmux.conf reloaded'"
 
       # ble.sh cursor style & escape passthrough compatibility
       set -g cursor-style underline

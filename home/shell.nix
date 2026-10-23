@@ -37,14 +37,17 @@
 
       # Local Services Mesh Task Runner (just)
       jl = "just -f ~/.local/share/local-services/justfile";
+
+      # Quick Tmux launcher
+      t = "tmux";
     };
 
     initExtra = ''
       ##### 1. ble.sh (Bash Line Editor) Integration #####
       # Only initialize in the top-level interactive shell.
-      # Skip in nested subshells (devenv, nix-shell, or existing ble.sh sessions)
+      # Skip in nested subshells (devenv or nix-shell)
       # to prevent PTY proxy recursion loops, terminal lockups, and prompt conflicts.
-      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" && -z "''${BLE_SESSION_ID:-}" ]]; then
+      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" ]]; then
         if [[ -r "${pkgs.blesh}/share/blesh/ble.sh" ]]; then
           source "${pkgs.blesh}/share/blesh/ble.sh" --noattach
         elif [[ -r "$HOME/.local/share/blesh/ble.sh" ]]; then
@@ -92,6 +95,16 @@
         mkdir -p "$1" && cd "$1" || return
       }
 
+      # Smart Tmux wrapper: attaches to active primary session (0) if invoked
+      # interactively without arguments, preventing redundant ghost single-pane sessions.
+      tmux() {
+        if [ $# -eq 0 ] && [ -t 0 ] && [ -z "''${TMUX:-}" ]; then
+          command tmux attach -t 0 2>/dev/null || command tmux attach 2>/dev/null || command tmux new-session -s 0
+        else
+          command tmux "$@"
+        fi
+      }
+
       # Seamless Ollama container CLI passthrough
       ollama() {
         if [ -t 0 ] && [ -t 1 ]; then
@@ -129,7 +142,7 @@
       fi
 
       ##### 8. Attach ble.sh at the very end of interactive session #####
-      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" && -z "''${BLE_SESSION_ID:-}" ]] && type ble-attach >/dev/null 2>&1; then
+      if [[ $- == *i* && -z "''${DEVENV_ROOT:-}" && -z "''${IN_NIX_SHELL:-}" ]] && type ble-attach >/dev/null 2>&1; then
         ble-attach
       fi
     '';
