@@ -405,12 +405,15 @@ jl down-remote   # Stop all Tailscale ingress nodes
 jl remote-info   # Show active MagicDNS private HTTPS endpoints (pdf-<id>, chat-<id>, etc.)
 jl remote-status # Check connection status across all dedicated nodes
 jl remote-auth   # Display authorization link if any node needs first-time login
+jl sync-auth-key # Decrypt and sync latest auth key from GitOps secret repository
+jl rotate-auth-key # Manually rotate 90-day Tailscale auth key via scoped OAuth API
 
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
 
 > [!TIP]
 > * For a full guide on remote mobile access, dedicated Port 443 HTTPS endpoints, and multi-machine parameterization, read **[docs/tailscale-ingress.md](docs/tailscale-ingress.md)**.
+> * For automated 90-day key rotation, scoped OAuth clients, and GitOps decryption via host SSH keys, read **[docs/tailscale-auth-key-rotator.md](docs/tailscale-auth-key-rotator.md)**.
 > * For connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
 > * For local LLM chat workflows, host CLI wrappers, and AI agent routing, read **[docs/ollama-guide.md](docs/ollama-guide.md)**.
 
@@ -535,6 +538,6 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 * **Dedicated Port 443 Ingress**: Replaced custom port URLs (`:8443`, `:5000`) with dedicated MagicDNS hostnames (e.g. `https://pdf-asus.komodo-sole.ts.net`) using lightweight Tailscale ingress containers.
 * **Mobile Safari Handshake**: Bound both Port 80 and Port 443 in Tailscale Serve configurations to prevent mobile TLS dropouts.
 * **Multi-Machine Parameterization**: Parameterized machine ID via `TS_MACHINE_ID` across `.env.example`, [`bootstrap.sh`](bootstrap.sh), and [`flake.nix`](flake.nix) to support simultaneous deployments on Asus, Envy, Arch, and WSL2.
-* **Roadmap: Automated Auth Key Rotator**: Added planned architecture for automated Tailscale auth key rotation using scoped OAuth clients to eliminate manual 90-day key expiration (inspired by [Brent Gruber's Tailscale Auth Key Rotator](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)). See [`docs/tailscale-ingress.md`](docs/tailscale-ingress.md#-roadmap-automated-auth-key-rotator-oauth-driven).
+* **Automated Tailscale Auth Key Rotator**: Implemented serverless 90-day auth key rotation via GitHub Actions and scoped OAuth (`keys:write`). Encrypted with SOPS multi-recipient keys so each authorized laptop decrypts locally using its native SSH key (`~/.ssh/id_ed25519`) with lazy self-healing in `jl up-remote`. Full documentation in [`docs/tailscale-auth-key-rotator.md`](docs/tailscale-auth-key-rotator.md).
 
 

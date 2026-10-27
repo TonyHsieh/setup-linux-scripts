@@ -166,6 +166,7 @@ On your laptop itself, always use your fast, zero-latency local URLs:
 ## 🔮 Automated Auth Key Rotator (GitHub Actions + Multi-Recipient SOPS)
 
 > [!NOTE]
+> **Dedicated Guide**: See **[`docs/tailscale-auth-key-rotator.md`](tailscale-auth-key-rotator.md)** for complete operational instructions, security analysis, and troubleshooting.
 > **Inspiration**: [How I Built a Tailscale Auth Key Rotator by Brent Gruber](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)
 
 ### The Problem with Static Auth Keys
