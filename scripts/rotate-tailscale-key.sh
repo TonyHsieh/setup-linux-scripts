@@ -76,22 +76,29 @@ if [ -z "${ACCESS_TOKEN}" ]; then
   exit 1
 fi
 
-echo "==> Minting new 90-day reusable Tailscale auth key..."
+TS_TAG="${TS_TAG:-tag:local-services}"
+if [[ "${TS_TAG}" != tag:* ]]; then
+  TS_TAG="tag:${TS_TAG}"
+fi
+
+echo "==> Minting new 90-day reusable Tailscale auth key (tag: ${TS_TAG})..."
+KEY_PAYLOAD="$(jq -n --arg tag "${TS_TAG}" '{
+  capabilities: {
+    devices: {
+      create: {
+        reusable: true,
+        ephemeral: false,
+        tags: [$tag]
+      }
+    }
+  },
+  expirySeconds: 7776000
+}')"
+
 KEY_RESP="$(curl -s -f -X POST "https://api.tailscale.com/api/v2/tailnet/-/keys" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d '{
-    "capabilities": {
-      "devices": {
-        "create": {
-          "reusable": true,
-          "ephemeral": false,
-          "tags": []
-        }
-      }
-    },
-    "expirySeconds": 7776000
-  }' 2>&1 || true)"
+  -d "${KEY_PAYLOAD}" 2>&1 || true)"
 
 NEW_AUTH_KEY="$(echo "${KEY_RESP}" | jq -r '.key // empty')"
 if [ -z "${NEW_AUTH_KEY}" ]; then
