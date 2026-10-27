@@ -400,16 +400,29 @@ jl up-media     # Start Plex media server (https://plex.localhost)
 jl down-media   # Stop Plex server
 
 # 🌐 On-Demand Tailscale Private Mesh Ingress (Access Away from Home)
-jl up-remote     # Start all dedicated Tailscale ingress nodes on standard Port 443
+jl up-remote     # Start all dedicated Tailscale ingress nodes on Port 443 (in-memory auth key)
 jl down-remote   # Stop all Tailscale ingress nodes
 jl remote-info   # Show active MagicDNS private HTTPS endpoints (pdf-<id>, chat-<id>, etc.)
 jl remote-status # Check connection status across all dedicated nodes
 jl remote-auth   # Display authorization link if any node needs first-time login
-jl sync-auth-key # Decrypt and sync latest auth key from GitOps secret repository
+jl sync-auth-key # Verify SOPS decryption & sanitize local disk (zero plaintext tokens)
 jl rotate-auth-key # Manually rotate 90-day Tailscale auth key via scoped OAuth API
 
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
+
+### 🌐 Multi-Device & Platform Differences (Arch/CachyOS vs WSL2 vs macOS)
+
+When deploying across different environments (such as your `envy`, `asus`, WSL2, or macOS machines), the system automatically adapts to platform-specific networking and security configurations:
+
+| Component / Requirement | Arch Linux / CachyOS (Bare Metal) | Ubuntu 24.04 (WSL2) | macOS (Darwin) |
+| :--- | :--- | :--- | :--- |
+| **Container Engine** | Native Rootless Podman via systemd user socket | Rootless Podman inside WSL2 distribution | Podman Machine (Linux VM via hypervisor) |
+| **Rootless DNS & Let's Encrypt** | Host uses `systemd-resolved` (`127.0.0.53`). Home Manager writes `~/.config/containers/containers.conf` with `dns_servers = ["1.1.1.1", "8.8.8.8"]` to prevent ACME TLS handshake timeouts. | WSL automatically bridges Windows DNS; explicit `containers.conf` fallback ensures consistent resolution across vEthernet switches. | DNS is proxied via `gvproxy` bridging to macOS system resolvers; `containers.conf` applies inside VM. |
+| **Tailscale Ingress (Port 443)** | Dedicated container sidecars per service; auto-detects `TS_MACHINE_ID` (`envy`, `asus`, etc.). | Supported via container sidecars; recommended to use WSL mirrored networking (`networkingMode=mirrored`). | Supported via container sidecars or host-level Tailscale macOS client. |
+| **Port 80 $\rightarrow$ 443 Redirection** | Native HTTP 301 Permanent Redirect on Port 80 via `tailscale serve` to upgrade mobile browsers seamlessly. | Identical HTTP 301 behavior across all configurations. | Identical HTTP 301 behavior across all configurations. |
+| **Auth Key Decryption** | In-memory ephemeral decryption via SOPS using native host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via WSL host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via macOS `~/.ssh/id_ed25519` or `age`. Zero secrets stored on disk. |
+| **Adding a Machine to SOPS** | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. |
 
 > [!TIP]
 > * For a full guide on remote mobile access, dedicated Port 443 HTTPS endpoints, and multi-machine parameterization, read **[docs/tailscale-ingress.md](docs/tailscale-ingress.md)**.
@@ -531,6 +544,15 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 #### 4. Package & Plugin Versions Audit (2026 vs 2022)
 * **Tmux Core**: Running `tmux 3.7c` packaged from Nixpkgs unstable (locked to October 10, 2026).
 * **Tmux Plugins**: `tmux-sensible` (2022-08-14), `tmux-resurrect` (2022-05-01), and `tmux-continuum` (2022-01-25) show "2022" in their Nix store paths because upstream GitHub repositories have had zero new releases since 2022–2024. These are mature, stable POSIX shell scripts considered feature-complete by upstream maintainers.
+
+---
+
+### 2026-10-27: Automated Auth Key Rotator, In-Memory Ephemeral Decryption & DNS Handshake Fixes
+* **Automated Tailscale Auth Key Rotator**: Implemented serverless 90-day auth key rotation via GitHub Actions and scoped Tailscale OAuth (`keys:write`). Secrets are encrypted with multi-recipient SOPS for host SSH keys (`ssh-ed25519`) and master age keys.
+* **In-Memory Ephemeral Decryption**: Updated `jl up-remote` to decrypt `TS_AUTHKEY` on the fly directly into memory via SOPS, unsetting it immediately after container registration. Zero plaintext secrets are stored on disk.
+* **Port 80 $\rightarrow$ 443 301 Redirection**: Added native HTTP 301 permanent redirection on Port 80 across all Tailscale Serve sidecars, ensuring mobile browsers immediately upgrade unencrypted requests to HTTPS.
+* **Rootless Podman DNS Fallback**: Resolved Let's Encrypt ACME verification timeouts on `systemd-resolved` hosts by provisioning `~/.config/containers/containers.conf` with upstream fallback DNS (`1.1.1.1`, `8.8.8.8`).
+* **Multi-Platform Matrix**: Documented platform differences (Arch/CachyOS vs WSL2 vs macOS) in [README.md](README.md) and [docs/tailscale-auth-key-rotator.md](docs/tailscale-auth-key-rotator.md).
 
 ---
 
