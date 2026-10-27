@@ -205,8 +205,12 @@ flowchart TD
    * Store `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_CLIENT_SECRET` in `~/.bashrc.local` or SOPS age encrypted storage.
 2. **Key Rotation Task Runner (`jl rotate-auth-key`)**:
    * Add a declarative task in `local-services/justfile` that queries the Tailscale API, retrieves a short-lived bearer token, generates a 90-day reusable auth key, and writes `TS_AUTHKEY=<new-key>` into `~/.local/share/local-services/.env`.
-3. **Automated User Timer**:
-   * Provide a declarative Home Manager systemd user service + timer (running e.g. every 30 or 60 days) to keep keys fresh indefinitely with zero human intervention.
-4. **Integration with SOPS & Secret Management**:
-   * Allow storing the generated keys directly in encrypted SOPS files (`secrets.enc.yaml`) for GitOps deployments across multi-machine clusters.
+3. **Multi-Recipient SOPS Distribution (Zero-Key-Transfer Architecture)**:
+   * **Host SSH Public Key Recipients**: In `.sops.yaml`, register the `ssh-ed25519` public keys of all authorized workstations (`asus`, `envy`, `arch`).
+   * **No Private Key Distribution**: Private keys never leave their respective hosts; SOPS encrypts `secrets/tailscale.enc.yaml` such that any authorized device can decrypt with its existing local SSH key.
+4. **Self-Healing Local Consumption (Lazy On-Demand Fallback)**:
+   * **Zero Overhead**: Remote devices don't need continuous polling or background daemon timers.
+   * **Lazy Fetch on Rejection**: If `jl up-remote` detects an expired auth token or `NeedsLogin` status, it triggers an automatic targeted `git pull` of `secrets/tailscale.enc.yaml`, decrypts the fresh key via local SSH key into `~/.local/share/local-services/.env`, and restarts the containers automatically.
+   * **Periodic Fetch (Optional)**: Can optionally run as part of daily/weekly routines or during standard `./bootstrap.sh` self-tests.
+
 
