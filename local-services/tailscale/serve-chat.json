@@ -11,7 +11,7 @@
     "${TS_CERT_DOMAIN}:80": {
       "Handlers": {
         "/": {
-          "Proxy": "http://local-open-webui:8080"
+          "Redirect": "301:https://${HOST}${REQUEST_URI}"
         }
       }
     },
