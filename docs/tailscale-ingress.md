@@ -163,7 +163,7 @@ On your laptop itself, always use your fast, zero-latency local URLs:
 
 ---
 
-## 🔮 Roadmap: Automated Auth Key Rotator (OAuth-Driven)
+## 🔮 Automated Auth Key Rotator (GitHub Actions + Multi-Recipient SOPS)
 
 > [!NOTE]
 > **Inspiration**: [How I Built a Tailscale Auth Key Rotator by Brent Gruber](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)
@@ -173,44 +173,62 @@ On your laptop itself, always use your fast, zero-latency local URLs:
 * When an auth key expires, fresh machine bootstrapping or container recreation silently fails.
 * Personal API access tokens are overly broad (granting full administrative control over the entire Tailnet).
 
-### Proposed Architecture & Automation Pipeline
+### Architecture & Automated Workflow
 
 ```mermaid
 flowchart TD
-    subgraph OAuth["🔐 Tailscale Control Plane"]
-        OC["Scoped OAuth Client\n(keys:write)"]
-        API["Tailscale Token Endpoint\n(/api/v2/oauth/token)"]
-        KeyGen["Key Generator\n(/api/v2/tailnet/{tailnet}/keys)"]
+    subgraph GitHubCloud["☁️ GitHub Actions (Monthly Cron or Manual Trigger)"]
+        GH_Secrets["GitHub Repo Secrets\n(TS_OAUTH_CLIENT_ID & SECRET)"]
+        GH_Runner["Runner (.github/workflows/rotate-tailscale-key.yml)"]
+        TS_API["Tailscale Token & Keys API\n(OAuth: keys:write)"]
+        SOPS_Enc["SOPS Encryptor\n(Using .sops.yaml public keys)"]
+        GitRepo["Git Commit & Push\n(secrets/tailscale.enc.yaml)"]
+        
+        GH_Secrets --> GH_Runner
+        GH_Runner -->|1. Request Token & Mint 90d Key| TS_API
+        TS_API -->|2. Fresh tskey-auth-...| GH_Runner
+        GH_Runner -->|3. Re-encrypt with public keys| SOPS_Enc
+        SOPS_Enc -->|4. Push to main| GitRepo
     end
 
-    subgraph HostSystem["💻 Workstation / CI Machine"]
-        Timer["systemd user timer\n(Runs every 30 days)"]
-        Script["rotate-ts-key script\n(or 'jl rotate-auth-key')"]
-        SecretStore["Secret Store\n(~/.local/share/local-services/.env or SOPS)"]
-        Containers["Podman Tailscale Sidecars\n(local-tailscale-*)"]
-    end
+    subgraph HostSystem["💻 Remote Workstation (Envy / Asus / Arch)"]
+        JustUp["jl up-remote"]
+        LazyPull["Lazy Fallback\n(Triggered if key expired)"]
+        LocalSOPS["sops decrypt\n(Using local ~/.ssh/id_ed25519)"]
+        LocalEnv["~/.local/share/local-services/.env\n(TS_AUTHKEY updated)"]
+        Sidecars["Tailscale Sidecars\n(local-tailscale-*)"]
 
-    Timer -->|Triggers| Script
-    Script -->|1. Authenticate with Client ID/Secret| API
-    API -->|2. Short-lived Access Token| Script
-    Script -->|3. Generate new Reusable Auth Key| KeyGen
-    KeyGen -->|4. Fresh tskey-auth-...| Script
-    Script -->|5. Atomically update TS_AUTHKEY| SecretStore
-    Script -->|6. Optional: Restart sidecars if needed| Containers
+        GitRepo -.->|Lazy git pull| LazyPull
+        JustUp -->|Status Check: NeedsLogin/Expired?| LazyPull
+        LazyPull --> LocalSOPS
+        LocalSOPS --> LocalEnv
+        LocalEnv --> Sidecars
+    end
 ```
 
-### Planned Implementation Phases:
-1. **Tailscale Scoped OAuth Credentials**:
-   * Create an OAuth Client in Tailscale Admin Settings restricted strictly to device key creation permissions (`keys:write`).
-   * Store `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_CLIENT_SECRET` in `~/.bashrc.local` or SOPS age encrypted storage.
-2. **Key Rotation Task Runner (`jl rotate-auth-key`)**:
-   * Add a declarative task in `local-services/justfile` that queries the Tailscale API, retrieves a short-lived bearer token, generates a 90-day reusable auth key, and writes `TS_AUTHKEY=<new-key>` into `~/.local/share/local-services/.env`.
-3. **Multi-Recipient SOPS Distribution (Zero-Key-Transfer Architecture)**:
-   * **Host SSH Public Key Recipients**: In `.sops.yaml`, register the `ssh-ed25519` public keys of all authorized workstations (`asus`, `envy`, `arch`).
-   * **No Private Key Distribution**: Private keys never leave their respective hosts; SOPS encrypts `secrets/tailscale.enc.yaml` such that any authorized device can decrypt with its existing local SSH key.
-4. **Self-Healing Local Consumption (Lazy On-Demand Fallback)**:
-   * **Zero Overhead**: Remote devices don't need continuous polling or background daemon timers.
-   * **Lazy Fetch on Rejection**: If `jl up-remote` detects an expired auth token or `NeedsLogin` status, it triggers an automatic targeted `git pull` of `secrets/tailscale.enc.yaml`, decrypts the fresh key via local SSH key into `~/.local/share/local-services/.env`, and restarts the containers automatically.
-   * **Periodic Fetch (Optional)**: Can optionally run as part of daily/weekly routines or during standard `./bootstrap.sh` self-tests.
+### One-Time Setup Instructions:
+
+#### Step 1: Create a Scoped OAuth Client in Tailscale
+1. Open your [Tailscale OAuth Clients Settings](https://login.tailscale.com/admin/settings/oauth).
+2. Click **Generate OAuth Client...**.
+3. Under **Scopes**, select **`keys:write`** (Devices: Write Keys).
+4. Copy the generated **Client ID** (`k...`) and **Client Secret** (`tskey-client-...`).
+
+#### Step 2: Add Secrets to your GitHub Repository
+1. In your GitHub repository, navigate to **Settings** $\rightarrow$ **Secrets and variables** $\rightarrow$ **Actions**.
+2. Click **New repository secret**:
+   * Name: `TS_OAUTH_CLIENT_ID`, Secret: `<your-client-id>`
+   * Name: `TS_OAUTH_CLIENT_SECRET`, Secret: `<your-client-secret>`
+
+#### Step 3: Verify the Pipeline
+1. Go to your repository's **Actions** tab on GitHub.
+2. Select **Rotate Tailscale Auth Key** and click **Run workflow**.
+3. The action runs in seconds, mints a fresh 90-day auth key, re-encrypts `secrets/tailscale.enc.yaml` with your devices' public keys, and commits it back to `main`.
+4. On any laptop, simply run:
+   ```bash
+   jl sync-auth-key
+   ```
+   Or let `jl up-remote` lazily update it on-the-fly!
+
 
 

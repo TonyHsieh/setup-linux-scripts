@@ -137,7 +137,37 @@ up-remote:
     @echo ""
     @echo "👉 Tailscale remote containers are starting up!"
     @sleep 3
+    @# Self-healing check: if any node needs login or key is expired, attempt lazy secret sync
+    @if {{CONTAINER_CMD}} logs local-tailscale-pdf 2>&1 | grep -qE "NeedsLogin|KeyExpired|expired" || \
+        {{CONTAINER_CMD}} exec local-tailscale-pdf tailscale status 2>&1 | grep -qE "Logged out|expired"; then \
+        echo "==> Auth key required or expired. Attempting lazy secret sync from SOPS..."; \
+        just -f {{justfile()}} sync-auth-key 2>/dev/null && \
+        echo "==> Restarting remote ingress nodes with synced key..." && \
+        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote restart; \
+    fi
     @just -f {{justfile()}} remote-info
+
+# Decrypt and sync the latest Tailscale auth key from secrets/tailscale.enc.yaml into .env
+sync-auth-key:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/sync-tailscale-key.sh" ]; then
+            exec "$d/scripts/sync-tailscale-key.sh"
+        fi
+    done
+    echo "⚠️ scripts/sync-tailscale-key.sh not found." >&2
+    exit 1
+
+# Rotate Tailscale auth key via Tailscale OAuth API and update encrypted secret
+rotate-auth-key:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/rotate-tailscale-key.sh" ]; then
+            exec "$d/scripts/rotate-tailscale-key.sh" "$@"
+        fi
+    done
+    echo "⚠️ scripts/rotate-tailscale-key.sh not found." >&2
+    exit 1
 
 # Stop Tailscale remote mesh ingress
 down-remote:

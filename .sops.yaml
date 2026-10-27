@@ -1,0 +1,7 @@
+# .sops.yaml - SOPS configuration for multi-recipient age & SSH encryption
+# Documentation: docs/SOPS-AGE-Guide.md
+creation_rules:
+  - path_regex: secrets/.*\.enc\.ya?ml$
+    age: >-
+      age1k5z7amtmz0s6lr2388x5zcqfw3vypu3uk7v4rcuhlu4mlnk8a4uqjr6x07,
+      ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID/lNe5zgM/4RupoOVTw38BAtWvBOmt+RUvhDFnH2J5o

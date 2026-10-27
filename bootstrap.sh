@@ -551,7 +551,7 @@ detect_existing_deployments
 # 3. Ensure Git tracks new files in the workspace (Nix Flakes ignores untracked files)
 if [ -d "$SCRIPT_DIR/.git" ]; then
   echo "==> Updating Git index for Nix Flake evaluation..."
-  git -C "$SCRIPT_DIR" add -N flake.nix home/ modules/ templates/ dotfiles/ local-services/ 2>/dev/null || true
+  git -C "$SCRIPT_DIR" add -N flake.nix home/ modules/ templates/ dotfiles/ local-services/ scripts/ secrets/ .sops.yaml 2>/dev/null || true
 fi
 
 # 4. Execute Home Manager action (build or switch)
@@ -681,6 +681,12 @@ TS_AUTHKEY=
 EOF
     chmod 600 "$LOCAL_SERVICES_ENV"
     echo "👉 Tip: Edit $LOCAL_SERVICES_ENV to set your TS_AUTHKEY or customize TS_MACHINE_ID"
+  fi
+
+  # 7.8. Sync Tailscale auth key from encrypted SOPS repository if available
+  if [ -f "$SCRIPT_DIR/secrets/tailscale.enc.yaml" ] && [ -x "$SCRIPT_DIR/scripts/sync-tailscale-key.sh" ]; then
+    echo "==> Attempting to sync Tailscale credentials from SOPS secret repository..."
+    "$SCRIPT_DIR/scripts/sync-tailscale-key.sh" || true
   fi
 
   echo ""

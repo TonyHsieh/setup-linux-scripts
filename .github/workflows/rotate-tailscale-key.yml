@@ -1,0 +1,57 @@
+name: Rotate Tailscale Auth Key
+
+on:
+  schedule:
+    # Runs at 00:00 UTC on the 1st day of every month (well within the 90-day expiration window)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    # Allows manual rotation trigger from the GitHub Actions UI anytime
+
+permissions:
+  contents: write
+
+jobs:
+  rotate-key:
+    name: Rotate Tailscale Auth Key via OAuth
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install SOPS
+        run: |
+          SOPS_VERSION=$(curl -s https://api.github.com/repos/getsops/sops/releases/latest | jq -r .tag_name)
+          curl -sLo /tmp/sops "https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64"
+          chmod +x /tmp/sops
+          sudo mv /tmp/sops /usr/local/bin/sops
+          sops --version
+
+      - name: Mint New Auth Key & Re-encrypt with SOPS
+        env:
+          TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          TS_OAUTH_CLIENT_SECRET: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
+        run: |
+          if [ -z "${TS_OAUTH_CLIENT_ID}" ] || [ -z "${TS_OAUTH_CLIENT_SECRET}" ]; then
+            echo "❌ Missing repository secrets: TS_OAUTH_CLIENT_ID or TS_OAUTH_CLIENT_SECRET." >&2
+            echo "👉 Please add them in GitHub Repo Settings -> Secrets and variables -> Actions." >&2
+            exit 1
+          fi
+
+          ./scripts/rotate-tailscale-key.sh
+
+      - name: Commit and Push Updated Secret
+        run: |
+          if ! git diff --quiet secrets/tailscale.enc.yaml; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add secrets/tailscale.enc.yaml
+            git commit -m "chore(tailscale): rotate 90-day auth key via automated OAuth workflow [skip ci]"
+            git push origin main
+            echo "🎉 Successfully rotated and committed new Tailscale auth key to main!"
+          else
+            echo "ℹ️ No changes detected in secrets/tailscale.enc.yaml."
+          fi
