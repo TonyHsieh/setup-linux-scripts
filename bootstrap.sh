@@ -663,8 +663,16 @@ EOF
   LOCAL_SERVICES_ENV="$HOME/.local/share/local-services/.env"
   if [ ! -f "$LOCAL_SERVICES_ENV" ]; then
     mkdir -p "$HOME/.local/share/local-services"
-    AUTO_MACHINE_ID="$(hostname 2>/dev/null | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c 1-12)"
-    AUTO_MACHINE_ID="${AUTO_MACHINE_ID:-laptop}"
+    if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
+      AUTO_MACHINE_ID="envy"
+    elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
+      AUTO_MACHINE_ID="asus"
+    elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
+      AUTO_MACHINE_ID="arch"
+    else
+      AUTO_MACHINE_ID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+      AUTO_MACHINE_ID="${AUTO_MACHINE_ID:-laptop}"
+    fi
     echo "==> Scaffolding initial local-services .env (Machine ID: $AUTO_MACHINE_ID)..."
     cat << EOF > "$LOCAL_SERVICES_ENV"
 # Local Services Environment Configuration
