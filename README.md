@@ -535,5 +535,6 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 * **Dedicated Port 443 Ingress**: Replaced custom port URLs (`:8443`, `:5000`) with dedicated MagicDNS hostnames (e.g. `https://pdf-asus.komodo-sole.ts.net`) using lightweight Tailscale ingress containers.
 * **Mobile Safari Handshake**: Bound both Port 80 and Port 443 in Tailscale Serve configurations to prevent mobile TLS dropouts.
 * **Multi-Machine Parameterization**: Parameterized machine ID via `TS_MACHINE_ID` across `.env.example`, [`bootstrap.sh`](bootstrap.sh), and [`flake.nix`](flake.nix) to support simultaneous deployments on Asus, Envy, Arch, and WSL2.
+* **Roadmap: Automated Auth Key Rotator**: Added planned architecture for automated Tailscale auth key rotation using scoped OAuth clients to eliminate manual 90-day key expiration (inspired by [Brent Gruber's Tailscale Auth Key Rotator](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)). See [`docs/tailscale-ingress.md`](docs/tailscale-ingress.md#-roadmap-automated-auth-key-rotator-oauth-driven).
 
 

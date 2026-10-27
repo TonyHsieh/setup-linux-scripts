@@ -160,3 +160,53 @@ On your laptop itself, always use your fast, zero-latency local URLs:
 * **BentoPDF:** `https://pdf.localhost`
 * **Open WebUI:** `https://chat.localhost`
 * **Traefik:** `http://localhost:8088`
+
+---
+
+## 🔮 Roadmap: Automated Auth Key Rotator (OAuth-Driven)
+
+> [!NOTE]
+> **Inspiration**: [How I Built a Tailscale Auth Key Rotator by Brent Gruber](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)
+
+### The Problem with Static Auth Keys
+* Manual Tailscale auth keys have a strict **maximum lifespan of 90 days**.
+* When an auth key expires, fresh machine bootstrapping or container recreation silently fails.
+* Personal API access tokens are overly broad (granting full administrative control over the entire Tailnet).
+
+### Proposed Architecture & Automation Pipeline
+
+```mermaid
+flowchart TD
+    subgraph OAuth["🔐 Tailscale Control Plane"]
+        OC["Scoped OAuth Client\n(keys:write)"]
+        API["Tailscale Token Endpoint\n(/api/v2/oauth/token)"]
+        KeyGen["Key Generator\n(/api/v2/tailnet/{tailnet}/keys)"]
+    end
+
+    subgraph HostSystem["💻 Workstation / CI Machine"]
+        Timer["systemd user timer\n(Runs every 30 days)"]
+        Script["rotate-ts-key script\n(or 'jl rotate-auth-key')"]
+        SecretStore["Secret Store\n(~/.local/share/local-services/.env or SOPS)"]
+        Containers["Podman Tailscale Sidecars\n(local-tailscale-*)"]
+    end
+
+    Timer -->|Triggers| Script
+    Script -->|1. Authenticate with Client ID/Secret| API
+    API -->|2. Short-lived Access Token| Script
+    Script -->|3. Generate new Reusable Auth Key| KeyGen
+    KeyGen -->|4. Fresh tskey-auth-...| Script
+    Script -->|5. Atomically update TS_AUTHKEY| SecretStore
+    Script -->|6. Optional: Restart sidecars if needed| Containers
+```
+
+### Planned Implementation Phases:
+1. **Tailscale Scoped OAuth Credentials**:
+   * Create an OAuth Client in Tailscale Admin Settings restricted strictly to device key creation permissions (`keys:write`).
+   * Store `TS_OAUTH_CLIENT_ID` and `TS_OAUTH_CLIENT_SECRET` in `~/.bashrc.local` or SOPS age encrypted storage.
+2. **Key Rotation Task Runner (`jl rotate-auth-key`)**:
+   * Add a declarative task in `local-services/justfile` that queries the Tailscale API, retrieves a short-lived bearer token, generates a 90-day reusable auth key, and writes `TS_AUTHKEY=<new-key>` into `~/.local/share/local-services/.env`.
+3. **Automated User Timer**:
+   * Provide a declarative Home Manager systemd user service + timer (running e.g. every 30 or 60 days) to keep keys fresh indefinitely with zero human intervention.
+4. **Integration with SOPS & Secret Management**:
+   * Allow storing the generated keys directly in encrypted SOPS files (`secrets.enc.yaml`) for GitOps deployments across multi-machine clusters.
+

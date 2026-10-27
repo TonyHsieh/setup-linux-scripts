@@ -198,3 +198,16 @@ volumes:
   curl -s http://localhost:11434/v1/models | jq .
   ```
 * [ ] Validate fallback handling in OpenCode and Hermes when the local endpoint is unreachable.
+
+---
+
+### Phase 4: Automated Tailscale Auth Key Rotator (OAuth-Driven)
+*Reference: [How I Built a Tailscale Auth Key Rotator by Brent Gruber](https://medium.com/@brent.gruber77/how-i-built-a-tailscale-auth-key-rotator-814722b839e0)*
+
+* **Goal**: Eliminate manual 90-day key expiration friction for containerized Tailscale ingress nodes by automating key rotation with scoped OAuth clients.
+* **Architecture**:
+  * Create a Tailscale OAuth client with least-privilege `keys:write` scope.
+  * Implement an automated rotation script or task `jl rotate-auth-key`.
+  * Exchange OAuth credentials for an ephemeral API access token, generate a new 90-day reusable auth key, and atomically write `TS_AUTHKEY` to `~/.local/share/local-services/.env` (and optional SOPS encrypted secrets).
+  * Set up a recurring `systemd` user timer or cron trigger every 30 days for hands-off, zero-touch maintenance.
+
