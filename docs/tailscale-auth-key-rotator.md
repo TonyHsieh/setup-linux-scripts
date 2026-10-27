@@ -58,9 +58,10 @@ flowchart TD
 
 ### Key Security & Operational Highlights:
 
+* **Zero Plaintext on Disk (In-Memory Decryption)**: Plaintext tokens are never stored on your laptop's filesystem. `jl up-remote` ephemerally decrypts `TS_AUTHKEY` into memory via SOPS for the few seconds needed to initialize container registration, and unsets it immediately after. `~/.local/share/local-services/.env` stores only non-sensitive configuration (`TS_MACHINE_ID`).
 * **Zero Private Keys in Transit**: SOPS encrypts using only **public keys** (`ssh-ed25519` and `age`). No private keys ever leave your workstations or touch GitHub.
 * **Serverless Rotation**: A GitHub Actions workflow runs once a month on a schedule, mints a fresh 90-day reusable key via scoped OAuth, re-encrypts `secrets/tailscale.enc.yaml`, and pushes to `main`.
-* **Lazy On-Demand Fallback**: Remote laptops don't need continuous background daemons. If `jl up-remote` detects an expired token or `NeedsLogin` status, it triggers a self-healing fetch, decrypts the fresh key via the local host's SSH key, and immediately restarts the containers.
+* **Lazy On-Demand Fallback**: Remote laptops don't need continuous background daemons. Once registered, Tailscale caches its node identity in the persistent container volume (`/var/lib/tailscale`) and rarely needs the token again. If bringing up fresh or wiped nodes, `jl up-remote` fetches the latest encrypted key on the fly.
 
 ---
 
@@ -100,17 +101,16 @@ flowchart TD
 
 All operations are automated through the `jl` task runner:
 
-### 1. Start Services with Self-Healing (`jl up-remote`)
-When you run `jl up-remote`, it automatically inspects node status:
+### 1. Start Services with In-Memory Secret Injection (`jl up-remote`)
+When you run `jl up-remote`, it ephemerally decrypts `TS_AUTHKEY` from `secrets/tailscale.enc.yaml` into RAM, passes it to the container mesh, and unsets it immediately:
 ```bash
 jl up-remote
 ```
-If any container reports an expired auth token or `NeedsLogin`, `jl up-remote` automatically runs `jl sync-auth-key` to decrypt the latest key from `secrets/tailscale.enc.yaml` and reloads the sidecars.
+Zero plaintext tokens are written to disk. Once registered, the nodes persist their machine identity in `/var/lib/tailscale`.
 
-### 2. Manual Secret Sync (`jl sync-auth-key`)
-To explicitly pull and decrypt the latest key into your local `.env`:
+### 2. Verify Decryption & Sanitize Local Disk (`jl sync-auth-key`)
+To verify that your host SSH key can decrypt secrets and ensure no stale tokens are sitting in your local `.env`:
 ```bash
-git pull origin main
 jl sync-auth-key
 ```
 

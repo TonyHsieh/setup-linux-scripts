@@ -59,7 +59,7 @@ if [ -z "${AUTH_KEY}" ]; then
   exit 0
 fi
 
-# 5. Update ~/.local/share/local-services/.env
+# 5. Sanitize ~/.local/share/local-services/.env (strip TS_AUTHKEY to ensure zero plaintext on disk)
 mkdir -p "${LOCAL_SERVICES_DIR}"
 if [ ! -f "${ENV_FILE}" ]; then
   # Auto-detect machine ID if creating from scratch
@@ -74,18 +74,16 @@ if [ ! -f "${ENV_FILE}" ]; then
     MACHINE_ID="${MACHINE_ID:-laptop}"
   fi
   cat << EOF > "${ENV_FILE}"
-# Local Services Environment Configuration
+# Local Services Environment Configuration (Zero Secrets)
 TS_MACHINE_ID=${MACHINE_ID}
-TS_AUTHKEY=${AUTH_KEY}
 EOF
 else
-  # Update existing TS_AUTHKEY or append if missing
+  # Strip TS_AUTHKEY if previously written to disk
   if grep -q "^TS_AUTHKEY=" "${ENV_FILE}"; then
-    sed -i "s|^TS_AUTHKEY=.*|TS_AUTHKEY=${AUTH_KEY}|" "${ENV_FILE}"
-  else
-    echo "TS_AUTHKEY=${AUTH_KEY}" >> "${ENV_FILE}"
+    sed -i "/^TS_AUTHKEY=/d" "${ENV_FILE}"
   fi
 fi
 
 chmod 600 "${ENV_FILE}"
-echo "✓ Successfully synced decrypted Tailscale auth key into ${ENV_FILE}"
+echo "✓ Successfully verified SOPS decryption with host SSH key (${AUTH_KEY:0:15}...)"
+echo "✓ Sanitized ${ENV_FILE} (zero plaintext tokens stored on disk; auth key is injected in-memory during 'jl up-remote')"

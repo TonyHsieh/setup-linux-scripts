@@ -30,9 +30,17 @@
   # Home Manager release state version
   home.stateVersion = "24.11";
 
-  # Configure rootless Podman search registries
+  # Configure rootless Podman search registries and DNS fallbacks
   xdg.configFile."containers/registries.conf".text = ''
     unqualified-search-registries = ["docker.io"]
+  '';
+
+  xdg.configFile."containers/containers.conf".text = ''
+    [containers]
+    dns_servers = [
+      "1.1.1.1",
+      "8.8.8.8"
+    ]
   '';
 
   # Deploy Tier 2 Local Container Mesh to ~/.local/share/local-services

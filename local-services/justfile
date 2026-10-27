@@ -130,24 +130,60 @@ down-media:
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop plex
  
 # --- 🌐 Tailscale Private Mesh Ingress Tasks ---
-# Start Tailscale remote mesh ingress (exposes dedicated services on port 443)
+# Start Tailscale remote mesh ingress (exposes dedicated services on port 443 with in-memory auth key)
 up-remote:
-    @echo "==> Starting Tailscale remote ingress nodes via {{COMPOSE_CMD}}..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote up -d
-    @echo ""
-    @echo "👉 Tailscale remote containers are starting up!"
-    @sleep 3
-    @# Self-healing check: if any node needs login or key is expired, attempt lazy secret sync
-    @if {{CONTAINER_CMD}} logs local-tailscale-pdf 2>&1 | grep -qE "NeedsLogin|KeyExpired|expired" || \
-        {{CONTAINER_CMD}} exec local-tailscale-pdf tailscale status 2>&1 | grep -qE "Logged out|expired"; then \
-        echo "==> Auth key required or expired. Attempting lazy secret sync from SOPS..."; \
-        just -f {{justfile()}} sync-auth-key 2>/dev/null && \
-        echo "==> Restarting remote ingress nodes with synced key..." && \
-        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote restart; \
-    fi
-    @just -f {{justfile()}} remote-info
+    #!/usr/bin/env bash
+    set -euo pipefail
+    COMPOSE="{{COMPOSE_CMD}}"
+    DIR="{{justfile_directory()}}"
 
-# Decrypt and sync the latest Tailscale auth key from secrets/tailscale.enc.yaml into .env
+    # 1. Ensure TS_MACHINE_ID exists in ~/.local/share/local-services/.env (without secrets)
+    ENV_FILE="${HOME}/.local/share/local-services/.env"
+    if [ ! -f "$ENV_FILE" ]; then
+        mkdir -p "${HOME}/.local/share/local-services"
+        if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
+            MID="envy"
+        elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
+            MID="asus"
+        elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
+            MID="arch"
+        else
+            MID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+            MID="${MID:-laptop}"
+        fi
+        echo "TS_MACHINE_ID=$MID" > "$ENV_FILE"
+        chmod 600 "$ENV_FILE"
+    fi
+
+    # 2. Ephemerally decrypt TS_AUTHKEY into memory (never saved to disk)
+    TS_AUTHKEY=""
+    for d in "$DIR/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        SECRET_FILE="$d/secrets/tailscale.enc.yaml"
+        if [ -f "$SECRET_FILE" ]; then
+            if [ -z "${SOPS_AGE_KEY_FILE:-}" ]; then
+                if [ -f "${HOME}/.config/sops/age/keys.txt" ]; then
+                    export SOPS_AGE_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+                elif [ -f "${HOME}/.ssh/id_ed25519" ]; then
+                    export SOPS_AGE_KEY_FILE="${HOME}/.ssh/id_ed25519"
+                fi
+            fi
+            TS_AUTHKEY="$(sops --decrypt --extract '["tailscale"]["auth_key"]' "$SECRET_FILE" 2>/dev/null || true)"
+            if [ -n "$TS_AUTHKEY" ]; then
+                break
+            fi
+        fi
+    done
+
+    echo "==> Starting Tailscale remote ingress nodes via $COMPOSE (in-memory auth key)..."
+    TS_AUTHKEY="$TS_AUTHKEY" $COMPOSE -f "$DIR/docker-compose.yml" --profile remote up -d
+    unset TS_AUTHKEY
+
+    echo ""
+    echo "👉 Tailscale remote containers are running!"
+    sleep 3
+    just -f "{{justfile()}}" remote-info
+
+# Verify SOPS decryption with host SSH key and sanitize local .env (zero plaintext secrets)
 sync-auth-key:
     #!/usr/bin/env bash
     for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
