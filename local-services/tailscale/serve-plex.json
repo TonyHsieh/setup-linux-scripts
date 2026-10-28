@@ -1,0 +1,30 @@
+{
+  "TCP": {
+    "80": {
+      "HTTP": true
+    },
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "${TS_CERT_DOMAIN}:80": {
+      "Handlers": {
+        "/": {
+          "Redirect": "301:https://${HOST}${REQUEST_URI}"
+        }
+      }
+    },
+    "${TS_CERT_DOMAIN}:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://local-plex:32400"
+        }
+      }
+    }
+  },
+  "AllowFunnel": {
+    "${TS_CERT_DOMAIN}:80": false,
+    "${TS_CERT_DOMAIN}:443": false
+  }
+}
