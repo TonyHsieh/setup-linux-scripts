@@ -68,13 +68,13 @@ done
 
 echo "==> ❄️  Starting Declarative Nix Environment Bootstrap..."
 
-# 0. Optional: Install host system prerequisites (Podman, rootless sockets, sysctl)
+# 0. Optional: Install host system prerequisites (Podman, rootless sockets, sysctl, Tailscale)
 install_host_dependencies() {
-  echo "==> Setting up host system prerequisites (Podman & container runtime)..."
+  echo "==> Setting up host system prerequisites (Podman, container runtime & Tailscale)..."
   if [ "$(uname)" = "Darwin" ]; then
     if command -v brew >/dev/null 2>&1; then
-      echo "==> Installing podman and podman-compose via Homebrew..."
-      brew install podman podman-compose
+      echo "==> Installing podman, podman-compose, and tailscale via Homebrew..."
+      brew install podman podman-compose tailscale
       if ! podman machine list 2>/dev/null | grep -q "Running"; then
         echo "==> Initializing Podman Machine on macOS..."
         if ! podman machine list 2>/dev/null | grep -q "podman-machine-default"; then
@@ -86,20 +86,23 @@ install_host_dependencies() {
       echo "⚠️ Warning: Homebrew not found. Please install Homebrew to install Podman on macOS."
     fi
   elif command -v pacman >/dev/null 2>&1; then
-    echo "==> Synchronizing pacman databases and installing podman & podman-compose..."
-    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose; then
+    echo "==> Synchronizing pacman databases and installing podman, podman-compose & tailscale..."
+    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose tailscale; then
       echo "⚠️ Pacman download failed (stale mirrors or database). Refreshing mirrorlist and retrying..."
       if command -v cachyos-rate-mirrors >/dev/null 2>&1; then
         sudo cachyos-rate-mirrors || true
       elif command -v rate-mirrors >/dev/null 2>&1; then
         sudo rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist || true
       fi
-      sudo pacman -Syy --needed --noconfirm podman podman-compose
+      sudo pacman -Syy --needed --noconfirm podman podman-compose tailscale
     fi
   elif command -v apt-get >/dev/null 2>&1; then
-    echo "==> Installing podman and podman-compose via apt..."
+    echo "==> Installing podman, podman-compose, and tailscale..."
     sudo apt-get update -y
     sudo apt-get install -y podman podman-compose
+    if ! command -v tailscale >/dev/null 2>&1; then
+      curl -fsSL https://tailscale.com/install.sh | sh || true
+    fi
   fi
 
   # Linux & WSL: Enable user-level Podman socket and unprivileged ports

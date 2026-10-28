@@ -409,6 +409,11 @@ jl remote-auth   # Display authorization link if any node needs first-time login
 jl sync-auth-key # Verify SOPS decryption & sanitize local disk (zero plaintext tokens)
 jl rotate-auth-key # Manually rotate 90-day Tailscale auth key via scoped OAuth API
 
+# 🔒 Tailscale SSH Host Management (Zero-Trust Terminal Access)
+jl up-ssh        # Enable and configure host Tailscale SSH daemon (in-memory auth key)
+jl status-ssh    # Check host Tailscale SSH status, MagicDNS address, and listener
+jl down-ssh      # Disable Tailscale SSH on the host
+
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
 
@@ -421,7 +426,7 @@ When deploying across different environments (such as your `envy`, `asus`, WSL2,
 | **Container Engine** | Native Rootless Podman via systemd user socket | Rootless Podman inside WSL2 distribution | Podman Machine (Linux VM via hypervisor) |
 | **Rootless DNS & Let's Encrypt** | Host uses `systemd-resolved` (`127.0.0.53`). Home Manager writes `~/.config/containers/containers.conf` with `dns_servers = ["1.1.1.1", "8.8.8.8"]` to prevent ACME TLS handshake timeouts. | WSL automatically bridges Windows DNS; explicit `containers.conf` fallback ensures consistent resolution across vEthernet switches. | DNS is proxied via `gvproxy` bridging to macOS system resolvers; `containers.conf` applies inside VM. |
 | **Tailscale Ingress (Port 443)** | Dedicated container sidecars per service; auto-detects `TS_MACHINE_ID` (`envy`, `asus`, etc.). | Supported via container sidecars; recommended to use WSL mirrored networking (`networkingMode=mirrored`). | Supported via container sidecars or host-level Tailscale macOS client. |
-| **Remote SSH Terminal** | Host-level Tailscale SSH (`tailscale up --ssh`); allows `ssh thsieh@<machine>` with Tailnet identity authentication and zero open host ports. | Tailscale SSH in WSL2 distro or Windows host Tailscale. | Tailscale SSH via macOS system daemon. |
+| **Remote SSH Terminal** | Host-level [Tailscale SSH](docs/tailscale-ssh.md) (`jl up-ssh`); allows `ssh thsieh@<machine>` with Tailnet identity authentication and zero open host ports. | Tailscale SSH in WSL2 distro or Windows host Tailscale (`jl up-ssh`). | Tailscale SSH via macOS system daemon (`jl up-ssh`). |
 | **Remote Desktop Entrypoint** | Web client at `https://desktop-<id>.komodo-sole.ts.net` (Port 443 TLS) + native Wayland RDP (`krdp` on KDE Plasma 6). | Web client via sidecar or native Windows Remote Desktop / WSLg. | Web client via sidecar or built-in macOS Screen Sharing over Tailscale. |
 | **Port 80 $\rightarrow$ 443 Redirection** | Native HTTP 301 Permanent Redirect on Port 80 via `tailscale serve` to upgrade mobile browsers seamlessly. | Identical HTTP 301 behavior across all configurations. | Identical HTTP 301 behavior across all configurations. |
 | **Auth Key Decryption** | In-memory ephemeral decryption via SOPS using native host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via WSL host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via macOS `~/.ssh/id_ed25519` or `age`. Zero secrets stored on disk. |

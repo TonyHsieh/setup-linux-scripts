@@ -210,6 +210,40 @@ down-remote:
     @echo "==> Stopping Tailscale remote mesh ingress..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop tailscale-pdf tailscale-chat tailscale-traefik tailscale-ollama tailscale-books tailscale-plex
 
+# --- 🔒 Tailscale SSH Host Management ---
+# Set up and enable Tailscale SSH for zero-trust terminal access
+up-ssh *ARGS:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/setup-tailscale-ssh.sh" ]; then
+            exec "$d/scripts/setup-tailscale-ssh.sh" {{ARGS}}
+        fi
+    done
+    echo "⚠️ scripts/setup-tailscale-ssh.sh not found." >&2
+    exit 1
+
+# Check Tailscale SSH host daemon and connection status
+status-ssh:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/setup-tailscale-ssh.sh" ]; then
+            exec "$d/scripts/setup-tailscale-ssh.sh" --status
+        fi
+    done
+    echo "⚠️ scripts/setup-tailscale-ssh.sh not found." >&2
+    exit 1
+
+# Disable Tailscale SSH on the host
+down-ssh:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/setup-tailscale-ssh.sh" ]; then
+            exec "$d/scripts/setup-tailscale-ssh.sh" --down
+        fi
+    done
+    echo "⚠️ scripts/setup-tailscale-ssh.sh not found." >&2
+    exit 1
+
 # Run automated regression test suite for Tailscale Ingress & Security
 test-remote:
     #!/usr/bin/env bash

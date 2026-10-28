@@ -161,6 +161,34 @@ for backend in "traefik-ingress" "bentopdf" "local-postgres" "local-kavita" "loc
   fi
 done
 
+# ------------------------------------------------------------------------------
+# Test Suite 6: Host Tailscale SSH Configuration & Script Integrity
+# ------------------------------------------------------------------------------
+echo ""
+echo "👉 Suite 6: Host Tailscale SSH Management & Integration"
+SSH_SCRIPT="${REPO_ROOT}/scripts/setup-tailscale-ssh.sh"
+if [ -x "$SSH_SCRIPT" ]; then
+  pass "setup-tailscale-ssh.sh script exists and is executable"
+else
+  fail "setup-tailscale-ssh.sh is missing or not executable"
+fi
+
+if command -v tailscale >/dev/null 2>&1; then
+  pass "Tailscale CLI is installed on host"
+  if tailscale status >/dev/null 2>&1; then
+    SSH_CAP="$(tailscale status --json 2>/dev/null | jq -r '.Self.Capabilities[]? | select(. == "https://tailscale.com/cap/ssh")' 2>/dev/null || true)"
+    if [ -n "$SSH_CAP" ]; then
+      pass "Tailscale SSH capability is active and advertised on host"
+    else
+      echo "  ℹ️  INFO: Tailscale is connected, but SSH is not active yet (run 'jl up-ssh')"
+    fi
+  else
+    echo "  ℹ️  INFO: Tailscale CLI is installed, but daemon is currently stopped/offline"
+  fi
+else
+  echo "  ℹ️  INFO: Host Tailscale CLI is not installed yet (run 'jl up-ssh' to set up)"
+fi
+
 echo ""
 echo "======================================================================"
 echo "📊 Test Summary: Total: ${TOTAL_TESTS} | Passed: ${PASSED_TESTS} | Failed: ${FAILED_TESTS}"
