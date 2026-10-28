@@ -167,3 +167,8 @@ SaaS secret managers introduce monthly costs, closed-source dependencies, and ex
 
 ### Q: Can GitHub Actions see my decrypted secrets?
 No. GitHub Actions only holds the scoped OAuth Client credentials (`keys:write`). It mints a *new* auth key via API and uses your *public* keys in `.sops.yaml` to encrypt it into ciphertext before committing. GitHub never has access to the private SSH keys required to decrypt the payload.
+
+### Q: Does this workflow also renew my TLS/HTTPS certificates?
+No, because Tailscale handles TLS certificates automatically!
+- **Auth Key (`tskey-auth-...`)**: Rotated monthly by GitHub Actions to grant containers permission to register on your Tailnet.
+- **TLS Certificates (`*.ts.net`)**: Once registered, each sidecar container's `tailscaled` daemon automatically requests and renews its public Let's Encrypt certificate via ACME every 60 days in the background. All endpoints also bind Port 80 with an automatic HTTP 301 redirect to HTTPS. Zero manual maintenance is required for either layer!
