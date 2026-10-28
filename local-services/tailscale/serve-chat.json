@@ -1,7 +1,7 @@
 {
   "TCP": {
     "80": {
-      "HTTPS": false
+      "HTTP": true
     },
     "443": {
       "HTTPS": true

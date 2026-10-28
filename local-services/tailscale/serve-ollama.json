@@ -1,7 +1,7 @@
 {
   "TCP": {
     "80": {
-      "HTTPS": false
+      "HTTP": true
     },
     "443": {
       "HTTPS": true
@@ -11,7 +11,7 @@
     "${TS_CERT_DOMAIN}:80": {
       "Handlers": {
         "/": {
-          "Proxy": "http://local-ollama:11434"
+          "Redirect": "301:https://${HOST}${REQUEST_URI}"
         }
       }
     },
