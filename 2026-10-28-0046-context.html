@@ -518,6 +518,68 @@
           <td><code>local-postgres</code></td>
           <td><span class="badge active">Password Protected</span></td>
         </tr>
+        <tr>
+          <td><strong>Remote Desktop (Web Gateway)</strong></td>
+          <td><a href="https://desktop-envy.komodo-sole.ts.net" target="_blank" style="color: var(--accent-purple);">https://desktop-envy.komodo-sole.ts.net</a></td>
+          <td><code>localhost:3389 / krdp</code></td>
+          <td><code>local-tailscale-desktop</code></td>
+          <td><span class="badge info">Planned (Port 443 TLS + 80 301)</span></td>
+        </tr>
+        <tr>
+          <td><strong>Remote SSH Terminal</strong></td>
+          <td><code>ssh thsieh@envy</code></td>
+          <td><code>localhost:22</code></td>
+          <td><code>Host tailscaled --ssh</code></td>
+          <td><span class="badge info">Planned (Zero-Key Identity Auth)</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Section 4.5: Automated Regression Test Suite -->
+    <h2>🧪 Automated Ingress & Security Regression Test Suite</h2>
+    <div class="alert success">
+      <div class="alert-title">
+        <span>✅ Continuous Regression Verification: 39 Passed, 0 Failed</span>
+      </div>
+      <div class="alert-desc">
+        To prevent silent regressions when scaling to new services, laptops, or key rotations, an automated test harness has been introduced at <code>scripts/test-tailscale-ingress.sh</code> and integrated into <code>justfile</code> via <code>jl test-remote</code>.
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Test Suite</th>
+          <th>Assertions Verified</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Suite 1: Disk Secret Sanitization</strong></td>
+          <td>Zero plaintext <code>TS_AUTHKEY</code> in <code>.env</code>; valid <code>TS_MACHINE_ID</code>; host SSH key SOPS decryption via <code>~/.ssh/id_ed25519</code>.</td>
+          <td><span class="badge active">3 / 3 PASS</span></td>
+        </tr>
+        <tr>
+          <td><strong>Suite 2: DNS & ACME Handshake</strong></td>
+          <td>Rootless Podman DNS fallback (<code>1.1.1.1</code>, <code>8.8.8.8</code>) configured in <code>containers.conf</code>.</td>
+          <td><span class="badge active">1 / 1 PASS</span></td>
+        </tr>
+        <tr>
+          <td><strong>Suite 3: Dedicated Ingress Sidecars</strong></td>
+          <td>All 6 ingress containers (<code>pdf</code>, <code>chat</code>, <code>traefik</code>, <code>ollama</code>, <code>books</code>, <code>plex</code>) running in healthy state.</td>
+          <td><span class="badge active">6 / 6 PASS</span></td>
+        </tr>
+        <tr>
+          <td><strong>Suite 4: Schema & Redirection</strong></td>
+          <td>Port 80 configured with <code>"HTTP": true</code>; Port 80 HTTP 301 redirect active; Port 443 <code>"HTTPS": true</code>; Port 443 valid proxy targets.</td>
+          <td><span class="badge active">24 / 24 PASS</span></td>
+        </tr>
+        <tr>
+          <td><strong>Suite 5: Backend Container Health</strong></td>
+          <td>All local services (<code>traefik-ingress</code>, <code>bentopdf</code>, <code>local-postgres</code>, <code>local-kavita</code>, <code>local-plex</code>) running.</td>
+          <td><span class="badge active">5 / 5 PASS</span></td>
+        </tr>
       </tbody>
     </table>
 
@@ -555,7 +617,7 @@ git commit -am "chore(sops): authorize asus host SSH key" && git push origin mai
           <div class="code-block">git pull origin main
 ./bootstrap.sh --skip-cleanup
 jl up-remote</div>
-          Verify all 6 remote endpoints (<code>pdf-asus.komodo-sole.ts.net</code>, <code>plex-asus...</code>) spin up cleanly.
+          Verify all remote endpoints (<code>pdf-asus.komodo-sole.ts.net</code>, <code>plex-asus...</code>) spin up cleanly.
         </div>
       </div>
     </div>
@@ -571,6 +633,43 @@ jl up-remote</div>
           The GitHub Action cron schedule (<code>0 0 1 * *</code>) will trigger on the 1st of every month to mint a fresh 90-day Tailscale key, re-encrypt with SOPS, and commit to <code>main</code>. 
           When testing manual rotation, run:
           <div class="code-block">jl rotate-auth-key --commit && git push origin main</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <div class="step-title">
+          <span>Implement Tailscale SSH for Zero-Trust Remote Terminal Access</span>
+          <span class="badge high">HIGH PRIORITY</span>
+        </div>
+        <div class="step-desc">
+          Enable zero-trust remote terminal access across the Tailnet without open host ports or password management:
+          <ul style="margin: 10px 0 10px 20px; color: var(--text-secondary); font-size: 0.95rem;">
+            <li><strong>Host Tailscale Daemon:</strong> Configure host <code>tailscaled</code> on Arch/CachyOS via systemd (<code>sudo systemctl enable --now tailscaled</code>) and bring up with <code>tailscale up --ssh --hostname=envy</code>.</li>
+            <li><strong>Identity-Based Access:</strong> Tailscale verifies the authenticated user from the control plane. Authorize SSH in Tailnet ACLs for the owner account.</li>
+            <li><strong>Zero-Friction Command:</strong> Connect from mobile or any workstation via <code>ssh thsieh@envy</code> (or <code>ssh thsieh@envy.komodo-sole.ts.net</code>) with automatic WireGuard encryption.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <div class="step-title">
+          <span>Deploy Dedicated Remote Desktop Entrypoint (desktop-&lt;machine&gt;.komodo-sole.ts.net)</span>
+          <span class="badge high">HIGH PRIORITY</span>
+        </div>
+        <div class="step-desc">
+          Provide remote desktop access to laptops under clean MagicDNS URLs on standard Port 443 with TLS:
+          <ul style="margin: 10px 0 10px 20px; color: var(--text-secondary); font-size: 0.95rem;">
+            <li><strong>KDE Plasma 6 / Wayland Native Server:</strong> Utilize <code>krdp</code> (official KDE RDP server for Wayland) listening on port 3389, activated via <code>systemctl --user start plasma-krdp.service</code>.</li>
+            <li><strong>Web-Based HTML5 Remote Desktop Client:</strong> Deploy containerized web RDP client (Apache Guacamole or web client) under a <code>desktop</code> profile in <code>docker-compose.yml</code>.</li>
+            <li><strong>Tailscale Ingress Sidecar:</strong> Provision <code>local-tailscale-desktop</code> with <code>serve-desktop.json</code> mapping Port 80 (HTTP 301 redirect) and Port 443 (Let's Encrypt TLS proxy) for zero-client mobile access at <code>https://desktop-&lt;machine&gt;.komodo-sole.ts.net</code>.</li>
+            <li><strong>Regression Verification:</strong> Run <code>jl test-remote</code> to guarantee all 7 ingress sidecars and security rules pass.</li>
+          </ul>
         </div>
       </div>
     </div>

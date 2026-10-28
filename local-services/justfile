@@ -210,6 +210,17 @@ down-remote:
     @echo "==> Stopping Tailscale remote mesh ingress..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop tailscale-pdf tailscale-chat tailscale-traefik tailscale-ollama tailscale-books tailscale-plex
 
+# Run automated regression test suite for Tailscale Ingress & Security
+test-remote:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/test-tailscale-ingress.sh" ]; then
+            exec "$d/scripts/test-tailscale-ingress.sh"
+        fi
+    done
+    echo "⚠️ scripts/test-tailscale-ingress.sh not found." >&2
+    exit 1
+
 # Check Tailscale mesh connection status across dedicated nodes
 remote-status:
     @for node in local-tailscale-pdf local-tailscale-chat local-tailscale-traefik local-tailscale-ollama local-tailscale-books local-tailscale-plex; do \

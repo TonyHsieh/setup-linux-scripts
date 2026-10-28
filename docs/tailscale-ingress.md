@@ -62,6 +62,8 @@ Each service is mapped to a dedicated hostname on standard **HTTPS Port 443**:
 | **Ollama API** | `https://ollama-<machine>.komodo-sole.ts.net` | `https://ollama.localhost` | Local LLM inference engine REST API |
 | **Kavita** | `https://books-<machine>.komodo-sole.ts.net` | `https://kavita.localhost` | E-book, manga, and comic server |
 | **Plex Media Server** | `https://plex-<machine>.komodo-sole.ts.net` | `https://plex.localhost` | Personal media streaming & transcoding server |
+| **Remote Desktop (Web)** | `https://desktop-<machine>.komodo-sole.ts.net` | `localhost:3389 / krdp` | *(Planned)* Browser HTML5 remote desktop on Port 443 |
+| **Remote SSH Terminal** | `ssh thsieh@<machine>` | `localhost:22` | *(Planned)* Zero-trust terminal shell via Tailscale SSH |
 
 *(Replace `<machine>` with your machine identifier, e.g. `asus`, `thinkpad`, `envy`).*
 
@@ -247,6 +249,106 @@ flowchart TD
    jl sync-auth-key
    ```
    Or let `jl up-remote` lazily update it on-the-fly!
+
+---
+
+## 🖥️ Remote Terminal Access via Tailscale SSH
+
+Instead of configuring port forwarding, exposing port 22, or managing fragile public SSH keys across machines, **Tailscale SSH** provides zero-trust, identity-authenticated terminal access directly through the Tailnet WireGuard mesh.
+
+### How It Works:
+```mermaid
+flowchart LR
+    subgraph Client["📱 Remote Laptop / iPad / Phone"]
+        SSHClient["SSH Client\n(ssh thsieh@envy)"]
+    end
+
+    subgraph TailscaleMesh["🔒 WireGuard Mesh (komodo-sole.ts.net)"]
+        ControlPlane["Tailscale Control Plane\n(Identity & ACL Evaluation)"]
+    end
+
+    subgraph HostWorkstation["💻 Laptop Host (envy-cachyos-x8664)"]
+        Tailscaled["tailscaled --ssh\n(Intercepts port 22 on tailscale0)"]
+        LoginShell["Local User Shell\n(/bin/bash for thsieh)"]
+    end
+
+    SSHClient -->|Authenticated WireGuard| TailscaleMesh
+    TailscaleMesh -->|Validated Identity| Tailscaled
+    Tailscaled --> LoginShell
+```
+
+### Key Capabilities:
+1. **Zero Key Management**: Tailscale proves your identity using your existing Tailscale account login. No passwords or `authorized_keys` files need to be copied.
+2. **Encrypted Point-to-Point**: All traffic flows directly between devices over WireGuard.
+3. **No Open Ports**: The host does not need port 22 open on local Wi-Fi or public routers.
+4. **Usage**:
+   ```bash
+   ssh <username>@<machine-id>
+   # Example:
+   ssh thsieh@envy
+   ```
+
+---
+
+## 🖥️ Dedicated Remote Desktop Entrypoint (`desktop-<machine>.komodo-sole.ts.net`)
+
+To access laptop GUI desktops remotely without clumsy port numbers or third-party proprietary remote software, the system provides a dual-access architecture:
+
+```mermaid
+flowchart TD
+    subgraph RemoteClients["📱 Remote Clients"]
+        MobileBrowser["Mobile Safari / Chrome\n(iPhone / iPad / Laptop)"]
+        NativeRDP["Microsoft Remote Desktop / Remmina\n(High-Performance Native Client)"]
+    end
+
+    subgraph TailnetMesh["🔒 Tailscale WireGuard Mesh"]
+        TS_Desktop["local-tailscale-desktop\n(desktop-<machine>.komodo-sole.ts.net)"]
+        HostTailscale["Host tailscaled\n(port 3389)"]
+    end
+
+    subgraph WorkstationHost["💻 Host Laptop (KDE Plasma 6 / Wayland)"]
+        WebGateway["Web RDP HTML5 Client\n(docker-compose profile: desktop)"]
+        KRDP["krdp Wayland Server\n(plasma-krdp.service on port 3389)"]
+        PlasmaGUI["KDE Plasma 6 Session"]
+    end
+
+    MobileBrowser -->|Port 443 HTTPS (Auto TLS)| TS_Desktop
+    TS_Desktop -->|Proxy :8080| WebGateway
+    WebGateway -->|RDP :3389| KRDP
+
+    NativeRDP -->|Direct RDP :3389 over Tailnet| HostTailscale
+    HostTailscale --> KRDP
+    KRDP --> PlasmaGUI
+```
+
+### Access Modalities:
+1. **Clean Web Link (`https://desktop-<machine>.komodo-sole.ts.net`)**:
+   - Standard **Port 443** with official Let's Encrypt TLS certificate.
+   - Automatic **Port 80 HTTP $\rightarrow$ HTTPS 301 redirection**.
+   - HTML5 in-browser canvas streaming: zero client software installation required on iOS or secondary laptops.
+2. **Native Wayland RDP (`krdp`)**:
+   - High-performance, low-latency display protocol directly integrated into KDE Plasma 6 Wayland on Arch/CachyOS.
+   - Can be connected directly from Microsoft Remote Desktop on macOS/Windows or Remmina on Linux over the Tailscale mesh.
+
+---
+
+## 🧪 Automated Ingress & Security Regression Suite (`jl test-remote`)
+
+To ensure that adding new services, rotating auth keys, or deploying across new machines never breaks existing security or networking invariants, an automated regression suite is maintained at `scripts/test-tailscale-ingress.sh`.
+
+Run the test suite anytime:
+```bash
+jl test-remote
+```
+
+### What It Asserts (39+ Test Rules):
+1. **Disk Secret Sanitization**: Asserts that `~/.local/share/local-services/.env` has zero plaintext `TS_AUTHKEY` entries and that `TS_MACHINE_ID` is set.
+2. **In-Memory SOPS Decryption**: Asserts that `secrets/tailscale.enc.yaml` decrypts cleanly via the host SSH key (`~/.ssh/id_ed25519`).
+3. **Rootless Podman DNS**: Validates upstream fallback DNS (`1.1.1.1`, `8.8.8.8`) in `containers.conf` to prevent ACME TLS certificate generation timeouts.
+4. **Dedicated Ingress Sidecars Health**: Verifies all 6+ ingress containers are running in healthy status.
+5. **Tailscale Serve Schema**: Asserts that Port 80 uses `"HTTP": true` (avoiding schema-drop bugs), Port 80 has an active 301 permanent redirect, Port 443 has `"HTTPS": true`, and Port 443 forwards to the correct internal proxy targets.
+6. **Backend Services Health**: Verifies that `traefik-ingress`, `bentopdf`, `local-postgres`, `local-kavita`, and `local-plex` are running.
+
 
 
 
