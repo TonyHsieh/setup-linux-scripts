@@ -115,7 +115,7 @@ services:
 
   # 📚 Kavita E-Book, Comic, & Manga Reader UI (On-Demand)
   kavita:
-    image: docker.io/kavitareader/kavita:latest
+    image: ghcr.io/kareadita/kavita:latest
     container_name: local-kavita
     restart: unless-stopped
     profiles: ["apps", "books", "all"]
