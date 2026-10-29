@@ -10,6 +10,7 @@
     jq
     yq-go
     bottom
+    btop
     fzf
     bat
     eza
