@@ -48,32 +48,27 @@ if grep -qF "$PUBKEY" "${SOPS_CONFIG}"; then
 else
   echo "==> Registering host SSH key in ${SOPS_CONFIG}..."
 
-  # Append host key to age: >- recipient list
-  # Standard YAML format: comma-separated list under age: >-
-  if grep -q "age: >-" "${SOPS_CONFIG}"; then
-    # Insert with proper indentation and trailing comma if needed
-    awk -v key="      ${PUBKEY}" '
-      /age: >-/ {
-        print
-        getline
-        while ($0 ~ /^ +/ && $0 !~ /^[a-z]/) {
-          # Strip trailing comma if we add another item
-          sub(/, *$/, ",")
-          print
-          getline
-        }
-        print key
-      }
-      { print }
-    ' "${SOPS_CONFIG}" > "${SOPS_CONFIG}.tmp" || true
-
-    # Clean up any trailing double commas or formatting
-    sed -i -e 's/,,/,/g' "${SOPS_CONFIG}.tmp"
-    mv "${SOPS_CONFIG}.tmp" "${SOPS_CONFIG}"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c "
+import sys
+path = sys.argv[1]
+key = sys.argv[2]
+with open(path, 'r') as f:
+    lines = [l.rstrip() for l in f.readlines()]
+while lines and not lines[-1].strip():
+    lines.pop()
+if lines and not lines[-1].endswith(','):
+    lines[-1] = lines[-1] + ','
+lines.append(f'      {key}')
+with open(path, 'w') as f:
+    f.write('\n'.join(lines) + '\n')
+" "${SOPS_CONFIG}" "${PUBKEY}"
   else
-    echo "⚠️ Warning: Could not find 'age: >-' block in ${SOPS_CONFIG}. Please add manually:"
-    echo "      ${PUBKEY}"
-    exit 1
+    # Pure POSIX shell fallback without while-loop traps
+    TMP_CONFIG="$(mktemp /tmp/sops-XXXXXX.yaml)"
+    awk 'NF {last=NR} {lines[NR]=$0} END {for(i=1;i<=last;i++) {if(i==last && lines[i] !~ /,[ \t]*$/) lines[i]=lines[i] ","; print lines[i]}}' "${SOPS_CONFIG}" > "${TMP_CONFIG}"
+    echo "      ${PUBKEY}" >> "${TMP_CONFIG}"
+    mv "${TMP_CONFIG}" "${SOPS_CONFIG}"
   fi
   echo "✅ Added host SSH key to ${SOPS_CONFIG}"
 fi
