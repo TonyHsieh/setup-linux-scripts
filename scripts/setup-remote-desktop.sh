@@ -210,6 +210,7 @@ case "$PLATFORM" in
       echo "==> Configuring krdpserverrc..."
       kwriteconfig6 --file krdpserverrc --group General --key Certificate "${KRDP_CERT_DIR}/krdp.crt"
       kwriteconfig6 --file krdpserverrc --group General --key CertificateKey "${KRDP_CERT_DIR}/krdp.key"
+      kwriteconfig6 --file krdpserverrc --group General --key GenerateCertificate false
       kwriteconfig6 --file krdpserverrc --group General --key SystemUserEnabled true
     fi
 
