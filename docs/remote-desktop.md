@@ -123,3 +123,51 @@ https://desktop-envy.komodo-sole.ts.net
    * `krdp` is a Wayland session stream server. You must be logged into a desktop session for KRDP to capture the screen.
    * If you reboot the laptop remotely and need it to be accessible unattended:
      * Enable **Automatic Login** in **KDE System Settings ➔ Colors & Themes ➔ Login Screen (SDDM) ➔ Behavior ➔ Automatically log in**.
+3. **Dedicated RDP Users vs. System Users**:
+   * While Linux system users can authenticate, creating a dedicated Remote Desktop account via **KDE System Settings ➔ Remote Desktop ➔ Allowed Users (`+ Add New...`)** is strongly recommended. Dedicated users authenticate directly via FreeRDP internal crypto, preventing any Linux PAM account lockouts (`pam_faillock`).
+
+---
+
+## 🛠️ Technical Incident Analysis & Root Cause Resolutions
+
+During deployment across Arch/CachyOS and Windows/WSL2, several subtle edge cases were identified and systematically resolved:
+
+### 1. KDE Plasma 6 "Automatic Certificate Generation" Bug
+* **Symptom**: Toggling the RDP server yielded:
+  ```text
+  Error message from the RDP server:
+  A valid TLS certificate ("") and key ("") is required for the server to run!
+  ```
+* **Root Cause**: When the GUI's *Generate certificates: Automatically* checkbox is enabled, Plasma 6 leaves `Certificate` and `CertificateKey` empty in `~/.config/krdpserverrc`. The server rejects empty string paths.
+* **Resolution**:
+  Pre-generate a 10-year self-signed SSL key/cert in `~/.local/share/krdpserver/`, write explicit paths into `~/.config/krdpserverrc`, and disable automatic generation:
+  ```bash
+  kwriteconfig6 --file krdpserverrc --group General --key Certificate "$HOME/.local/share/krdpserver/krdp.crt"
+  kwriteconfig6 --file krdpserverrc --group General --key CertificateKey "$HOME/.local/share/krdpserver/krdp.key"
+  kwriteconfig6 --file krdpserverrc --group General --key GenerateCertificate false
+  ```
+  This is fully automated inside `jl up-desktop` (`scripts/setup-remote-desktop.sh`).
+
+### 2. PAM `unix_chkpwd` Failure via `NoNewPrivileges=true`
+* **Symptom**: Connecting from Windows Remote Desktop connected for a few moments, showed a black screen, and immediately dropped with:
+  ```text
+  krdpserver: pam_unix(login:auth): authentication failure; user=thsieh
+  krdpserver: pam_faillock(login:auth): Consecutive login failures for user thsieh account temporarily locked
+  krdpserver: ERRCONNECT_CONNECT_TRANSPORT_FAILED [0x0002000D]
+  ```
+* **Root Cause**: KDE Plasma systemd user services default to `NoNewPrivileges=true`. When `krdpserver` invoked PAM's setuid helper (`unix_chkpwd`) to verify the user's password against `/etc/shadow`, the kernel stripped setuid permissions. Authentication failed despite typing the correct password, triggering Linux `faillock`.
+* **Resolution**:
+  Configured a systemd user drop-in override (`~/.config/systemd/user/app-org.kde.krdpserver.service.d/override.conf`):
+  ```ini
+  [Service]
+  NoNewPrivileges=false
+  ```
+  If locked out temporarily by `faillock`, unlock with `sudo faillock --user <username> --reset`.
+
+### 3. Windows Host vs. WSL2 MagicDNS Routing
+* **Symptom**: Windows native Remote Desktop Connection (`mstsc.exe`) reported that it could not resolve `envy.komodo-sole.ts.net`.
+* **Root Cause**: `mstsc.exe` runs on the Windows host OS, not inside WSL2. When Tailscale is only run inside the WSL2 Linux guest, the Windows host network stack has no Tailscale virtual adapter and cannot route `100.x.y.z` or resolve `.ts.net` MagicDNS.
+* **Resolution**:
+  * Install **Tailscale for Windows** on the Windows host, placing the entire PC on the WireGuard mesh.
+  * Alternatively, connect directly using the target machine's Tailscale IP: `100.126.45.31:3389`.
+

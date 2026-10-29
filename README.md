@@ -573,6 +573,24 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 
 ---
 
+### 2026-10-28: Multi-Platform Tailscale SSH & Native Wayland Remote Desktop (KRDP)
+
+#### 1. Zero-Trust Tailscale SSH Host Integration
+* **Architecture**: Integrated host-level Tailscale SSH daemon (`jl up-ssh` / [`scripts/setup-tailscale-ssh.sh`](scripts/setup-tailscale-ssh.sh)) across Arch/CachyOS, WSL2, and macOS. Terminal connections (`ssh thsieh@<machine>`) authenticate purely via Tailnet WireGuard identity without open public ports or static SSH keys.
+* **Ephemeral In-Memory Secrets**: Automatically decrypts the rotating 90-day Tailscale auth key into RAM via SOPS using the host's native SSH key (`~/.ssh/id_ed25519`).
+* **Cross-Device Verified**: Verified end-to-end connectivity from iPhone (Termius), Asus laptop, and Windows clients. Full guide in [`docs/tailscale-ssh.md`](docs/tailscale-ssh.md).
+
+#### 2. Native Wayland Remote Desktop (KRDP) & Ingress Gateway
+* **Architecture**: Deployed KDE Plasma 6 Wayland native RDP server via `krdp` listening on Port 3389 (`jl up-desktop` / [`scripts/setup-remote-desktop.sh`](scripts/setup-remote-desktop.sh)) and dedicated Tailscale ingress sidecar (`tailscale-desktop`).
+* **Root Cause: KDE Plasma 6 Certificate Generation Bug**: Resolved issue where automatic certificate generation left empty string paths `("")` in `krdpserverrc`. Pre-generates 10-year SSL keys in `~/.local/share/krdpserver/` and writes explicit configuration paths.
+* **Root Cause: PAM Authentication Failure via NoNewPrivileges**: Resolved connection dropouts on login by provisioning a systemd user drop-in override (`~/.config/systemd/user/app-org.kde.krdpserver.service.d/override.conf`) declaring `NoNewPrivileges=false` to allow PAM `unix_chkpwd` to verify credentials.
+* **Documentation & Client Guides**: Comprehensive troubleshooting, Windows host vs WSL2 network isolation, and client setup (Remmina, Microsoft Remote Desktop) documented in [`docs/remote-desktop.md`](docs/remote-desktop.md).
+
+#### 3. Process Monitor Standardization (btop)
+* Replaced `bottom` (`btm`) with `btop` across all declarative profiles ([`home/packages.nix`](home/packages.nix)), aligning with developer preferences across Linux, WSL2, and macOS.
+
+---
+
 ### 2026-10-27: Automated Auth Key Rotator, In-Memory Ephemeral Decryption & DNS Handshake Fixes
 * **Automated Tailscale Auth Key Rotator**: Implemented serverless 90-day auth key rotation via GitHub Actions and scoped Tailscale OAuth (`keys:write`). Secrets are encrypted with multi-recipient SOPS for host SSH keys (`ssh-ed25519`) and master age keys.
 * **In-Memory Ephemeral Decryption**: Updated `jl up-remote` to decrypt `TS_AUTHKEY` on the fly directly into memory via SOPS, unsetting it immediately after container registration. Zero plaintext secrets are stored on disk.
