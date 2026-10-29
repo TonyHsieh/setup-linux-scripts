@@ -345,6 +345,12 @@
           <li class="warning"><strong>Windows Host vs. WSL2 Mesh Isolation:</strong>
             <p>Native Windows apps (<code>mstsc.exe</code>) run on the Windows NT host, not inside WSL2. If Tailscale is only running in WSL2, Windows cannot route <code>100.x.y.z</code> or resolve <code>*.ts.net</code>. Windows host Tailscale or WSLg connection is required.</p>
           </li>
+          <li class="warning"><strong>awk EOF Infinite Loop During Key Registration:</strong>
+            <p><code>scripts/register-host-key.sh</code> originally used an <code>awk</code> script with a <code>while (getline)</code> construct to append new SSH public keys to <code>.sops.yaml</code>. On EOF, POSIX <code>awk</code> retains the previous line in <code>$0</code>, causing an infinite loop consuming 100% CPU when onboarding a new laptop whose key wasn't yet in the file. Fixed via an idempotent, safe Python 3 script with a safe POSIX line-buffered fallback (commit <code>c8e8e67</code>).</p>
+          </li>
+          <li class="warning"><strong>Envelope Encryption (DEK vs. KEK) Authorization Boundary:</strong>
+            <p>A new laptop (like <code>asus</code>) cannot run <code>sops updatekeys</code> to authorize itself alone. SOPS encrypts secrets with an internal random AES Data Encryption Key (DEK), which is then encrypted by each authorized recipient's public key (KEK). To add a new recipient, SOPS must first <em>decrypt</em> the DEK using an existing authorized private key. Because Asus only has its own brand-new private key, an existing keyholder (<code>envy</code>) or GitHub Actions (via OAuth API) must open the vault and stamp the secret for the new recipient.</p>
+          </li>
         </ul>
       </div>
     </div>
@@ -454,6 +460,7 @@
             <li class="success">Each bootstrapped machine adds its SSH public key (<code>~/.ssh/id_ed25519.pub</code>) to <code>.sops.yaml</code>.</li>
             <li class="success">Decryption is 100% ephemeral in memory during container launch (zero plaintext tokens on disk).</li>
             <li class="success">Monthly GitHub Actions token rotation re-encrypts the auth key specifically for all authorized machine public keys.</li>
+            <li class="success"><strong>Auto-Trigger on Push:</strong> Pushing updates to <code>.sops.yaml</code> automatically triggers GitHub Actions to mint/re-encrypt the secret for all recipients, eliminating the manual cross-laptop step for future machines!</li>
           </ul>
         </div>
       </div>
@@ -462,32 +469,27 @@
     <!-- Actionable Resumption Guide for Tomorrow / Asus Laptop -->
     <div class="card">
       <h2 class="card-title blue">
-        <span>📋 Actionable Resumption Guide: Onboarding the Asus Laptop</span>
+        <span>📋 Actionable Resumption Guide: Asus Laptop Live Status</span>
       </h2>
-      <p>When you switch over to the <strong>Asus laptop</strong>, follow these exact steps to complete cross-device synchronization:</p>
+      <div class="alert success" style="margin-bottom: 16px;">
+        <strong>🎉 Asus is Authorized!</strong> Asus's SSH public key was added in commit <code>b46e0f3</code>, re-encrypted in commit <code>856ae1d</code>, and pushed to <code>origin/main</code>.
+      </div>
+      <p>To finalize setup on the <strong>Asus laptop</strong>:</p>
 
       <div style="margin-top: 16px;">
-        <p><span class="step-number">1</span><strong>Pull Latest Code & Run Bootstrap on Asus:</strong></p>
+        <p><span class="step-number">1</span><strong>Pull Latest Code & Complete Bootstrap:</strong></p>
         <div class="command-box">
           git pull origin main && ./bootstrap.sh --skip-cleanup
         </div>
-        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -8px; margin-bottom: 16px;">
-          The script will auto-detect <code>[asus]</code>, confirm the nickname, generate <code>local-services/.env</code>, and register Asus's SSH public key.
-        </p>
 
-        <p><span class="step-number">2</span><strong>Authorize Asus SSH Key in SOPS:</strong></p>
-        <p>If Asus does not have a pre-existing decryption key, run from the Asus terminal:</p>
+        <p><span class="step-number">2</span><strong>Verify In-Memory Secret Decryption on Asus:</strong></p>
         <div class="command-box">
-          jl register-key --commit && git push origin main
-        </div>
-        <p>Then, from this <strong>envy</strong> laptop (which is already authorized):</p>
-        <div class="command-box">
-          git pull && sops updatekeys -y secrets/tailscale.enc.yaml && git commit -am "chore(sops): re-encrypt for asus" && git push
+          jl sync-auth-key
         </div>
 
-        <p><span class="step-number">3</span><strong>Start Services on Asus:</strong></p>
+        <p><span class="step-number">3</span><strong>Launch Services on Asus:</strong></p>
         <div class="command-box">
-          git pull && jl up-remote && jl up-desktop
+          jl up-remote && jl up-desktop
         </div>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: -8px;">
           All services will automatically register as <code>https://pdf-asus.komodo-sole.ts.net</code>, <code>chat-asus...</code>, and <code>desktop-asus...</code> alongside envy!
