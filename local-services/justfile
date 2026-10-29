@@ -202,6 +202,17 @@ sync-auth-key:
     echo "⚠️ scripts/sync-tailscale-key.sh not found." >&2
     exit 1
 
+# Authorize host SSH key in .sops.yaml for multi-device secret decryption
+register-key *ARGS:
+    #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -x "$d/scripts/register-host-key.sh" ]; then
+            exec "$d/scripts/register-host-key.sh" {{ARGS}}
+        fi
+    done
+    echo "⚠️ scripts/register-host-key.sh not found." >&2
+    exit 1
+
 # Rotate Tailscale auth key via Tailscale OAuth API and update encrypted secret
 rotate-auth-key:
     #!/usr/bin/env bash

@@ -662,31 +662,63 @@ EOF
     cp "$SCRIPT_DIR/dotfiles/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
   fi
 
-  # 7.7. Bootstrap local-services environment (~/.local/share/local-services/.env) if missing
-  LOCAL_SERVICES_ENV="$HOME/.local/share/local-services/.env"
-  if [ ! -f "$LOCAL_SERVICES_ENV" ]; then
-    mkdir -p "$HOME/.local/share/local-services"
-    if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
+  # 7.7. Bootstrap local-services machine identity (.env) if missing
+  PROJECT_LOCAL_ENV="$SCRIPT_DIR/local-services/.env"
+  XDG_LOCAL_ENV="$HOME/.local/share/local-services/.env"
+
+  if [ ! -f "$PROJECT_LOCAL_ENV" ] && [ ! -f "$XDG_LOCAL_ENV" ]; then
+    HOST_STRING="$(cat /etc/hostname 2>/dev/null || hostname 2>/dev/null || echo "")"
+    if [[ "$HOST_STRING" =~ [Ee][Nn][Vv][Yy] ]]; then
       AUTO_MACHINE_ID="envy"
-    elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
+    elif [[ "$HOST_STRING" =~ [Aa][Ss][Uu][Ss] ]]; then
       AUTO_MACHINE_ID="asus"
-    elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
+    elif [[ "$HOST_STRING" =~ [Aa][Rr][Cc][Hh] ]]; then
       AUTO_MACHINE_ID="arch"
     else
       AUTO_MACHINE_ID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
       AUTO_MACHINE_ID="${AUTO_MACHINE_ID:-laptop}"
     fi
-    echo "==> Scaffolding initial local-services .env (Machine ID: $AUTO_MACHINE_ID)..."
-    cat << EOF > "$LOCAL_SERVICES_ENV"
-# Local Services Environment Configuration
-TS_MACHINE_ID=${AUTO_MACHINE_ID}
-TS_AUTHKEY=
+    AUTO_MACHINE_ID="$(echo "${AUTO_MACHINE_ID}" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-10)"
+    AUTO_MACHINE_ID="${AUTO_MACHINE_ID:-laptop}"
+
+    CONFIRMED_MACHINE_ID="${AUTO_MACHINE_ID}"
+    if [ -t 0 ] || [ -e /dev/tty ]; then
+      echo ""
+      echo "==> 🏷️  Configuring Local Machine Identity (TS_MACHINE_ID)..."
+      echo "    Auto-detected machine nickname: [${AUTO_MACHINE_ID}]"
+      if read -r -p "    Press [Enter] to accept [${AUTO_MACHINE_ID}], or enter custom nickname (max 10 alphanumeric chars): " USER_INPUT_ID < /dev/tty 2>/dev/null; then
+        CLEAN_INPUT="$(echo "${USER_INPUT_ID:-}" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-10)"
+        if [ -n "$CLEAN_INPUT" ]; then
+          CONFIRMED_MACHINE_ID="$CLEAN_INPUT"
+        fi
+      fi
+    fi
+
+    echo "==> Saving local machine identity (TS_MACHINE_ID=${CONFIRMED_MACHINE_ID})..."
+    mkdir -p "$SCRIPT_DIR/local-services" "$HOME/.local/share/local-services"
+    cat << EOF > "$PROJECT_LOCAL_ENV"
+# Local Services Environment Configuration (Zero Secrets On Disk)
+TS_MACHINE_ID=${CONFIRMED_MACHINE_ID}
 EOF
-    chmod 600 "$LOCAL_SERVICES_ENV"
-    echo "👉 Tip: Edit $LOCAL_SERVICES_ENV to set your TS_AUTHKEY or customize TS_MACHINE_ID"
+    chmod 600 "$PROJECT_LOCAL_ENV"
+    cp "$PROJECT_LOCAL_ENV" "$XDG_LOCAL_ENV"
+  elif [ -f "$PROJECT_LOCAL_ENV" ] && [ ! -f "$XDG_LOCAL_ENV" ]; then
+    mkdir -p "$HOME/.local/share/local-services"
+    cp "$PROJECT_LOCAL_ENV" "$XDG_LOCAL_ENV"
+    chmod 600 "$XDG_LOCAL_ENV"
+  elif [ ! -f "$PROJECT_LOCAL_ENV" ] && [ -f "$XDG_LOCAL_ENV" ]; then
+    mkdir -p "$SCRIPT_DIR/local-services"
+    cp "$XDG_LOCAL_ENV" "$PROJECT_LOCAL_ENV"
+    chmod 600 "$PROJECT_LOCAL_ENV"
   fi
 
-  # 7.8. Sync Tailscale auth key from encrypted SOPS repository if available
+  # 7.8. Authorize host SSH key in .sops.yaml for zero-trust secret decryption
+  if [ -x "$SCRIPT_DIR/scripts/register-host-key.sh" ]; then
+    echo "==> Verifying host SSH key authorization in .sops.yaml..."
+    "$SCRIPT_DIR/scripts/register-host-key.sh" || true
+  fi
+
+  # 7.9. Sync Tailscale auth key from encrypted SOPS repository if available
   if [ -f "$SCRIPT_DIR/secrets/tailscale.enc.yaml" ] && [ -x "$SCRIPT_DIR/scripts/sync-tailscale-key.sh" ]; then
     echo "==> Attempting to sync Tailscale credentials from SOPS secret repository..."
     "$SCRIPT_DIR/scripts/sync-tailscale-key.sh" || true

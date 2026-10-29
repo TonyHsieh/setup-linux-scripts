@@ -402,10 +402,11 @@ jl down-media   # Stop Plex server
 # 🌐 On-Demand Tailscale Private Mesh Ingress (Access Away from Home)
 jl up-remote     # Start all dedicated Tailscale ingress nodes on Port 443 (in-memory auth key)
 jl down-remote   # Stop all Tailscale ingress nodes
-jl test-remote   # Run automated regression test suite (verifies 39+ ingress & security rules)
+jl test-remote   # Run automated regression test suite (verifies 51+ ingress & security rules)
 jl remote-info   # Show active MagicDNS private HTTPS endpoints (pdf-<id>, chat-<id>, etc.)
 jl remote-status # Check connection status across all dedicated nodes
 jl remote-auth   # Display authorization link if any node needs first-time login
+jl register-key  # Register host SSH key in .sops.yaml & re-encrypt secrets for this machine
 jl sync-auth-key # Verify SOPS decryption & sanitize local disk (zero plaintext tokens)
 jl rotate-auth-key # Manually rotate 90-day Tailscale auth key via scoped OAuth API
 
