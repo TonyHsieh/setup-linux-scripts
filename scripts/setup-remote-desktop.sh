@@ -214,7 +214,17 @@ case "$PLATFORM" in
       kwriteconfig6 --file krdpserverrc --group General --key SystemUserEnabled true
     fi
 
-    # 5. Enable and start KRDP user systemd service
+    # 5. Fix system user PAM authentication (NoNewPrivileges=false for unix_chkpwd)
+    echo "==> Configuring systemd user override for PAM unix_chkpwd..."
+    OVERRIDE_DIR="${HOME}/.config/systemd/user/app-org.kde.krdpserver.service.d"
+    mkdir -p "${OVERRIDE_DIR}"
+    cat << 'EOF' > "${OVERRIDE_DIR}/override.conf"
+[Service]
+NoNewPrivileges=false
+EOF
+    systemctl --user daemon-reload 2>/dev/null || true
+
+    # 6. Enable and start KRDP user systemd service
     echo "==> Starting KDE KRDP service..."
     SERVICE_STARTED=false
     for unit in app-org.kde.krdpserver.service plasma-krdp.service krdpserver.service; do
