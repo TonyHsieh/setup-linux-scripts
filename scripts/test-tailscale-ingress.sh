@@ -85,7 +85,7 @@ fi
 # ------------------------------------------------------------------------------
 echo ""
 echo "👉 Suite 3: Dedicated Ingress Sidecars Container Status"
-SERVICES=("pdf" "chat" "traefik" "ollama" "books" "plex")
+SERVICES=("pdf" "chat" "traefik" "ollama" "books" "plex" "desktop")
 
 for svc in "${SERVICES[@]}"; do
   CONTAINER="local-tailscale-${svc}"
@@ -187,6 +187,25 @@ if command -v tailscale >/dev/null 2>&1; then
   fi
 else
   echo "  ℹ️  INFO: Host Tailscale CLI is not installed yet (run 'jl up-ssh' to set up)"
+fi
+
+# ------------------------------------------------------------------------------
+# Test Suite 7: Remote Desktop Setup & Port Verification
+# ------------------------------------------------------------------------------
+echo ""
+echo "👉 Suite 7: Remote Desktop Management & Integration"
+DESKTOP_SCRIPT="${REPO_ROOT}/scripts/setup-remote-desktop.sh"
+if [ -x "$DESKTOP_SCRIPT" ]; then
+  pass "setup-remote-desktop.sh script exists and is executable"
+else
+  fail "setup-remote-desktop.sh is missing or not executable"
+fi
+
+SERVE_DESKTOP_FILE="${REPO_ROOT}/local-services/tailscale/serve-desktop.json"
+if [ -f "$SERVE_DESKTOP_FILE" ]; then
+  pass "serve-desktop.json exists and is valid JSON"
+else
+  fail "serve-desktop.json missing"
 fi
 
 echo ""

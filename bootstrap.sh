@@ -86,15 +86,15 @@ install_host_dependencies() {
       echo "⚠️ Warning: Homebrew not found. Please install Homebrew to install Podman on macOS."
     fi
   elif command -v pacman >/dev/null 2>&1; then
-    echo "==> Synchronizing pacman databases and installing podman, podman-compose & tailscale..."
-    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose tailscale; then
+    echo "==> Synchronizing pacman databases and installing podman, podman-compose, tailscale & krdp..."
+    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose tailscale krdp; then
       echo "⚠️ Pacman download failed (stale mirrors or database). Refreshing mirrorlist and retrying..."
       if command -v cachyos-rate-mirrors >/dev/null 2>&1; then
         sudo cachyos-rate-mirrors || true
       elif command -v rate-mirrors >/dev/null 2>&1; then
         sudo rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist || true
       fi
-      sudo pacman -Syy --needed --noconfirm podman podman-compose tailscale
+      sudo pacman -Syy --needed --noconfirm podman podman-compose tailscale krdp
     fi
   elif command -v apt-get >/dev/null 2>&1; then
     echo "==> Installing podman, podman-compose, and tailscale..."

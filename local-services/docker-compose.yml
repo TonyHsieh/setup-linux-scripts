@@ -292,6 +292,28 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
+  # 🌐 Tailscale Ingress: Remote Desktop Entrypoint (Port 443 TLS + Port 80 301 Redirect)
+  tailscale-desktop:
+    image: docker.io/tailscale/tailscale:latest
+    container_name: local-tailscale-desktop
+    restart: unless-stopped
+    profiles: ["remote", "desktop", "all"]
+    hostname: "desktop-${TS_MACHINE_ID:-laptop}"
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:-}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=true
+      - TS_SERVE_CONFIG=/config/serve.json
+      - TS_ACCEPT_DNS=true
+      - TS_EXTRA_ARGS=${TS_EXTRA_ARGS:---reset}
+    volumes:
+      - tailscale-desktop-state:/var/lib/tailscale
+      - "${LOCAL_SERVICES_DIR:-$HOME/.local/share/local-services}/tailscale/serve-desktop.json:/config/serve.json:ro"
+    networks:
+      - local-mesh
+    labels:
+      - "io.containers.autoupdate=registry"
+
 volumes:
   postgres-data:
   ollama-models:
@@ -304,6 +326,7 @@ volumes:
   tailscale-ollama-state:
   tailscale-books-state:
   tailscale-plex-state:
+  tailscale-desktop-state:
 
 
 

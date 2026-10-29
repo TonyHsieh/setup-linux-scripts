@@ -54,5 +54,6 @@
   xdg.dataFile."local-services/tailscale/serve-ollama.json".source = ../local-services/tailscale/serve-ollama.json;
   xdg.dataFile."local-services/tailscale/serve-books.json".source = ../local-services/tailscale/serve-books.json;
   xdg.dataFile."local-services/tailscale/serve-plex.json".source = ../local-services/tailscale/serve-plex.json;
+  xdg.dataFile."local-services/tailscale/serve-desktop.json".source = ../local-services/tailscale/serve-desktop.json;
 }
 

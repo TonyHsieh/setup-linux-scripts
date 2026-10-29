@@ -414,6 +414,11 @@ jl up-ssh        # Enable and configure host Tailscale SSH daemon (in-memory aut
 jl status-ssh    # Check host Tailscale SSH status, MagicDNS address, and listener
 jl down-ssh      # Disable Tailscale SSH on the host
 
+# 🖥️ Remote Desktop Management (Native RDP & Web Gateway)
+jl up-desktop    # Enable host Remote Desktop server (krdp on Linux / Screen Sharing on macOS)
+jl status-desktop # Check Remote Desktop listening ports, addresses, and connection URLs
+jl down-desktop  # Disable Remote Desktop on the host
+
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
 
@@ -427,7 +432,7 @@ When deploying across different environments (such as your `envy`, `asus`, WSL2,
 | **Rootless DNS & Let's Encrypt** | Host uses `systemd-resolved` (`127.0.0.53`). Home Manager writes `~/.config/containers/containers.conf` with `dns_servers = ["1.1.1.1", "8.8.8.8"]` to prevent ACME TLS handshake timeouts. | WSL automatically bridges Windows DNS; explicit `containers.conf` fallback ensures consistent resolution across vEthernet switches. | DNS is proxied via `gvproxy` bridging to macOS system resolvers; `containers.conf` applies inside VM. |
 | **Tailscale Ingress (Port 443)** | Dedicated container sidecars per service; auto-detects `TS_MACHINE_ID` (`envy`, `asus`, etc.). | Supported via container sidecars; recommended to use WSL mirrored networking (`networkingMode=mirrored`). | Supported via container sidecars or host-level Tailscale macOS client. |
 | **Remote SSH Terminal** | Host-level [Tailscale SSH](docs/tailscale-ssh.md) (`jl up-ssh`); allows `ssh thsieh@<machine>` with Tailnet identity authentication and zero open host ports. | Tailscale SSH in WSL2 distro or Windows host Tailscale (`jl up-ssh`). | Tailscale SSH via macOS system daemon (`jl up-ssh`). |
-| **Remote Desktop Entrypoint** | Web client at `https://desktop-<id>.komodo-sole.ts.net` (Port 443 TLS) + native Wayland RDP (`krdp` on KDE Plasma 6). | Web client via sidecar or native Windows Remote Desktop / WSLg. | Web client via sidecar or built-in macOS Screen Sharing over Tailscale. |
+| **Remote Desktop Entrypoint** | [Remote Desktop Guide](docs/remote-desktop.md) (`jl up-desktop`): Native Wayland RDP (`krdp` on KDE Plasma 6 port 3389) + web client (`https://desktop-<id>.komodo-sole.ts.net`). | Windows Remote Desktop / WSLg (`jl up-desktop`). | Built-in macOS Screen Sharing over Tailscale (`jl up-desktop`). |
 | **Port 80 $\rightarrow$ 443 Redirection** | Native HTTP 301 Permanent Redirect on Port 80 via `tailscale serve` to upgrade mobile browsers seamlessly. | Identical HTTP 301 behavior across all configurations. | Identical HTTP 301 behavior across all configurations. |
 | **Auth Key Decryption** | In-memory ephemeral decryption via SOPS using native host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via WSL host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via macOS `~/.ssh/id_ed25519` or `age`. Zero secrets stored on disk. |
 | **Adding a Machine to SOPS** | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. |

@@ -180,16 +180,17 @@ else
 fi
 
 # 3. Determine target machine hostname
-TARGET_MACHINE="laptop"
+TARGET_MACHINE=""
 if [ -f "$ENV_FILE" ]; then
   TARGET_MACHINE="$(grep '^TS_MACHINE_ID=' "$ENV_FILE" | cut -d'=' -f2 | tr -d ' "')"
 fi
 if [ -z "$TARGET_MACHINE" ]; then
-  if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
+  HOST_STRING="$(cat /etc/hostname 2>/dev/null || hostname 2>/dev/null || echo "")"
+  if [[ "$HOST_STRING" =~ [Ee][Nn][Vv][Yy] ]]; then
     TARGET_MACHINE="envy"
-  elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
+  elif [[ "$HOST_STRING" =~ [Aa][Ss][Uu][Ss] ]]; then
     TARGET_MACHINE="asus"
-  elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
+  elif [[ "$HOST_STRING" =~ [Aa][Rr][Cc][Hh] ]]; then
     TARGET_MACHINE="arch"
   else
     TARGET_MACHINE="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"

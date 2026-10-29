@@ -62,7 +62,7 @@ Each service is mapped to a dedicated hostname on standard **HTTPS Port 443**:
 | **Ollama API** | `https://ollama-<machine>.komodo-sole.ts.net` | `https://ollama.localhost` | Local LLM inference engine REST API |
 | **Kavita** | `https://books-<machine>.komodo-sole.ts.net` | `https://kavita.localhost` | E-book, manga, and comic server |
 | **Plex Media Server** | `https://plex-<machine>.komodo-sole.ts.net` | `https://plex.localhost` | Personal media streaming & transcoding server |
-| **Remote Desktop (Web)** | `https://desktop-<machine>.komodo-sole.ts.net` | `localhost:3389 / krdp` | *(Planned)* Browser HTML5 remote desktop on Port 443 |
+| **Remote Desktop (Web)** | `https://desktop-<machine>.komodo-sole.ts.net` | `localhost:3389 / krdp` | [Remote Desktop Guide](remote-desktop.md) • Browser HTML5 on Port 443 + Native RDP on 3389 |
 | **Remote SSH Terminal** | `ssh thsieh@<machine>` | `localhost:22` | [Tailscale SSH Guide](tailscale-ssh.md) • Zero-trust terminal shell via host daemon |
 
 *(Replace `<machine>` with your machine identifier, e.g. `asus`, `thinkpad`, `envy`).*
