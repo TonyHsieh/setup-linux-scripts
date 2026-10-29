@@ -123,31 +123,84 @@ git push origin main
 
 ---
 
-## ➕ 5. Adding a New Machine to `.sops.yaml`
+## ➕ 5. Adding a New Machine & The Cryptographic "Vault" Rule
 
-When onboarding a new laptop (e.g. `AsusGA403u` or a new secondary machine):
+When onboarding a new laptop (e.g., `asus`), you might wonder:  
+> **"Why can't the new laptop authorize itself directly? Why does authorization require running `sops updatekeys` on an already-authorized laptop (like `envy`) or triggering the GitHub Actions workflow?"**
 
-1. **Obtain the machine's public SSH key**:
+### 🔐 The Cryptographic Reason: Envelope Encryption (DEK vs. KEK)
+
+SOPS uses **Envelope Encryption**:
+
+```mermaid
+flowchart TD
+    subgraph SecretVault["🔒 secrets/tailscale.enc.yaml (Encrypted Vault)"]
+        Payload["Plaintext Tailscale Auth Key\n(tskey-auth-...)"]
+        DEK["Internal Data Encryption Key (DEK)\n(Random 256-bit AES Key)"]
+        Payload <-->|Encrypted by| DEK
+    end
+
+    subgraph AuthorizedKeys["🔑 Key Encryption Keys (KEK - Listed in .sops.yaml)"]
+        EnvyKey["Envy SSH Public Key\n(AAAAC3Nza...envy)"]
+        AsusKey["Asus SSH Public Key\n(AAAAC3Nza...asus)"]
+        AgeKey["GitHub Actions Master Age Key\n(age1k5z7...)"]
+
+        DEK -->|Encrypted Copy 1| EnvyKey
+        DEK -.->|Needs Authorization| AsusKey
+        DEK -->|Encrypted Copy 3| AgeKey
+    end
+
+    subgraph Hosts["💻 Workstations"]
+        EnvyHost["envy laptop\n(Holds Envy Private Key ✅)"]
+        AsusHost["asus laptop\n(Holds Asus Private Key ❌ Not in vault yet)"]
+        GHActions["GitHub Actions Runner\n(Holds Tailscale OAuth Credentials ☁️)"]
+    end
+
+    EnvyHost -->|Can decrypt DEK & add Asus| SecretVault
+    AsusHost -.->|CANNOT open vault yet!| SecretVault
+    GHActions -->|Can mint fresh key & re-encrypt for ALL| SecretVault
+```
+
+1. **The Secret is Locked by an Internal Key (DEK)**:
+   The sensitive token is encrypted with a random 256-bit AES Data Encryption Key.
+2. **The Internal Key is Locked by Recipient Public Keys (KEKs)**:
+   SOPS stores an encrypted copy of this AES key for every authorized recipient listed in `.sops.yaml`.
+3. **The Chicken-and-Egg Paradox on a New Laptop**:
+   - Adding Asus's public key to `.sops.yaml` is simply adding a new name to the "Allowed Visitors" list outside the vault door.
+   - To actually encrypt the AES data key for Asus (`sops updatekeys`), SOPS must **first decrypt** the existing AES data key using an authorized **private key**.
+   - Asus **does not have Envy's private key** (private keys never leave their host machine). Nor does Asus have the master Age private key.
+   - If *any* newly cloned machine could run `sops updatekeys` and add its own key without possessing an existing authorized private key, **the entire security model would be destroyed**—anyone could clone your repo and decrypt all your private secrets!
+
+---
+
+### 🚀 Two Ways to Authorize a New Laptop
+
+#### Method A: Fully Automated via GitHub Actions (Zero Cross-Laptop Typing)
+Because `.github/workflows/rotate-tailscale-key.yml` triggers on any push to `.sops.yaml`:
+1. On the new laptop (`asus`), run:
    ```bash
-   cat ~/.ssh/id_ed25519.pub
-   # Example: ssh-ed25519 AAAAC3NzaC1l... user@machine
-   ```
-
-2. **Add the public key to [`.sops.yaml`](../.sops.yaml)**:
-   ```yaml
-   creation_rules:
-     - path_regex: secrets/.*\.enc\.ya?ml$
-       age: >-
-         age1k5z7amtmz0s6lr2388x5zcqfw3vypu3uk7v4rcuhlu4mlnk8a4uqjr6x07,
-         ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID/lNe5zgM/4RupoOVTw38BAtWvBOmt+RUvhDFnH2J5o,
-         ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@new-laptop
-   ```
-
-3. **Re-encrypt existing secrets for the new recipient**:
-   ```bash
-   sops updatekeys secrets/tailscale.enc.yaml
-   git commit -am "chore(secrets): add new-laptop SSH key to SOPS recipients"
+   jl register-key --commit
    git push origin main
+   ```
+2. GitHub Actions detects the `.sops.yaml` commit, runs the rotation workflow, mints/re-encrypts the secret using **all** public keys in `.sops.yaml` (including Asus), and commits the result back to `main`.
+3. On the new laptop, simply run:
+   ```bash
+   git pull origin main
+   ```
+   *Asus can now immediately decrypt `secrets/tailscale.enc.yaml` locally in memory!*
+
+#### Method B: Peer Authorization from an Existing Laptop (`envy`)
+If you are already sitting at your authorized laptop (`envy`):
+1. On `envy`:
+   ```bash
+   git pull origin main
+   sops updatekeys -y secrets/tailscale.enc.yaml
+   git commit -am "chore(sops): re-encrypt for asus"
+   git push origin main
+   ```
+2. On `asus`:
+   ```bash
+   git pull origin main
    ```
 
 Now the new laptop can immediately decrypt `secrets/tailscale.enc.yaml` during `./bootstrap.sh` using its own local private SSH key!
