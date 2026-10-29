@@ -35,14 +35,27 @@
       oc = "opencode";
       ha = "hermes";
 
-      # Local Services Mesh Task Runner (just)
-      jl = "just -f ~/.local/share/local-services/justfile";
-
       # Quick Tmux launcher
       t = "tmux";
     };
 
     initExtra = ''
+      ##### 0. Smart Local Services Task Runner (jl) #####
+      jl() {
+        if [ -f "./local-services/justfile" ]; then
+          command just -f "./local-services/justfile" "$@"
+        elif [ -f "$HOME/_Projects/setup-linux-scripts/local-services/justfile" ]; then
+          command just -f "$HOME/_Projects/setup-linux-scripts/local-services/justfile" "$@"
+        elif [ -f "$HOME/setup-linux-scripts/local-services/justfile" ]; then
+          command just -f "$HOME/setup-linux-scripts/local-services/justfile" "$@"
+        elif [ -f "$HOME/.local/share/local-services/justfile" ]; then
+          command just -f "$HOME/.local/share/local-services/justfile" "$@"
+        else
+          echo "⚠️ local-services/justfile not found in working tree or ~/.local/share/local-services." >&2
+          return 1
+        fi
+      }
+
       ##### 1. ble.sh (Bash Line Editor) Integration #####
       # Only initialize in the top-level interactive shell.
       # Skip in nested subshells (devenv or nix-shell)
