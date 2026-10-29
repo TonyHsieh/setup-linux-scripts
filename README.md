@@ -21,7 +21,7 @@ flowchart TD
     end
 
     subgraph Tier1["Tier 1: Global User Environment (Nix Flakes + Home Manager)"]
-        U1["Universal CLI Tools (git, jq, yq, ripgrep, btm, k9s, sops, psql)"]
+        U1["Universal CLI Tools (git, jq, yq, ripgrep, btop, k9s, sops, psql)"]
         U2["Shell & Navigation (Bash, ble.sh anti-lag, custom aliases, Starship)"]
         U3["Terminal Multiplexer (tmux + declarative TPM plugins)"]
         U4["Editor Engine (Neovim v0.10+ & LazyVim modular configs)"]

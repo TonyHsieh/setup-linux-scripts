@@ -39,7 +39,7 @@ flowchart TD
     end
 
     subgraph User["Tier 1: Global User Environment (Nix Flakes + Home Manager)"]
-        U1["Universal CLI Tools (git, jq, yq, ripgrep, btm, k9s, sops)"]
+        U1["Universal CLI Tools (git, jq, yq, ripgrep, btop, k9s, sops)"]
         U2["Shell Environment (Bash, ble.sh, aliases, starship prompt)"]
         U3["Terminal Multiplexer (tmux + declarative plugins)"]
         U4["Editor Setup (Neovim / LazyVim symlink)"]
@@ -65,7 +65,7 @@ flowchart TD
 | Component / Tool | Current Script Implementation | Target Tier | Target Nix / Tool Mechanism | Rationale |
 | :--- | :--- | :--- | :--- | :--- |
 | **Nix & Flakes Engine** | Determinate Nix curl script | Tier 0 (Host) | Determinate Nix Installer | Must be installed on the host with system daemon permissions. |
-| **CLI Utilities** (`git`, `jq`, `yq`, `ripgrep`, `bottom`, `sops`, `age`, `k9s`, `kubectl`, `helm`, `fluxcd`, `kind`, `just`, `mkcert`, `fzf`) | `apt` / `pacman` / `brew` / GitHub releases | Tier 1 (Home Manager) | `home.packages = with pkgs; [ ... ]` | Uniform versions across Ubuntu, Arch, and macOS; atomic updates. |
+| **CLI Utilities** (`git`, `jq`, `yq`, `ripgrep`, `btop`, `sops`, `age`, `k9s`, `kubectl`, `helm`, `fluxcd`, `kind`, `just`, `mkcert`, `fzf`) | `apt` / `pacman` / `brew` / GitHub releases | Tier 1 (Home Manager) | `home.packages = with pkgs; [ ... ]` | Uniform versions across Ubuntu, Arch, and macOS; atomic updates. |
 | **Bash Shell & ble.sh** | Managed `.bashrc` + cloned `ble.sh` | Tier 1 (Home Manager) | `programs.bash` + `blesh` package | Managed declaratively; preserves custom autocomplete/anti-hang options. |
 | **Starship Prompt** | `setup-starship.sh` + `starship.toml` | Tier 1 (Home Manager) | `programs.starship` + `xdg.configFile."starship.toml"` | Home Manager natively supports Starship config and shell integration. |
 | **TMUX & Plugins** | `.tmux.conf` + cloned TPM repository | Tier 1 (Home Manager) | `programs.tmux` + `tmuxPlugins.*` | Eliminates manual git cloning of TPM; plugins are locked via Nixpkgs. |
@@ -328,7 +328,7 @@ Replaces the manual package installation lists across `install-dev-env.sh`:
     ripgrep
     jq
     yq-go
-    bottom
+    btop
     fzf
     bat
     eza
