@@ -9,7 +9,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SECRET_FILE="${REPO_ROOT}/secrets/tailscale.enc.yaml"
-ENV_FILE="${HOME}/.local/share/local-services/.env"
+ENV_FILE="${REPO_ROOT}/local-services/.env"
+if [ ! -f "$ENV_FILE" ] && [ -f "${HOME}/.local/share/local-services/.env" ]; then
+  ENV_FILE="${HOME}/.local/share/local-services/.env"
+fi
 
 ACTION="up"
 for arg in "$@"; do

@@ -35,7 +35,10 @@ echo "======================================================================"
 # ------------------------------------------------------------------------------
 echo ""
 echo "👉 Suite 1: Disk Secret Sanitization & SOPS Decryption"
-ENV_FILE="${HOME}/.local/share/local-services/.env"
+ENV_FILE="${REPO_ROOT}/local-services/.env"
+if [ ! -f "$ENV_FILE" ] && [ -f "${HOME}/.local/share/local-services/.env" ]; then
+  ENV_FILE="${HOME}/.local/share/local-services/.env"
+fi
 if [ -f "$ENV_FILE" ]; then
   if grep -qE "^TS_AUTHKEY=" "$ENV_FILE"; then
     fail "Plaintext TS_AUTHKEY detected in $ENV_FILE (violates zero-disk security model)"
@@ -153,11 +156,19 @@ done
 # ------------------------------------------------------------------------------
 echo ""
 echo "👉 Suite 5: Local Backend Services Health"
-for backend in "traefik-ingress" "bentopdf" "local-postgres" "local-kavita" "local-plex"; do
+for backend in "traefik-ingress" "bentopdf" "local-postgres"; do
   if podman ps -q -f name="^${backend}$" 2>/dev/null | grep -q .; then
     pass "Backend $backend is running"
   else
     fail "Backend $backend is not running"
+  fi
+done
+
+for opt_backend in "local-kavita" "local-plex" "local-ollama" "local-open-webui"; do
+  if podman ps -q -f name="^${opt_backend}$" 2>/dev/null | grep -q .; then
+    pass "On-demand backend $opt_backend is active"
+  else
+    pass "On-demand backend $opt_backend is idle (profile inactive)"
   fi
 done
 

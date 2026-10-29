@@ -9,8 +9,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SECRET_FILE="${REPO_ROOT}/secrets/tailscale.enc.yaml"
-LOCAL_SERVICES_DIR="${HOME}/.local/share/local-services"
+LOCAL_SERVICES_DIR="${REPO_ROOT}/local-services"
 ENV_FILE="${LOCAL_SERVICES_DIR}/.env"
+XDG_ENV_FILE="${HOME}/.local/share/local-services/.env"
 
 # 1. Ensure sops is available
 if ! command -v sops >/dev/null 2>&1; then
@@ -59,31 +60,34 @@ if [ -z "${AUTH_KEY}" ]; then
   exit 0
 fi
 
-# 5. Sanitize ~/.local/share/local-services/.env (strip TS_AUTHKEY to ensure zero plaintext on disk)
+# 5. Sanitize local-services/.env (strip TS_AUTHKEY to ensure zero plaintext on disk)
 mkdir -p "${LOCAL_SERVICES_DIR}"
 if [ ! -f "${ENV_FILE}" ]; then
-  # Auto-detect machine ID if creating from scratch
-  if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
-    MACHINE_ID="envy"
-  elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
-    MACHINE_ID="asus"
-  elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
-    MACHINE_ID="arch"
+  if [ -f "${XDG_ENV_FILE}" ]; then
+    cp "${XDG_ENV_FILE}" "${ENV_FILE}"
   else
-    MACHINE_ID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
-    MACHINE_ID="${MACHINE_ID:-laptop}"
-  fi
-  cat << EOF > "${ENV_FILE}"
+    HOST_STRING="$(cat /etc/hostname 2>/dev/null || hostname 2>/dev/null || echo "")"
+    if [[ "$HOST_STRING" =~ [Ee][Nn][Vv][Yy] ]]; then
+      MACHINE_ID="envy"
+    elif [[ "$HOST_STRING" =~ [Aa][Ss][Uu][Ss] ]]; then
+      MACHINE_ID="asus"
+    elif [[ "$HOST_STRING" =~ [Aa][Rr][Cc][Hh] ]]; then
+      MACHINE_ID="arch"
+    else
+      MACHINE_ID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+      MACHINE_ID="${MACHINE_ID:-laptop}"
+    fi
+    cat << EOF > "${ENV_FILE}"
 # Local Services Environment Configuration (Zero Secrets)
 TS_MACHINE_ID=${MACHINE_ID}
 EOF
-else
-  # Strip TS_AUTHKEY if previously written to disk
-  if grep -q "^TS_AUTHKEY=" "${ENV_FILE}"; then
-    sed -i "/^TS_AUTHKEY=/d" "${ENV_FILE}"
   fi
 fi
 
+# Strip TS_AUTHKEY if previously written to disk
+if grep -q "^TS_AUTHKEY=" "${ENV_FILE}"; then
+  sed -i "/^TS_AUTHKEY=/d" "${ENV_FILE}"
+fi
 chmod 600 "${ENV_FILE}"
 echo "✓ Successfully verified SOPS decryption with host SSH key (${AUTH_KEY:0:15}...)"
 echo "✓ Sanitized ${ENV_FILE} (zero plaintext tokens stored on disk; auth key is injected in-memory during 'jl up-remote')"

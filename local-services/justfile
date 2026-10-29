@@ -137,23 +137,31 @@ up-remote:
     COMPOSE="{{COMPOSE_CMD}}"
     DIR="{{justfile_directory()}}"
 
-    # 1. Ensure TS_MACHINE_ID exists in ~/.local/share/local-services/.env (without secrets)
-    ENV_FILE="${HOME}/.local/share/local-services/.env"
+    # 1. Resolve or create local-services/.env (strictly git-ignored, single source of truth)
+    ENV_FILE="$DIR/.env"
     if [ ! -f "$ENV_FILE" ]; then
-        mkdir -p "${HOME}/.local/share/local-services"
-        if [[ "$(hostname 2>/dev/null)" =~ [Ee][Nn][Vv][Yy] ]]; then
-            MID="envy"
-        elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Ss][Uu][Ss] ]]; then
-            MID="asus"
-        elif [[ "$(hostname 2>/dev/null)" =~ [Aa][Rr][Cc][Hh] ]]; then
-            MID="arch"
+        if [ -f "${HOME}/.local/share/local-services/.env" ]; then
+            cp "${HOME}/.local/share/local-services/.env" "$ENV_FILE"
         else
-            MID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
-            MID="${MID:-laptop}"
+            HOST_STRING="$(cat /etc/hostname 2>/dev/null || hostname 2>/dev/null || echo "")"
+            if [[ "$HOST_STRING" =~ [Ee][Nn][Vv][Yy] ]]; then
+                MID="envy"
+            elif [[ "$HOST_STRING" =~ [Aa][Ss][Uu][Ss] ]]; then
+                MID="asus"
+            elif [[ "$HOST_STRING" =~ [Aa][Rr][Cc][Hh] ]]; then
+                MID="arch"
+            else
+                MID="$(hostname -s 2>/dev/null | cut -d'-' -f1 | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]')"
+                MID="${MID:-laptop}"
+            fi
+            echo "TS_MACHINE_ID=$MID" > "$ENV_FILE"
         fi
-        echo "TS_MACHINE_ID=$MID" > "$ENV_FILE"
         chmod 600 "$ENV_FILE"
     fi
+
+    # Export TS_MACHINE_ID so it is guaranteed to be in the environment for compose
+    TS_MACHINE_ID="$(grep '^TS_MACHINE_ID=' "$ENV_FILE" | cut -d'=' -f2 | tr -d ' "\r')"
+    export TS_MACHINE_ID="${TS_MACHINE_ID:-laptop}"
 
     # 2. Ephemerally decrypt TS_AUTHKEY into memory (never saved to disk)
     TS_AUTHKEY=""
@@ -174,8 +182,8 @@ up-remote:
         fi
     done
 
-    echo "==> Starting Tailscale remote ingress nodes via $COMPOSE (in-memory auth key)..."
-    TS_AUTHKEY="$TS_AUTHKEY" $COMPOSE -f "$DIR/docker-compose.yml" --profile remote up -d
+    echo "==> Starting Tailscale remote ingress nodes via $COMPOSE (in-memory auth key, host: $TS_MACHINE_ID)..."
+    TS_AUTHKEY="$TS_AUTHKEY" TS_MACHINE_ID="$TS_MACHINE_ID" $COMPOSE -f "$DIR/docker-compose.yml" --profile remote up -d
     unset TS_AUTHKEY
 
     echo ""

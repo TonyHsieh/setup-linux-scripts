@@ -166,7 +166,7 @@ services:
     container_name: local-tailscale-pdf
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "pdf-${TS_MACHINE_ID:-asus}"
+    hostname: "pdf-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -188,7 +188,7 @@ services:
     container_name: local-tailscale-chat
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "chat-${TS_MACHINE_ID:-asus}"
+    hostname: "chat-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -210,7 +210,7 @@ services:
     container_name: local-tailscale-traefik
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "traefik-${TS_MACHINE_ID:-asus}"
+    hostname: "traefik-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -232,7 +232,7 @@ services:
     container_name: local-tailscale-ollama
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "ollama-${TS_MACHINE_ID:-asus}"
+    hostname: "ollama-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -254,7 +254,7 @@ services:
     container_name: local-tailscale-books
     restart: unless-stopped
     profiles: ["remote", "all"]
-    hostname: "books-${TS_MACHINE_ID:-asus}"
+    hostname: "books-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -276,7 +276,7 @@ services:
     container_name: local-tailscale-plex
     restart: unless-stopped
     profiles: ["remote", "media", "all"]
-    hostname: "plex-${TS_MACHINE_ID:-asus}"
+    hostname: "plex-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
@@ -298,7 +298,7 @@ services:
     container_name: local-tailscale-desktop
     restart: unless-stopped
     profiles: ["remote", "desktop", "all"]
-    hostname: "desktop-${TS_MACHINE_ID:-laptop}"
+    hostname: "desktop-${TS_MACHINE_ID}"
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY:-}
       - TS_STATE_DIR=/var/lib/tailscale
