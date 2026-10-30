@@ -365,7 +365,7 @@ The repository provides a rootless Podman stack with Traefik v3 ingress and auto
 | **Traefik Dashboard** | [https://traefik.localhost/dashboard/](https://traefik.localhost/dashboard/) | Default | Real-time proxy metrics, router rules, and health (port 8088) |
 | **PostgreSQL Database** | `localhost:5432` | Default | Local dev DB (`devuser` / `devpassword` / `devdb`) |
 | **Ollama Local LLM** | [https://ollama.localhost](https://ollama.localhost) | `llm` | Offline LLM inference engine & OpenAI-compatible endpoint (port 11434) |
-| **Kavita Reader** | [https://kavita.localhost](https://kavita.localhost) | `books` / `apps` | E-book, digital comic, and manga reader UI (mounts `$HOME/Books`) |
+| **Ubooquity 3 Books** | [https://books.localhost](https://books.localhost) | `books` / `apps` | Folder-preserving e-book and comic reader UI (mounts `$HOME/Books`) |
 | **Plex Media Server** | [https://plex.localhost](https://plex.localhost) | `media` | Local media streaming server (mounts `$HOME/Media`, port 32400) |
 | **Puppeteer MCP** | Stdio (On-demand) | Agent Tool | Headless browser scraping tool for AI agents (zero idle RAM) |
 
@@ -394,8 +394,8 @@ jl llm-status   # Display active models and memory footprint
 
 
 # 📚 On-Demand Homelab Services
-jl up-books     # Start Kavita e-book/manga server (https://kavita.localhost)
-jl down-books   # Stop Kavita server
+jl up-books     # Start Ubooquity 3 e-book server (https://books.localhost)
+jl down-books   # Stop Ubooquity server
 jl up-media     # Start Plex media server (https://plex.localhost)
 jl down-media   # Stop Plex server
 

@@ -33,6 +33,7 @@ local-services/certs/*.pem
 *.env
 local-services/.env
 
-# Temporary screenshots
+# Temporary screenshots & analysis dumps
 Screenshot_*.png
+books_directory.txt
 

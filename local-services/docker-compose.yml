@@ -1,5 +1,3 @@
-version: '3.8'
-
 networks:
   local-mesh:
     driver: bridge
@@ -113,25 +111,37 @@ services:
       - "traefik.http.services.webui.loadbalancer.server.port=8080"
       - "io.containers.autoupdate=registry"
 
-  # 📚 Kavita E-Book, Comic, & Manga Reader UI (On-Demand)
-  kavita:
-    image: ghcr.io/kareadita/kavita:latest
-    container_name: local-kavita
+  # 📚 Ubooquity 3 E-Book & Comic Server (Folder-Preserving Reader)
+  ubooquity:
+    image: lscr.io/linuxserver/ubooquity:latest
+    container_name: local-ubooquity
     restart: unless-stopped
     profiles: ["apps", "books", "all"]
     environment:
+      - PUID=1000
+      - PGID=1000
       - TZ=America/Los_Angeles
     volumes:
-      - kavita-data:/kavita/data
+      - ubooquity-data:/config
       - "${BOOKS_DIR:-$HOME/Books}:/books:ro"
+      - "${BOOKS_DIR_2:-${BOOKS_DIR:-$HOME/Books}}:/books2:ro"
+      - "${BOOKS_DIR_3:-${BOOKS_DIR:-$HOME/Books}}:/books3:ro"
+      - "${COMICS_DIR:-${BOOKS_DIR:-$HOME/Books}}:/comics:ro"
+    ports:
+      - "127.0.0.1:2202:2202"
+      - "127.0.0.1:2203:2203"
     networks:
       - local-mesh
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.kavita.rule=Host(`kavita.localhost`)"
-      - "traefik.http.routers.kavita.entrypoints=web,websecure"
-      - "traefik.http.routers.kavita.tls=true"
-      - "traefik.http.services.kavita.loadbalancer.server.port=5000"
+      - "traefik.http.routers.ubooquity.rule=Host(`books.localhost`) || Host(`ubooquity.localhost`)"
+      - "traefik.http.routers.ubooquity.entrypoints=web,websecure"
+      - "traefik.http.routers.ubooquity.tls=true"
+      - "traefik.http.services.ubooquity.loadbalancer.server.port=2202"
+      - "traefik.http.routers.ubooquity-admin.rule=Host(`books-admin.localhost`)"
+      - "traefik.http.routers.ubooquity-admin.entrypoints=web,websecure"
+      - "traefik.http.routers.ubooquity-admin.tls=true"
+      - "traefik.http.services.ubooquity-admin.loadbalancer.server.port=2203"
       - "io.containers.autoupdate=registry"
 
   # 🎬 Plex Media Server (On-Demand)
@@ -318,7 +328,7 @@ volumes:
   postgres-data:
   ollama-models:
   open-webui-data:
-  kavita-data:
+  ubooquity-data:
   plex-config:
   tailscale-pdf-state:
   tailscale-chat-state:

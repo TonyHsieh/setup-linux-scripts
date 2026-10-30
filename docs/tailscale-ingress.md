@@ -30,7 +30,7 @@ flowchart LR
             WebUI["local-open-webui:8080"]
             Traefik["traefik-ingress:8080"]
             Ollama["local-ollama:11434"]
-            Kavita["local-kavita:5000"]
+            Ubooquity["local-ubooquity:2202"]
         end
     end
 
@@ -39,7 +39,7 @@ flowchart LR
     TSEncrypt --> TS_CHAT --> WebUI
     TSEncrypt --> TS_TRAEFIK --> Traefik
     TSEncrypt --> TS_OLLAMA --> Ollama
-    TSEncrypt --> TS_BOOKS --> Kavita
+    TSEncrypt --> TS_BOOKS --> Ubooquity
 ```
 
 ### Key Architectural Strengths:
@@ -60,7 +60,7 @@ Each service is mapped to a dedicated hostname on standard **HTTPS Port 443**:
 | **Open WebUI** | `https://chat-<machine>.komodo-sole.ts.net` | `https://chat.localhost` | Local ChatGPT-style AI chat interface |
 | **Traefik Dashboard** | `https://traefik-<machine>.komodo-sole.ts.net` | `http://localhost:8088` | Container proxy routing & health monitor |
 | **Ollama API** | `https://ollama-<machine>.komodo-sole.ts.net` | `https://ollama.localhost` | Local LLM inference engine REST API |
-| **Kavita** | `https://books-<machine>.komodo-sole.ts.net` | `https://kavita.localhost` | E-book, manga, and comic server |
+| **Ubooquity** | `https://books-<machine>.komodo-sole.ts.net` | `https://books.localhost` | Folder-preserving e-book and comic server |
 | **Plex Media Server** | `https://plex-<machine>.komodo-sole.ts.net` | `https://plex.localhost` | Personal media streaming & transcoding server |
 | **Remote Desktop (Web)** | `https://desktop-<machine>.komodo-sole.ts.net` | `localhost:3389 / krdp` | [Remote Desktop Guide](remote-desktop.md) • Browser HTML5 on Port 443 + Native RDP on 3389 |
 | **Remote SSH Terminal** | `ssh thsieh@<machine>` | `localhost:22` | [Tailscale SSH Guide](tailscale-ssh.md) • Zero-trust terminal shell via host daemon |

@@ -164,7 +164,7 @@ for backend in "traefik-ingress" "bentopdf" "local-postgres"; do
   fi
 done
 
-for opt_backend in "local-kavita" "local-plex" "local-ollama" "local-open-webui"; do
+for opt_backend in "local-ubooquity" "local-plex" "local-ollama" "local-open-webui"; do
   if podman ps -q -f name="^${opt_backend}$" 2>/dev/null | grep -q .; then
     pass "On-demand backend $opt_backend is active"
   else

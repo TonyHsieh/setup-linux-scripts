@@ -63,7 +63,7 @@ flowchart TD
 | **PostgreSQL Database** | `localhost:5432` | Default | `0.0.0.0:5432` | Local dev database (`devuser` / `devpassword` / `devdb`) |
 | **Ollama Local LLM** | `https://ollama.localhost` | `llm` | `0.0.0.0:11434` | Offline LLM inference engine & OpenAI API endpoint |
 | **Open WebUI** | `https://chat.localhost` | `llm` / `webui` | 80/443 (internal 8080) | ChatGPT-style browser chat UI for Ollama & cloud LLMs |
-| **Kavita Reader** | `https://kavita.localhost` | `books` / `apps` | 80/443 (internal 5000) | E-book, comic, and manga reader UI (mounts `$HOME/Books`) |
+| **Ubooquity 3 Books** | `https://books.localhost` | `books` / `apps` | 80/443 (internal 2202/2203) | Folder-preserving e-book and comic server (mounts `$HOME/Books`) |
 | **Plex Media Server** | `https://plex.localhost` | `media` | `0.0.0.0:32400` | Local media streaming server (mounts `$HOME/Media`) |
 | **Puppeteer MCP** | Stdio (On-demand) | Agent Tool | None (zero idle RAM) | Headless Chromium web scraping for AI agents |
 
@@ -95,8 +95,8 @@ The task runner [`local-services/justfile`](../local-services/justfile) is linke
 | `jl llm-run <model>` | Start interactive terminal chat with an Ollama model |
 | `jl llm-list` | List downloaded local models in Ollama |
 | `jl llm-status` | Display available models and size via local API |
-| `jl up-books` | Start Kavita e-book and manga reader (`https://kavita.localhost`) |
-| `jl down-books` | Stop Kavita container |
+| `jl up-books` | Start Ubooquity 3 e-book server (`https://books.localhost` & `http://localhost:2203/ubooquity/admin`) |
+| `jl down-books` | Stop Ubooquity container |
 | `jl up-media` | Start Plex media server (`https://plex.localhost`) |
 | `jl down-media` | Stop Plex container |
 | `jl up-remote` | Start Tailscale private mesh container (exposes services to your Tailnet) |
@@ -226,16 +226,18 @@ oc --model qwen2.5-coder:1.5b
 
 ---
 
-## 📚 7. Homelab On-Demand Services (Kavita & Plex)
+## 📚 7. Homelab On-Demand Services (Ubooquity & Plex)
 
 Homelab services are isolated under the `books` and `media` profiles so they do not consume resources during daily coding sessions:
 
-### Kavita E-Book & Manga Reader
-* **Web UI**: [https://kavita.localhost](https://kavita.localhost)
-* **Library Directory**: `${BOOKS_DIR:-$HOME/Books}`
+### Ubooquity 3 E-Book & Comic Server
+* **Reader UI**: [https://books.localhost](https://books.localhost) (or `http://localhost:2202`)
+* **Admin Panel**: `http://localhost:2203/ubooquity/admin` (or [https://books-admin.localhost](https://books-admin.localhost))
+* **Library Directory**: `${BOOKS_DIR:-$HOME/Books}` (mapped directly into container as `/books:ro`)
+* **Guide**: See [Book Server Architecture & Storage Guide](books-server.md) for full setup, admin configuration, and multi-platform path rules.
 ```bash
-jl up-books     # Start Kavita service
-jl down-books   # Stop Kavita service
+jl up-books     # Start Ubooquity service
+jl down-books   # Stop Ubooquity service
 ```
 
 ### Plex Media Server

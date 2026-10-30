@@ -18,7 +18,7 @@
     "${TS_CERT_DOMAIN}:443": {
       "Handlers": {
         "/": {
-          "Proxy": "http://local-kavita:5000"
+          "Proxy": "http://local-ubooquity:2202"
         }
       }
     }

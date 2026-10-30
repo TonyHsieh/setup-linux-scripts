@@ -97,21 +97,23 @@ down-webui:
     @echo "==> Stopping Open WebUI..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop open-webui
 
-# --- 📚 Kavita E-Book & Manga Server Tasks ---
-# Start Kavita E-Book & Manga Server (https://kavita.localhost)
+# --- 📚 Ubooquity 3 E-Book & Comic Server Tasks ---
+# Start Ubooquity 3 Server (https://books.localhost)
 up-books:
     @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         just -f {{justfile()}} certs; \
     fi
     @mkdir -p ${BOOKS_DIR:-$HOME/Books}
-    @echo "==> Starting Kavita E-Book server via {{COMPOSE_CMD}}..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile books up -d kavita
-    @echo "👉 Kavita is available at https://kavita.localhost (Library: ${BOOKS_DIR:-$HOME/Books})"
+    @echo "==> Starting Ubooquity 3 E-Book server via {{COMPOSE_CMD}}..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile books up -d ubooquity
+    @echo "👉 Ubooquity is available at https://books.localhost (or http://localhost:2202)"
+    @echo "👉 Admin Panel: http://localhost:2203/ubooquity/admin (or https://books-admin.localhost)"
+    @echo "   Library mapped from: ${BOOKS_DIR:-$HOME/Books}"
 
-# Stop Kavita E-Book Server
+# Stop Ubooquity E-Book Server
 down-books:
-    @echo "==> Stopping Kavita..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop kavita
+    @echo "==> Stopping Ubooquity..."
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ubooquity
 
 # --- 🎬 Plex Media Server Tasks ---
 # Start Plex Media Server (https://plex.localhost)
@@ -338,7 +340,7 @@ remote-info:
         [ -n "$CHAT_NAME" ] && echo "  • Open WebUI (AI Chat):   https://$CHAT_NAME"; \
         [ -n "$TRAEFIK_NAME" ] && echo "  • Traefik Dashboard:      https://$TRAEFIK_NAME"; \
         [ -n "$OLLAMA_NAME" ] && echo "  • Ollama LLM API:         https://$OLLAMA_NAME"; \
-        [ -n "$BOOKS_NAME" ] && echo "  • Kavita E-Books:         https://$BOOKS_NAME"; \
+        [ -n "$BOOKS_NAME" ] && echo "  • Ubooquity (Books):      https://$BOOKS_NAME"; \
         [ -n "$PLEX_NAME" ] && echo "  • Plex Media Server:      https://$PLEX_NAME"; \
         [ -n "$DESKTOP_NAME" ] && echo "  • Remote Desktop (Web):   https://$DESKTOP_NAME"; \
     else \
@@ -362,7 +364,7 @@ remote-auth:
 certs:
     @echo "==> Generating wildcard SSL certificates for *.localhost..."
     @mkdir -p {{justfile_directory()}}/certs
-    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "chat.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
+    mkcert -cert-file {{justfile_directory()}}/certs/local-cert.pem -key-file {{justfile_directory()}}/certs/local-key.pem "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "ollama.localhost" "chat.localhost" "books.localhost" "books-admin.localhost" "ubooquity.localhost" "kavita.localhost" "plex.localhost" "127.0.0.1" "::1"
     @if podman ps -q -f name=traefik-ingress 2>/dev/null | grep -q .; then \
         echo "==> Reloading Traefik to apply updated certificates..."; \
         podman restart traefik-ingress >/dev/null 2>&1 || true; \
