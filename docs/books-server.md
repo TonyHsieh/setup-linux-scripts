@@ -139,34 +139,45 @@ Once started, configure Ubooquity via its dedicated admin panel:
    * Navigate to: **`http://localhost:2203/ubooquity/admin`**  
      *(Or locally via Traefik: `https://books-admin.localhost`)*
 2. **Set Admin Password**:
-   * On first launch, Ubooquity prompts you to create a secure administrator password.
-3. **Add Your Books Directory**:
+   * On first launch, Ubooquity prompts you to create a secure administrator password. Note that Port 2202 (web reader) stays inactive until this password is set.
+3. **Clear "Reverse Proxy Prefix" (Standardized Practice)**:
+   * By default, the container sets `"reverseProxyPrefix": "ubooquity"`.
+   * Go to the **Advanced** tab in the top bar.
+   * Under **Reverse proxy prefix**, **delete `ubooquity` so the field is completely blank**.
+   * Click **Save and restart** at the bottom.
+   * **Why this is our standard**: Clearing the prefix aligns Ubooquity with all other `local-services` (BentoPDF, Open WebUI, Ollama), allowing it to serve cleanly from the root domain (`https://books.localhost` and `https://books-<id>.komodo-sole.ts.net/`) without awkward path prefixes!
+4. **Add Your Books Directory**:
    * In the top navigation bar, click on **Books**.
    * Click **Add Folder** (or **+**).
    * In the path browser, select **`/books`** (this is the container mount of your host `BOOKS_DIR`).
    * Enter a display name (e.g. `Library` or `Books`).
-4. **Trigger Initial Scan**:
+   * *(Optional: If you set `BOOKS_DIR_2` or `COMICS_DIR`, add `/books2` or `/comics` here as well).*
+5. **Trigger Initial Scan**:
    * Under the **General** tab, click **Scan Now**.
    * Ubooquity will index your files and build thumbnail covers while keeping your folder hierarchy intact.
 
 ---
 
-## 📱 5. Accessing Your Books Remotely
+## 📱 5. Accessing Your Books (Clean URLs)
 
-### Method A: Browser Reading (iPhone / iPad / Laptop)
-With Tailscale connected:
-```text
-https://books-<machine>.komodo-sole.ts.net
-```
-* **Envy**: `https://books-envy.komodo-sole.ts.net`
-* **Asus**: `https://books-asus.komodo-sole.ts.net`
+With the reverse proxy prefix cleared, URLs are short, clean, and consistent:
 
-### Method B: Native iOS E-Reader Apps via OPDS
-Ubooquity provides an OPDS catalog feed compatible with top iOS reading apps (*Panels*, *Chunky Comic Reader*, *KyBook 3*, *Marvin*):
-1. In the iOS app, tap **Add OPDS Catalog**.
-2. Enter the Catalog URL:
-   ```text
-   https://books-<machine>.komodo-sole.ts.net/opds
-   ```
-3. Enter your Ubooquity username and password (if authentication is enabled).
-4. You can now browse your exact topic folders and download or stream books directly inside your favorite reading app.
+### Local Access (Host Machine)
+* **Web Reader**: `https://books.localhost` (or `http://localhost:2202`)
+* **Admin Panel**: `https://books-admin.localhost` (or `http://localhost:2203/admin`)
+
+> [!TIP]
+> **Traefik SSL Routing**:
+> If accessing via `https://books.localhost` for the first time, ensure you run `jl certs` so `books.localhost` and `books-admin.localhost` are included in the local wildcard certificate.
+
+### Remote Access over Tailscale (iPhone / iPad / Secondary Laptop)
+* **Web Reader**:
+  ```text
+  https://books-<machine>.komodo-sole.ts.net/
+  ```
+  *(e.g., `https://books-envy.komodo-sole.ts.net/` or `https://books-asus1.komodo-sole.ts.net/`)*
+* **Native iOS E-Reader OPDS Catalog (KyBook 3 / PocketBook / Panels)**:
+  ```text
+  https://books-<machine>.komodo-sole.ts.net/opds-books
+  ```
+  *(For Comics: `https://books-<machine>.komodo-sole.ts.net/opds-comics`)*
