@@ -23,15 +23,22 @@
       uv pip install pip --quiet 2>/dev/null || true
     fi
 
-    # Auto-sync dependencies if requirements.txt exists
+    # Auto-sync dependencies if requirements.txt exists, or display helpful best-practice guidance
     if [ -f requirements.txt ]; then
       echo "📦 Syncing dependencies from requirements.txt via uv..."
       uv pip install -r requirements.txt
+    elif [ -f pyproject.toml ]; then
+      echo "📦 Syncing project dependencies from pyproject.toml via uv..."
+      uv sync
+    else
+      echo "⚠️  Warning: No 'requirements.txt' found."
+      echo "   💡 Best practice is to declare your Python dependencies in 'requirements.txt'."
+      echo "   Whenever you create one, direnv will automatically detect and install them via uv!"
     fi
 
     echo "🐍 Python $(python3 --version 2>/dev/null) | uv ready!"
     echo "💡 Virtualenv active at: $VIRTUAL_ENV"
     echo "   • Fast pip: 'uv pip install <package>' (or standard 'pip install')"
-    echo "   • Sync requirements: Auto-managed on edit via direnv"
+    echo "   • Sync requirements: Auto-managed on save via direnv"
   '';
 }
