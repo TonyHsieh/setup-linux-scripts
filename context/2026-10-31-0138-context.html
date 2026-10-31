@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Linux Scripts - Master Context & Resumption Report (2026-10-31 01:38)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #818cf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --accent-rose: #f43f5e;
+      --accent-purple: #c084fc;
+      --badge-success-bg: rgba(52, 211, 153, 0.15);
+      --badge-success-border: #34d399;
+      --badge-info-bg: rgba(56, 189, 248, 0.15);
+      --badge-info-border: #38bdf8;
+      --badge-purple-bg: rgba(192, 132, 252, 0.15);
+      --badge-purple-border: #c084fc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 24px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .timestamp {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: var(--badge-success-bg);
+      border: 1px solid var(--badge-success-border);
+      color: var(--accent-emerald);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 24px;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--accent-indigo);
+    }
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-primary);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 12px;
+    }
+
+    .card-title.blue { color: var(--accent-blue); }
+    .card-title.emerald { color: var(--accent-emerald); }
+    .card-title.amber { color: var(--accent-amber); }
+    .card-title.purple { color: var(--accent-purple); }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+
+    ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin-bottom: 16px;
+    }
+
+    li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 10px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    li::before {
+      content: "▹";
+      position: absolute;
+      left: 4px;
+      color: var(--accent-indigo);
+    }
+
+    li.success::before { content: "✓"; color: var(--accent-emerald); font-weight: bold; }
+    li.warning::before { content: "⚠"; color: var(--accent-amber); }
+    li.failure::before { content: "✗"; color: var(--accent-rose); font-weight: bold; }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: rgba(0, 0, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent-blue);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    pre {
+      background: #090d16;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      margin-bottom: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+
+    .table-container {
+      overflow-x: auto;
+      margin-bottom: 16px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.7);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-weight: 600;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .endpoint-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .alert {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      border-left: 4px solid;
+    }
+
+    .alert.info {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: var(--accent-blue);
+      color: #bae6fd;
+    }
+
+    .alert.success {
+      background: rgba(52, 211, 153, 0.08);
+      border-color: var(--accent-emerald);
+      color: #a7f3d0;
+    }
+
+    .alert.warning {
+      background: rgba(251, 191, 36, 0.08);
+      border-color: var(--accent-amber);
+      color: #fde68a;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .priority-badge.high {
+      background: rgba(244, 63, 94, 0.2);
+      border: 1px solid #f43f5e;
+      color: #f43f5e;
+    }
+
+    .priority-badge.medium {
+      background: rgba(251, 191, 36, 0.2);
+      border: 1px solid #fbbf24;
+      color: #fbbf24;
+    }
+
+    .priority-badge.low {
+      background: rgba(129, 140, 248, 0.2);
+      border: 1px solid #818cf8;
+      color: #818cf8;
+    }
+
+    .step-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: var(--accent-indigo);
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-top">
+        <div>
+          <h1>🚀 Master Context & Resumption Report</h1>
+          <div class="timestamp">
+            <span>📅 Session Checkpoint: <strong>2026-10-31 01:38 (PDT)</strong></span>
+            <span>•</span>
+            <span>📍 Active Repositories: <strong>setup-linux-scripts & nn-zero-to-hero</strong></span>
+            <span>•</span>
+            <span>🌿 Git: <code>main</code> (Commit <code>c07ea11</code>)</span>
+          </div>
+        </div>
+        <div class="status-badge">
+          <span>● Devenv Ecosystem Solidified • Auto-Sync Live • Venv Verified</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="alert success">
+      <strong>🎯 Major Milestones Completed:</strong> Diagnosed and permanently resolved the devenv directory assertion failure across all 5 project templates. Built a fully writable Python virtual environment with 149 ML packages (PyTorch, Transformers, SentencePiece, CUDA, JupyterLab) verified in <code>nn-zero-to-hero</code>. Implemented zero-configuration dual-condition dependency watching via <code>direnv</code> and <code>uv</code>, cleaned workspace clutter by migrating all 14 historical context files into <code>context/</code>, and expanded the architectural roadmap with Phase 5 language template auto-sync!
+    </div>
+
+    <!-- Grid 1: System Overview Metrics -->
+    <div class="grid-3">
+      <div class="card">
+        <h2 class="card-title blue">💻 Workspace & Git State</h2>
+        <ul>
+          <li><strong>Host:</strong> <code>sandbox</code> (Ubuntu 24.04 LTS / WSL2)</li>
+          <li><strong>User:</strong> <code>tonyh</code></li>
+          <li><strong>Core Repo:</strong> <code>~/ _Projects/setup-linux-scripts</code></li>
+          <li><strong>Course Repo:</strong> <code>nn-zero-to-hero</code> (Karpathy Series)</li>
+          <li><strong>Git Head:</strong> <code>c07ea11</code> (All pushed to <code>origin/main</code>)</li>
+          <li><strong>Working Tree:</strong> Clean (0 uncommitted files)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title emerald">🐍 Python & Devenv Stack</h2>
+        <ul>
+          <li><strong>Interpreter:</strong> Python 3.14.8 + <code>uv 0.13.5</code></li>
+          <li><strong>Virtualenv:</strong> <code>.devenv/state/venv/</code> (Writable)</li>
+          <li><strong>Verified ML Packages:</strong> 149 packages installed</li>
+          <li><strong>Core Engines:</strong> PyTorch 2.15 (cu132), Transformers 5.22, SentencePiece 0.22</li>
+          <li><strong>Notebook Tools:</strong> JupyterLab 4.6, Matplotlib 3.11, NumPy 2.5</li>
+          <li><strong>Cached Load Time:</strong> &lt; 10ms on folder entry</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title purple">📂 Workspace Organization</h2>
+        <ul>
+          <li><strong>Context Directory:</strong> Dedicated <code>context/</code> created</li>
+          <li><strong>HTML Checkpoints:</strong> 8 reports consolidated</li>
+          <li><strong>Markdown Notes:</strong> 6 historical notes moved</li>
+          <li><strong>Incident Plans:</strong> Troubleshooting plan archived</li>
+          <li><strong>Root Clutter:</strong> Reduced by 15 files</li>
+          <li><strong>Skill Upgraded:</strong> <code>save-current-context</code> targets <code>context/</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Grid 2: Key Problem Resolutions -->
+    <div class="grid-2">
+      <!-- Card: Devenv Pure Evaluation Assertion Failure -->
+      <div class="card">
+        <h2 class="card-title blue">
+          <span>🛠️ Incident Resolution: Devenv Directory Assertion Failure</span>
+        </h2>
+        <p><strong>Symptom:</strong> Running <code>direnv allow</code> after scaffolding a flake caused evaluation crash:</p>
+        <pre><code>error: Failed assertions:
+- devenv was not able to determine the current directory.
+  See https://devenv.sh/guides/using-with-flakes/ how to use it with flakes.</code></pre>
+        <ul>
+          <li class="success"><strong>Root Cause Diagnosed:</strong> Nix Flakes evaluate in pure mode by default. In pure mode, <code>builtins.getEnv "PWD"</code> returns an empty string <code>""</code>. Cachix <code>devenv</code>'s internal <code>top-level.nix</code> module asserts that <code>config.devenv.root != ""</code>, triggering an immediate evaluation abort.</li>
+          <li class="success"><strong>Universal Template Fix:</strong> Updated all 5 templates (<code>python</code>, <code>node</code>, <code>rust</code>, <code>kubernetes</code>, <code>devenv-starter</code>):
+            <br>1. In <code>.envrc</code>: Switched to <code>use flake . --impure</code> to pass the host working directory to Nix.
+            <br>2. In <code>flake.nix</code>: Added an explicit fallback for <code>devenv.root</code> so pure checks (e.g. <code>nix flake show</code>) also evaluate without crashing.</li>
+        </ul>
+      </div>
+
+      <!-- Card: Dual-Condition Auto-Sync & Writable Venv -->
+      <div class="card">
+        <h2 class="card-title emerald">
+          <span>⚡ Feature: Dual-Condition Dependency Auto-Sync</span>
+        </h2>
+        <p><strong>Goal:</strong> Seamless developer experience for Python projects with or without <code>requirements.txt</code>, with zero manual <code>watch_file</code> edits.</p>
+        <ul>
+          <li class="success"><strong>Graceful Missing-File Handling:</strong> If <code>requirements.txt</code> is missing, <code>direnv</code> and <code>devenv</code> load with zero errors and print a friendly best-practice tip encouraging dependency declaration.</li>
+          <li class="success"><strong>Pre-Wired <code>watch_file</code>:</strong> Because <code>direnv</code> allows watching non-existent files without errors, <code>watch_file requirements.txt</code> is always active. The second the file is created or saved, <code>direnv</code> automatically reloads.</li>
+          <li class="success"><strong>Writable Venv &amp; Notebook Compatibility:</strong> Enabled <code>languages.python.venv.enable = true;</code> in <code>.devenv/state/venv</code>, pre-seeded <code>pip</code> for notebook <code>!pip install</code> compatibility, and bound <code>stdenv.cc.cc.lib</code> (<code>libstdc++.so.6</code>) + <code>zlib</code> so C++ extensions like SentencePiece link without linker errors.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Active Service Endpoints Table -->
+    <div class="card" style="margin-bottom: 32px;">
+      <h2 class="card-title purple">
+        <span>🌐 Active Endpoints &amp; Verified Tooling</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Target / Service</th>
+              <th>Path / Port / Address</th>
+              <th>Status &amp; Verification</th>
+              <th>Purpose &amp; Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Python Virtualenv</strong></td>
+              <td><code>nn-zero-to-hero/.devenv/state/venv</code></td>
+              <td><span class="endpoint-pill">Verified Active (149 pkgs)</span></td>
+              <td>Isolated, writable ML virtual environment with PyTorch &amp; Transformers</td>
+            </tr>
+            <tr>
+              <td><strong>uv Package Manager</strong></td>
+              <td><code>uv 0.13.5</code></td>
+              <td><span class="endpoint-pill">Fast Sync Ready</span></td>
+              <td>Blazingly fast wheel installer (&lt; 500ms sync times)</td>
+            </tr>
+            <tr>
+              <td><strong>JupyterLab / Notebook</strong></td>
+              <td><code>jupyter lab</code> in <code>nn-zero-to-hero</code></td>
+              <td><span class="endpoint-pill">Installed in Venv</span></td>
+              <td>Interactive lecture execution for Karpathy's course</td>
+            </tr>
+            <tr>
+              <td><strong>Ubooquity 3 (Books)</strong></td>
+              <td><code>https://books-&lt;id&gt;.komodo-sole.ts.net/</code></td>
+              <td><span class="endpoint-pill">Tailnet Verified</span></td>
+              <td>Folder-preserving technical book server (Port 2202)</td>
+            </tr>
+            <tr>
+              <td><strong>KyBook 3 OPDS Feed</strong></td>
+              <td><code>/opds-books</code> (KyBook on iPhone)</td>
+              <td><span class="endpoint-pill">Verified Live</span></td>
+              <td>Direct OPDS catalog for mobile readers</td>
+            </tr>
+            <tr>
+              <td><strong>Remote Desktop (Asus)</strong></td>
+              <td><code>asus:3389</code> (Windows App on iPhone)</td>
+              <td><span class="endpoint-pill">Tailnet RDP Live</span></td>
+              <td>Native hardware-accelerated Windows 11 desktop access</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Prioritized Resumption Plan -->
+    <div class="card" style="margin-bottom: 32px;">
+      <h2 class="card-title amber">
+        <span>📋 Prioritized Resumption Plan for Tomorrow</span>
+      </h2>
+      
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center;">
+            <span class="step-number">1</span>
+            Launch Karpathy's Neural Networks Zero-to-Hero Lectures
+          </h3>
+          <span class="priority-badge high">Immediate Next Step</span>
+        </div>
+        <p>With all dependencies (PyTorch 2.15, Transformers 5.22, SentencePiece, CUDA bindings, Jupyter) verified and cached, begin working through the course notebooks:</p>
+        <pre><code>cd /home/tonyh/_Projects/ai-path-workspace/course-repos/nn-zero-to-hero
+jupyter lab</code></pre>
+        <p>Open <code>lectures/</code> notebooks (Micrograd, Makemore, NanoGPT). All imports will execute instantly with zero setup.</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center;">
+            <span class="step-number">2</span>
+            Execute Phase 5 Roadmap: Language Template Auto-Sync
+          </h3>
+          <span class="priority-badge medium">Medium Priority</span>
+        </div>
+        <p>Review and apply the graceful auto-sync pattern across the remaining language templates in <code>setup-linux-scripts</code>:</p>
+        <ul>
+          <li><strong>Node / TypeScript</strong> (<code>templates/node</code>): Pre-wire <code>watch_file package.json</code> and auto-run <code>pnpm install</code> when present; warn if missing.</li>
+          <li><strong>Rust</strong> (<code>templates/rust</code>): Pre-wire <code>watch_file Cargo.toml</code> and auto-run <code>cargo check</code>; warn with <code>cargo init</code> hint if missing.</li>
+          <li><strong>Kubernetes / CKAD</strong> (<code>templates/kubernetes</code>): Pre-wire <code>watch_file kustomization.yaml</code> and chart files.</li>
+        </ul>
+      </div>
+
+      <div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center;">
+            <span class="step-number">3</span>
+            Local LLM Service Mesh Integration (Phase 2 Roadmap)
+          </h3>
+          <span class="priority-badge low">Future Milestone</span>
+        </div>
+        <p>Evaluate provisioning a containerized local inference engine (Ollama / <code>llama-server</code>) via <code>justfile</code> task runner to enable zero-cost local code completion for OpenCode and Hermes.</p>
+      </div>
+    </div>
+
+    <!-- Git Commit & File Audit -->
+    <div class="card">
+      <h2 class="card-title blue">
+        <span>📜 Git Commit &amp; File Audit (c07ea11)</span>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Commit SHA</th>
+              <th>Commit Summary</th>
+              <th>Files Changed &amp; Impact</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>c07ea11</code></td>
+              <td>docs: add Phase 5 language template dependency auto-sync to roadmap</td>
+              <td><code>next-feature-plan.md</code>: Added Phase 5 architecture specification</td>
+            </tr>
+            <tr>
+              <td><code>386c5e3</code></td>
+              <td>refactor: move older context markdown files and troubleshooting plan to context/</td>
+              <td>7 files moved to <code>context/</code> (markdown notes and incident plan)</td>
+            </tr>
+            <tr>
+              <td><code>048b969</code></td>
+              <td>refactor: move context reports to context/ directory and update save-current-context skill</td>
+              <td>7 HTML reports moved to <code>context/</code>, <code>SKILL.md</code> updated</td>
+            </tr>
+            <tr>
+              <td><code>2518f3f</code></td>
+              <td>feat(python-template): graceful handling of missing requirements.txt with warning and automatic watch/sync</td>
+              <td><code>templates/python/devenv.nix</code>, <code>.envrc</code>: Added warning banner and pyproject.toml watch</td>
+            </tr>
+            <tr>
+              <td><code>3597621</code></td>
+              <td>feat(python-template): auto-watch and auto-sync requirements.txt via direnv and uv</td>
+              <td><code>templates/python/devenv.nix</code>, <code>.envrc</code>: Added auto-sync hook</td>
+            </tr>
+            <tr>
+              <td><code>8c12c21</code></td>
+              <td>feat(python-template): auto-seed pip into venv for notebook compatibility</td>
+              <td><code>templates/python/devenv.nix</code>: Added automatic pip seeding into virtualenv</td>
+            </tr>
+            <tr>
+              <td><code>c88e77b</code></td>
+              <td>feat(python-template): enable venv and include native libs for torch/sentencepiece</td>
+              <td><code>templates/python/devenv.nix</code>: Added <code>stdenv.cc.cc.lib</code> and <code>zlib</code></td>
+            </tr>
+            <tr>
+              <td><code>4359708</code></td>
+              <td>fix(templates): resolve devenv directory assertion failure with impure flag and root fallback</td>
+              <td>All 5 templates updated with <code>--impure</code> and <code>devenv.root</code> fallback</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer style="margin-top: 32px; text-align: center; color: var(--text-muted); font-size: 0.85rem; border-top: 1px solid var(--border-color); padding-top: 16px;">
+      Generated by Antigravity OS AI Agent • Single Source of Truth for Session Resumption
+    </footer>
+  </div>
+</body>
+</html>
