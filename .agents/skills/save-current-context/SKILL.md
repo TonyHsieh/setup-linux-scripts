@@ -1,13 +1,13 @@
 ---
 name: save-current-context
 description: >-
-  Captures all session progress, architectural changes, environment state, and prioritized next steps into a standalone <YYYY-MM-DD-HHMM>-context.html report for seamless tomorrow/future session resumption.
+  Captures all session progress, architectural changes, environment state, and prioritized next steps into a standalone <YYYY-MM-DD-HHMM>-context.html report in the context/ directory for seamless tomorrow/future session resumption.
   Use when the user asks to "save context", "save current context", "checkpoint progress", "save session for tomorrow", or "prepare for resumption".
 ---
 
 # Save Current Context Skill
 
-This skill captures the complete technical context, architecture decisions, solved problems, active service endpoints, and actionable next steps of the current work session into an attractive, standalone HTML document formatted as `<YYYY-MM-DD-HHMM>-context.html` in the workspace root.
+This skill captures the complete technical context, architecture decisions, solved problems, active service endpoints, and actionable next steps of the current work session into an attractive, standalone HTML document formatted as `<YYYY-MM-DD-HHMM>-context.html` in the `context/` directory of the workspace (`context/<YYYY-MM-DD-HHMM>-context.html`).
 
 This document serves as the single source of truth for the user and future AI agent sessions to resume work without losing context or momentum.
 
@@ -17,7 +17,7 @@ This document serves as the single source of truth for the user and future AI ag
 
 ### Step 1: Collect System & Project State
 Run non-destructive diagnostic commands to collect the exact environment state:
-1. **Timestamp:** `date +"%Y-%m-%d-%H%M"` and human-readable timestamp (e.g., `2026-10-21 00:35 (US/Pacific)`).
+1. **Timestamp:** `date +"%Y-%m-%d-%H%M"` and human-readable timestamp (e.g., `2026-10-31 01:25 (US/Pacific)`).
 2. **Git Metadata:**
    - Current branch and working directory clean/dirty state (`git status -s`).
    - Latest commit SHA (`git rev-parse --short HEAD`) and recent commit summary (`git log -n 5 --oneline`).
@@ -44,8 +44,8 @@ Review existing project roadmaps (`plan.md`, `ROADMAP.md`, `TODO.md`), or formul
 2. **Medium Priority (Quality of Life / Testing):** Integration tests, multi-device verification, or workflow optimizations.
 3. **Lower Priority / Future Milestones:** Cross-machine synchronization, documentation, or downstream features.
 
-### Step 4: Generate `<YYYY-MM-DD-HHMM>-context.html`
-Write the file directly into the root of the active workspace. The HTML file must be **self-contained** (inline CSS, embedded Google Fonts via CDN, no external local asset dependencies) so it renders identically in any browser.
+### Step 4: Generate `context/<YYYY-MM-DD-HHMM>-context.html`
+Ensure the `context/` directory exists (`mkdir -p context`). Write the file directly into `context/<YYYY-MM-DD-HHMM>-context.html`. The HTML file must be **self-contained** (inline CSS, embedded Google Fonts via CDN, no external local asset dependencies) so it renders identically in any browser.
 
 #### Required HTML Layout & Structure:
 * **Typography:** `Inter` for body text, `JetBrains Mono` for monospace code.
@@ -59,6 +59,6 @@ Write the file directly into the root of the active workspace. The HTML file mus
 * **Footer:** Generation timestamp and tool signature.
 
 ### Step 5: Verification & User Confirmation
-1. Verify the file exists in the workspace and is non-empty.
-2. Provide the user with a clickable link to `[<date>-<time>-context.html](file:///<path>)`.
+1. Verify the file exists in the `context/` directory and is non-empty.
+2. Provide the user with a clickable link to `[context/<date>-<time>-context.html](file:///<path-to-workspace>/context/<date>-<time>-context.html)`.
 3. Provide a concise 3-bullet summary of where things stand and the #1 recommended action item for tomorrow.
