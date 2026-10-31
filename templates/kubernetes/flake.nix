@@ -17,6 +17,12 @@
           inherit inputs;
           pkgs = nixpkgs.legacyPackages.${system};
           modules = [
+            {
+              devenv.root = let
+                pwd = builtins.getEnv "PWD";
+              in
+                if pwd != "" then pwd else builtins.toString ./.;
+            }
             ./devenv.nix
           ];
         };
