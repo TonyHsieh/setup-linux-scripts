@@ -212,4 +212,19 @@ volumes:
     * Local machines do not require background daemons or continuous polling.
     * When `jl up-remote` detects an expired token or authentication error, it automatically executes a targeted `git pull` on `secrets/tailscale.enc.yaml`, decrypts the new key with the local host's SSH key, updates `~/.local/share/local-services/.env`, and brings up the nodes seamlessly.
 
+---
+
+### Phase 5: Declarative Dependency Manifests & Auto-Sync across Language Templates
+* **Objective**: Replicate the Python template's dual-condition auto-sync pattern across all existing and future language templates (`node`, `rust`, `kubernetes`, etc.).
+* **Design Principles**:
+  1. **Graceful Zero-Error Missing File Handling**: Never crash or error out when manifest files are missing upon initial template scaffolding.
+  2. **Developer Guidance & Best-Practice Warnings**: Display a friendly terminal banner in `enterShell` encouraging developers to declare dependencies in the standard language manifest (e.g., `package.json`, `Cargo.toml`, `go.mod`).
+  3. **Automatic Change Detection (`watch_file`)**: Pre-populate `.envrc` with `watch_file` for standard language manifests so `direnv` automatically picks up file creation or edits without requiring manual `.envrc` modifications.
+  4. **Fast Native Package Syncing**: Automatically run the fast native package manager (`pnpm install`, `cargo check`, etc.) upon file detection.
+* **Target Templates to Review & Enhance**:
+  * **Node / TypeScript** (`templates/node`): Watch `package.json`, `pnpm-lock.yaml`. If present, auto-sync via `pnpm install`; if missing, display warning encouraging `package.json` initialization.
+  * **Rust** (`templates/rust`): Watch `Cargo.toml`, `Cargo.lock`. If present, verify with `cargo check`; if missing, encourage `cargo init`.
+  * **Kubernetes / CKAD** (`templates/kubernetes`): Watch `kustomization.yaml`, `Chart.yaml`, `values.yaml`.
+  * **Future Stacks** (`go`, `java`, `c`): Pre-wire `go.mod`, `pom.xml`/`build.gradle.kts`, `CMakeLists.txt`.
+
 
