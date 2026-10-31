@@ -221,10 +221,11 @@ volumes:
   2. **Developer Guidance & Best-Practice Warnings**: Display a friendly terminal banner in `enterShell` encouraging developers to declare dependencies in the standard language manifest (e.g., `package.json`, `Cargo.toml`, `go.mod`).
   3. **Automatic Change Detection (`watch_file`)**: Pre-populate `.envrc` with `watch_file` for standard language manifests so `direnv` automatically picks up file creation or edits without requiring manual `.envrc` modifications.
   4. **Fast Native Package Syncing**: Automatically run the fast native package manager (`pnpm install`, `cargo check`, etc.) upon file detection.
-* **Target Templates to Review & Enhance**:
-  * **Node / TypeScript** (`templates/node`): Watch `package.json`, `pnpm-lock.yaml`. If present, auto-sync via `pnpm install`; if missing, display warning encouraging `package.json` initialization.
-  * **Rust** (`templates/rust`): Watch `Cargo.toml`, `Cargo.lock`. If present, verify with `cargo check`; if missing, encourage `cargo init`.
-  * **Kubernetes / CKAD** (`templates/kubernetes`): Watch `kustomization.yaml`, `Chart.yaml`, `values.yaml`.
-  * **Future Stacks** (`go`, `java`, `c`): Pre-wire `go.mod`, `pom.xml`/`build.gradle.kts`, `CMakeLists.txt`.
+* **Target Templates Reviewed & Enhanced**:
+  * [x] **Python** (`templates/python`): Watch `requirements.txt`, `pyproject.toml`. Auto-syncs via `uv pip install` / `uv sync`; friendly guidance if missing.
+  * [x] **Node / TypeScript** (`templates/node`): Watch `package.json`, `pnpm-lock.yaml`. Auto-syncs via `pnpm install`; friendly warning to run `pnpm init` if missing.
+  * [x] **Rust** (`templates/rust`): Watch `Cargo.toml`, `Cargo.lock`. Auto-validates via `cargo check`; guidance to run `cargo init` if missing.
+  * [x] **Kubernetes / CKAD** (`templates/kubernetes`): Watch `kustomization.yaml`, `Chart.yaml`, `values.yaml`. Context-aware guidance for Kustomize overlays and Helm charts.
+  * [ ] **Future Stacks** (`go`, `java`, `c`): Pre-wire `go.mod`, `pom.xml`/`build.gradle.kts`, `CMakeLists.txt`.
 
 
