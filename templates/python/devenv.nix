@@ -22,6 +22,11 @@
   ];
 
   enterShell = ''
+    # Ensure standard pip executable is present in virtualenv for notebook '!pip install' compatibility
+    if [ ! -f "$VIRTUAL_ENV/bin/pip" ]; then
+      uv pip install pip --quiet 2>/dev/null || true
+    fi
+
     echo "🐍 Python $(python3 --version 2>/dev/null) | uv ready!"
     echo "💡 Virtualenv active at: $VIRTUAL_ENV"
     echo "   • Fast pip: 'uv pip install <package>' (or standard 'pip install')"
