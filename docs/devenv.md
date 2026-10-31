@@ -71,9 +71,10 @@ When you navigate to a new repository/directory and activate a `devenv` shell (`
 - Environment variables explicitly defined in `devenv.nix` (`env.DATABASE_URL = "..."`) override host shell environment variables of the same name.
 - Non-conflicting host environment variables (such as `$USER`, `$HOME`, `$TERM`, or custom variables defined in `~/.bashrc.local`) are inherited automatically.
 
-### 4. Integration with Host System Daemons
+### 4. Integration with Host System Daemons & Hardware
 - **Docker & Containers**: The `docker` CLI inside `devenv` connects to your host OS Docker daemon via `/var/run/docker.sock` (or WSL2/macOS socket bridges), allowing seamless container orchestration.
 - **SSH & Git**: `devenv` inherits your host's active SSH agent (`$SSH_AUTH_SOCK`) and global `~/.gitconfig`, so SSH authentication and Git commit identities work out of the box without re-configuration inside the directory.
+- **WSL2 NVIDIA GPU Acceleration**: When running under WSL2, Windows paravirtualizes GPU access through `/dev/dxg` and `/usr/lib/wsl/lib`. Because Nix binaries bypass the host dynamic linker cache, our Python templates automatically inject `/usr/lib/wsl/lib` into `LD_LIBRARY_PATH` on directory entry (see detailed architecture below).
 
 ### 5. Pure vs. Impure Shell Modes (Recommendation for New Repositories)
 
@@ -211,6 +212,96 @@ To stop running background services, press `Ctrl+C`.
      ```bash
      devenv container build
      ```
+
+---
+
+## 🎮 WSL2 NVIDIA & CUDA GPU Acceleration (Machine Learning & PyTorch)
+
+When running Machine Learning, Deep Learning (e.g. PyTorch, Hugging Face Transformers, SentencePiece), or CUDA compute workloads inside **WSL2** (Windows Subsystem for Linux), standard Linux GPU workflows require specific understanding of the paravirtualized driver stack and Nix linker behavior.
+
+### 1. Paravirtualized WSL2 GPU Driver Architecture
+* **Windows Host Driver**: The actual NVIDIA GPU kernel driver is installed exclusively on the **Windows host OS**. Do not attempt to install native Linux `.run` or `apt` NVIDIA driver packages inside WSL2.
+* **Driver Shims (`/usr/lib/wsl/lib`)**: WSL2 paravirtualizes GPU access through the DirectX Graphics Kernel device (`/dev/dxg`). Windows automatically mounts user-mode driver libraries into `/usr/lib/wsl/lib`:
+  - `libcuda.so` / `libcuda.so.1` (CUDA Driver API)
+  - `libnvidia-ml.so.1` (NVML telemetry)
+  - `nvidia-smi` (Hardware monitoring utility)
+  - `libdxcore.so` & `libd3d12core.so`
+
+### 2. The Nix Linker Gotcha (`Found no NVIDIA driver`)
+* **Standard Ubuntu Linux**: Uses glibc and `/etc/ld.so.cache`. WSL generates `/etc/ld.so.conf.d/ld.wsl.conf` pointing to `/usr/lib/wsl/lib`, allowing standard distribution binaries to resolve `libcuda.so.1` automatically.
+* **Nix / Devenv Shells**: Nix-built binaries (including Python interpreters provisioned via `languages.python.enable = true;`) use custom RPATH/RUNPATH headers pointing directly to `/nix/store/...` and **completely ignore `/etc/ld.so.cache`**.
+* **The Symptom**: In a Devenv shell or Nix Python environment, `torch.cuda.is_available()` returns `False` or raises:
+  ```text
+  UserWarning: CUDA initialization: Found no NVIDIA driver on your system.
+  ```
+  even though `nvidia-smi` works!
+
+### 3. The Declarative, Zero-Pollution Solution
+
+We avoid setting a blind global `export LD_LIBRARY_PATH=/usr/lib/wsl/lib` in `~/.bashrc`, which can interfere with Nix compiler toolchains. Instead, we use a three-tiered declarative pattern:
+
+#### Tier A: Automated Project Wiring in `devenv.nix`
+In [`templates/python/devenv.nix`](../templates/python/devenv.nix), `enterShell` automatically detects WSL2 and forwards the library path:
+
+```nix
+{ pkgs, ... }:
+
+{
+  languages.python = {
+    enable = true;
+    venv.enable = true;
+    uv.enable = true;
+  };
+
+  # Native libraries for C++ wheels (SentencePiece, PyTorch)
+  packages = with pkgs; [
+    stdenv.cc.cc.lib
+    zlib
+  ];
+
+  enterShell = ''
+    # 1. WSL2 GPU Acceleration: expose Windows NVIDIA CUDA driver shims
+    if [ -d "/usr/lib/wsl/lib" ]; then
+      export LD_LIBRARY_PATH="/usr/lib/wsl/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      if [[ ":$PATH:" != *":/usr/lib/wsl/lib:"* ]]; then
+        export PATH="/usr/lib/wsl/lib:$PATH"
+      fi
+    fi
+
+    # 2. Self-Healing Virtualenv Hook: preserve CUDA path if devenv rebuilds the venv
+    if [ -n "''${VIRTUAL_ENV:-}" ] && [ -f "$VIRTUAL_ENV/bin/activate" ] && [ -d "/usr/lib/wsl/lib" ]; then
+      if ! grep -q "/usr/lib/wsl/lib" "$VIRTUAL_ENV/bin/activate"; then
+        echo "" >> "$VIRTUAL_ENV/bin/activate"
+        echo "# WSL2 GPU Acceleration: expose Windows NVIDIA CUDA driver shims" >> "$VIRTUAL_ENV/bin/activate"
+        echo 'if [ -d "/usr/lib/wsl/lib" ]; then' >> "$VIRTUAL_ENV/bin/activate"
+        echo '    export LD_LIBRARY_PATH="/usr/lib/wsl/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' >> "$VIRTUAL_ENV/bin/activate"
+        echo 'fi' >> "$VIRTUAL_ENV/bin/activate"
+      fi
+    fi
+  '';
+}
+```
+
+* **Directory Scoping via Direnv**: When you `cd` into the repo, `direnv` loads the environment and adds `/usr/lib/wsl/lib` to `LD_LIBRARY_PATH`. When you `cd ..` out, `direnv` completely cleans `LD_LIBRARY_PATH`, leaving your global shell spotless.
+* **Standalone Venv Compatibility**: If you launch scripts, tests, or Jupyter kernels using `source .devenv/state/venv/bin/activate` outside of direnv, the venv activation hook ensures full CUDA access.
+
+#### Tier B: Host Shell Helpers for Ad-Hoc Venvs
+In [`home/wsl.nix`](../home/wsl.nix), two convenient shell functions are provided for ad-hoc environments:
+1. **`wsl-cuda`**: Immediately exports `/usr/lib/wsl/lib` to `LD_LIBRARY_PATH` for the current bash session.
+2. **`patch-venv-cuda [venv_path]`**: Permanently patches any plain virtual environment (e.g., created with `uv venv` or `python -m venv` outside Devenv):
+   ```bash
+   patch-venv-cuda .venv
+   ```
+
+### 4. Verification Check
+To verify CUDA driver access inside your active Python environment:
+```bash
+python -c 'import torch; print("CUDA:", torch.cuda.is_available(), "| GPU:", torch.cuda.get_device_name(0))'
+```
+**Expected Output:**
+```text
+CUDA: True | GPU: NVIDIA GeForce RTX 4070 Laptop GPU
+```
 
 ---
 

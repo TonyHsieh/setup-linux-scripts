@@ -281,7 +281,55 @@ cd ..
 
 ---
 
-## ⚡ 6. Quick Reference Cheat Sheet
+## 🧠 6. Real-World Case Study: Machine Learning with PyTorch & WSL2 GPU (Karpathy's Neural Networks Zero-to-Hero)
+
+When working through machine learning course repositories (such as Andrej Karpathy's *Neural Networks: Zero to Hero* or Hugging Face courses), repositories often instruct students to run imperative `pip install -r requirements.txt` or `conda install pytorch`.
+
+Under WSL2, doing this globally creates version conflicts, and inside standard Nix shells, PyTorch fails to locate the paravirtualized Windows NVIDIA driver shim (`libcuda.so.1` in `/usr/lib/wsl/lib`).
+
+### 6.1 The Architecture & Strategy
+1. **Never install PyTorch globally**: Use [`templates/python`](../templates/python) which provisions an isolated, writable virtualenv with `uv` in `.devenv/state/venv`.
+2. **Expose WSL2 GPU Shims**: The template's `enterShell` automatically injects `/usr/lib/wsl/lib` into `LD_LIBRARY_PATH` whenever the directory is entered.
+3. **Seeded Pip for Jupyter Notebooks**: `enterShell` pre-seeds `pip` so notebook commands like `!pip install` work without errors.
+4. **Link Native C++ Wheel Dependencies**: Includes `stdenv.cc.cc.lib` (`libstdc++.so.6`) and `zlib` so extensions like SentencePiece compile and link cleanly.
+
+### 6.2 Step-by-Step Implementation
+
+#### Step 1: Initialize the Course Repository
+```bash
+cd ~/course-repos/nn-zero-to-hero
+nix flake init -t github:TonyHsieh/setup-linux-scripts#python
+```
+
+#### Step 2: Define Course Dependencies (`requirements.txt`)
+```text
+torch
+transformers[sentencepiece]
+jupyter
+ipykernel
+matplotlib
+numpy
+```
+
+#### Step 3: Activate with Direnv
+```bash
+direnv allow
+```
+`uv` resolves and installs wheels in seconds (< 2s cached).
+
+#### Step 4: Verify GPU Acceleration & Launch Lectures
+```bash
+# 1. Verify CUDA device detection
+python -c 'import torch; print("CUDA:", torch.cuda.is_available(), "| Device:", torch.cuda.get_device_name(0))'
+# Expected: CUDA: True | Device: NVIDIA GeForce RTX 4070 Laptop GPU
+
+# 2. Launch interactive Jupyter Lab
+jupyter lab
+```
+
+---
+
+## ⚡ 7. Quick Reference Cheat Sheet
 
 | Task | Command | Target Tier |
 | :--- | :--- | :--- |
@@ -295,4 +343,6 @@ cd ..
 | **Scaffold new Rust app** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#rust` | Tier 3 (Project) |
 | **Scaffold CKAD / K8s** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#ckad` | Tier 3 (Project) |
 | **Activate project shell** | `direnv allow` or `devenv shell` | Tier 3 (Project) |
+| **One-shot WSL CUDA export**| `wsl-cuda` | Tier 1 (WSL Shell) |
+| **Patch standalone venv**  | `patch-venv-cuda .venv` | Tier 1 (WSL Shell) |
 | **Roll back generation** | `home-manager generations` & `home-manager switch --generation <ID>` | Tier 1 (History) |

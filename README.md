@@ -256,35 +256,60 @@ Drops you into an interactive subshell with all project tools loaded. Type `exit
 }
 ```
 
-#### Example 2: Python Data Science & AI Project (uv / venv)
+#### Example 2: Python Machine Learning & AI Project (uv / venv / CUDA)
 ```nix
 { pkgs, ... }:
 
 {
-  # 1. Isolated Python Engine
+  # 1. Isolated Python Engine & Writable Virtualenv
   languages.python = {
     enable = true;
-    version = "3.12";
-    uv.enable = true;
     venv.enable = true;
+    uv.enable = true;
   };
 
-  # 2. System Libraries for Native Wheels
+  # 2. System Libraries for Native Wheels (PyTorch, Transformers, SentencePiece)
   packages = with pkgs; [
+    ruff
     git
-    zlib
+    jq
     stdenv.cc.cc.lib
+    zlib
   ];
 
-  # 3. Environment Variables & Library Paths
-  env = {
-    PYTHONUNBUFFERED = "1";
-    LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
-  };
-
   enterShell = ''
-    echo "🐍 Python $(python --version) + uv active"
-    echo "Run 'uv pip install -r requirements.txt' to install libraries"
+    # WSL2 GPU Acceleration: expose Windows NVIDIA CUDA driver shims (/usr/lib/wsl/lib)
+    if [ -d "/usr/lib/wsl/lib" ]; then
+      export LD_LIBRARY_PATH="/usr/lib/wsl/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+      if [[ ":$PATH:" != *":/usr/lib/wsl/lib:"* ]]; then
+        export PATH="/usr/lib/wsl/lib:$PATH"
+      fi
+    fi
+
+    # Ensure virtualenv activate script preserves WSL2 CUDA library path when sourced outside devenv
+    if [ -n "''${VIRTUAL_ENV:-}" ] && [ -f "$VIRTUAL_ENV/bin/activate" ] && [ -d "/usr/lib/wsl/lib" ]; then
+      if ! grep -q "/usr/lib/wsl/lib" "$VIRTUAL_ENV/bin/activate"; then
+        echo "" >> "$VIRTUAL_ENV/bin/activate"
+        echo "# WSL2 GPU Acceleration: expose Windows NVIDIA CUDA driver shims" >> "$VIRTUAL_ENV/bin/activate"
+        echo 'if [ -d "/usr/lib/wsl/lib" ]; then' >> "$VIRTUAL_ENV/bin/activate"
+        echo '    export LD_LIBRARY_PATH="/usr/lib/wsl/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' >> "$VIRTUAL_ENV/bin/activate"
+        echo 'fi' >> "$VIRTUAL_ENV/bin/activate"
+      fi
+    fi
+
+    # Ensure pip executable is seeded for notebook '!pip install' compatibility
+    if [ ! -f "$VIRTUAL_ENV/bin/pip" ]; then
+      uv pip install pip --quiet 2>/dev/null || true
+    fi
+
+    # Auto-sync dependencies on directory entry via direnv
+    if [ -f requirements.txt ]; then
+      echo "📦 Syncing dependencies from requirements.txt via uv..."
+      uv pip install -r requirements.txt
+    fi
+
+    echo "🐍 Python $(python3 --version 2>/dev/null) | uv ready!"
+    echo "💡 Virtualenv active at: $VIRTUAL_ENV"
   '';
 }
 ```
@@ -350,6 +375,27 @@ Drops you into an interactive subshell with all project tools loaded. Type `exit
 > [!TIP]
 > **Taking Kubernetes courses like Sander van Vugt's CKAD?**  
 > Never run course scripts that mutate `/usr/local/bin` or `apt`. Follow our step-by-step case study in **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)** to run course labs in an isolated Minikube + Podman container environment.
+
+---
+
+### 🎮 WSL2 NVIDIA & CUDA GPU Acceleration (PyTorch, Transformers, ML)
+
+When developing inside **WSL2** with an NVIDIA GPU (e.g. RTX 4070 Laptop GPU), standard native Linux driver setups do not apply:
+* **The Paravirtualized WSL Architecture**: Windows hosts the actual driver kernel (`/dev/dxg`) and mounts user-mode driver libraries into `/usr/lib/wsl/lib` inside WSL2 (providing `libcuda.so.1`, `libnvidia-ml.so.1`, and `nvidia-smi`).
+* **The Nix Linker Problem**: While native Ubuntu host packages query `/etc/ld.so.cache` (populated by `/etc/ld.so.conf.d/ld.wsl.conf`), **Nix / Devenv binaries bypass host ldconfig completely**. Without explicit library path forwarding, PyTorch fails with `Found no NVIDIA driver on your system`.
+* **Zero-Pollution Architecture**:
+  1. **Template-Level Auto-Wiring**: Our [`templates/python`](templates/python) and project `devenv.nix` detect `/usr/lib/wsl/lib` on entry and inject it into `LD_LIBRARY_PATH`. When leaving the directory via `direnv`, the path is cleanly unloaded.
+  2. **Standalone Virtualenv Compatibility**: `enterShell` automatically patches `.devenv/state/venv/bin/activate` with an `activate` / `deactivate` hook so sourcing the venv directly outside devenv preserves full CUDA access without leaking variables into the host shell.
+  3. **Host-Wide Shell Integration** ([`home/wsl.nix`](home/wsl.nix)):
+     * `nvidia-smi` aliased and guaranteed in PATH.
+     * `wsl-cuda`: Function to enable WSL2 CUDA paths in any ad-hoc interactive session.
+     * `patch-venv-cuda <venv_dir>`: Utility to patch any standalone virtual environment created outside Devenv (e.g., via `uv venv` or `python3 -m venv`).
+
+**Verification Test**:
+```bash
+python -c 'import torch; print("CUDA Available:", torch.cuda.is_available(), "| Device:", torch.cuda.get_device_name(0))'
+# Output: CUDA Available: True | Device: NVIDIA GeForce RTX 4070 Laptop GPU
+```
 
 ---
 
