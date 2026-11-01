@@ -52,30 +52,73 @@ logs service="":
 # --- 🦙 Ollama Local LLM Inference Engine Tasks ---
 # Start Ollama Local LLM service (https://ollama.localhost)
 up-llm:
-    @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
+    @if curl -sf http://localhost:11434/api/tags >/dev/null 2>&1; then \
+        echo "✅ Ollama is ALREADY running on the host (port 11434) with native GPU acceleration!"; \
+        echo "👉 Endpoint: http://localhost:11434 (OpenAI API: http://localhost:11434/v1)"; \
+        exit 0; \
+    fi; \
+    if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         just -f {{justfile()}} certs; \
-    fi
-    @echo "==> Starting Ollama Local LLM service via {{COMPOSE_CMD}}..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile llm up -d ollama
-    @echo "👉 Ollama is available at http://localhost:11434 and https://ollama.localhost"
+    fi; \
+    echo "==> Starting containerized Ollama service via {{COMPOSE_CMD}}..."; \
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile llm up -d ollama; \
+    echo "👉 Ollama is available at http://localhost:11434 and https://ollama.localhost"
 
 # Stop Ollama Local LLM service
 down-llm:
-    @echo "==> Stopping Ollama Local LLM service..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ollama
+    @if systemctl is-active ollama >/dev/null 2>&1; then \
+        echo "ℹ️  Ollama is running as a host systemd service ('ollama.service')."; \
+        echo "   To stop the host service: sudo systemctl stop ollama"; \
+    fi; \
+    if {{CONTAINER_CMD}} ps -q -f name=local-ollama 2>/dev/null | grep -q .; then \
+        echo "==> Stopping containerized Ollama Local LLM service..."; \
+        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ollama; \
+    fi
 
 # Pull a model into Ollama (e.g. jl llm-pull qwen2.5-coder:7b)
 llm-pull model:
-    @echo "==> Pulling model '{{model}}' into Ollama..."
-    {{CONTAINER_CMD}} exec -it local-ollama ollama pull {{model}}
+    @if command -v /usr/local/bin/ollama >/dev/null 2>&1; then \
+        /usr/local/bin/ollama pull {{model}}; \
+    elif command -v /usr/bin/ollama >/dev/null 2>&1; then \
+        /usr/bin/ollama pull {{model}}; \
+    elif command -v ollama >/dev/null 2>&1; then \
+        ollama pull {{model}}; \
+    elif {{CONTAINER_CMD}} ps -q -f name=local-ollama 2>/dev/null | grep -q .; then \
+        echo "==> Pulling model '{{model}}' into containerized Ollama..."; \
+        {{CONTAINER_CMD}} exec -it local-ollama ollama pull {{model}}; \
+    else \
+        echo "⚠️ Ollama is not running on host or container. Start it with 'jl up-llm'." >&2; \
+        exit 1; \
+    fi
 
 # Run interactive chat session with a model (e.g. jl llm-run qwen2.5-coder:1.5b)
 llm-run model:
-    @{{CONTAINER_CMD}} exec -it local-ollama ollama run {{model}}
+    @if command -v /usr/local/bin/ollama >/dev/null 2>&1; then \
+        /usr/local/bin/ollama run {{model}}; \
+    elif command -v /usr/bin/ollama >/dev/null 2>&1; then \
+        /usr/bin/ollama run {{model}}; \
+    elif command -v ollama >/dev/null 2>&1; then \
+        ollama run {{model}}; \
+    elif {{CONTAINER_CMD}} ps -q -f name=local-ollama 2>/dev/null | grep -q .; then \
+        {{CONTAINER_CMD}} exec -it local-ollama ollama run {{model}}; \
+    else \
+        echo "⚠️ Ollama is not running. Start it with 'jl up-llm'." >&2; \
+        exit 1; \
+    fi
 
 # List downloaded models in Ollama
 llm-list:
-    @{{CONTAINER_CMD}} exec -i local-ollama ollama list
+    @if command -v /usr/local/bin/ollama >/dev/null 2>&1; then \
+        /usr/local/bin/ollama list; \
+    elif command -v /usr/bin/ollama >/dev/null 2>&1; then \
+        /usr/bin/ollama list; \
+    elif command -v ollama >/dev/null 2>&1; then \
+        ollama list; \
+    elif {{CONTAINER_CMD}} ps -q -f name=local-ollama 2>/dev/null | grep -q .; then \
+        {{CONTAINER_CMD}} exec -i local-ollama ollama list; \
+    else \
+        curl -s http://localhost:11434/api/tags 2>/dev/null | jq -r '.models[]? | "\(.name)\t\(.size / 1024 / 1024 | floor) MB"' || echo "Ollama not running or no models pulled yet."; \
+    fi
 
 # Check Ollama status and available models
 llm-status:
