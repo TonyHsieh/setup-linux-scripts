@@ -118,12 +118,27 @@
         fi
       }
 
-      # Seamless Ollama container CLI passthrough
+      # Seamless Ollama CLI passthrough (host binary or containerized local-ollama)
       ollama() {
-        if [ -t 0 ] && [ -t 1 ]; then
-          podman exec -it local-ollama ollama "$@"
+        if command -v /usr/local/bin/ollama >/dev/null 2>&1; then
+          /usr/local/bin/ollama "$@"
+        elif command -v /usr/bin/ollama >/dev/null 2>&1; then
+          /usr/bin/ollama "$@"
+        elif command -v podman >/dev/null 2>&1; then
+          if [ -t 0 ] && [ -t 1 ]; then
+            podman exec -it local-ollama ollama "$@"
+          else
+            podman exec -i local-ollama ollama "$@"
+          fi
+        elif command -v docker >/dev/null 2>&1; then
+          if [ -t 0 ] && [ -t 1 ]; then
+            docker exec -it local-ollama ollama "$@"
+          else
+            docker exec -i local-ollama ollama "$@"
+          fi
         else
-          podman exec -i local-ollama ollama "$@"
+          echo "⚠️ Ollama is not installed on the host and neither podman nor docker was found." >&2
+          return 1
         fi
       }
 

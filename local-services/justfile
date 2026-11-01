@@ -67,20 +67,32 @@ down-llm:
 # Pull a model into Ollama (e.g. jl llm-pull qwen2.5-coder:7b)
 llm-pull model:
     @echo "==> Pulling model '{{model}}' into Ollama..."
-    podman exec -it local-ollama ollama pull {{model}}
+    {{CONTAINER_CMD}} exec -it local-ollama ollama pull {{model}}
 
 # Run interactive chat session with a model (e.g. jl llm-run qwen2.5-coder:1.5b)
 llm-run model:
-    @podman exec -it local-ollama ollama run {{model}}
-
+    @{{CONTAINER_CMD}} exec -it local-ollama ollama run {{model}}
 
 # List downloaded models in Ollama
 llm-list:
-    @podman exec -i local-ollama ollama list
+    @{{CONTAINER_CMD}} exec -i local-ollama ollama list
 
 # Check Ollama status and available models
 llm-status:
     @curl -s http://localhost:11434/api/tags 2>/dev/null | jq -r '.models[]? | "\(.name) (\(.size / 1024 / 1024 | floor) MB)"' 2>/dev/null || echo "Ollama not running or no models pulled yet."
+
+# Test OpenAI-compatible API connectivity for OpenCode / Hermes
+llm-test:
+    @echo "==> Checking Ollama OpenAI-compatible endpoint (http://localhost:11434/v1/models)..."
+    @curl -sf http://localhost:11434/v1/models | jq . || (echo "⚠️ Ollama API unreachable. Start it with 'jl up-llm'." && exit 1)
+
+# Display recommended models for OpenCode and Hermes with pull syntax
+llm-models:
+    @echo "🦙 Recommended Local Models for OpenCode & Hermes:"
+    @echo "   • jl llm-pull qwen2.5-coder:7b     (Best 7B coding model, tool calling support)"
+    @echo "   • jl llm-pull qwen2.5-coder:1.5b   (Ultra-lightweight, blazingly fast on CPU)"
+    @echo "   • jl llm-pull llama3.2:3b          (General instruction following & summaries)"
+    @echo "   • jl llm-pull deepseek-r1:7b       (Reasoning and step-by-step logic)"
 
 # --- 💬 Open WebUI Tasks ---
 # Start Open WebUI and Ollama (https://chat.localhost)

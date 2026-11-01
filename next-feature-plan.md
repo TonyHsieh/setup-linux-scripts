@@ -170,34 +170,40 @@ volumes:
 
 ## 🗺️ 5. Implementation Roadmap
 
-### Phase 1: Tier 1 Credential Stubs (`install-dev-env.sh`)
-* [ ] Update the `~/.bashrc.local` stub generator in [`install-dev-env.sh`](install-dev-env.sh#L722) to include:
+### Phase 1: Tier 1 Credential Stubs (`bootstrap.sh` & `~/.bashrc.local`)
+* [x] Update the `~/.bashrc.local` stub generator in [`bootstrap.sh`](bootstrap.sh#L635) and host `~/.bashrc.local` to include:
   ```bash
-  # Google Gemini
+  # Google Gemini (https://aistudio.google.com/app/apikey)
   # export GEMINI_API_KEY="your-gemini-api-key"
+  # export GOOGLE_GENERATIVE_AI_API_KEY="$GEMINI_API_KEY"
 
-  # OpenRouter / Unified Gateway
+  # OpenRouter Unified Multi-Model Gateway (https://openrouter.ai/keys)
   # export OPENROUTER_API_KEY="your-openrouter-key"
+
+  # Groq Ultra-Low Latency Inference (https://console.groq.com/keys)
+  # export GROQ_API_KEY="your-groq-key"
 
   # Local LLM Backend (Ollama / llama-server / vLLM)
   # export OPENAI_BASE_URL="http://localhost:11434/v1"
   # export OPENAI_API_KEY="ollama"
   ```
-* [ ] Update [`docs/opencode-hermes-guide.md`](docs/opencode-hermes-guide.md) with model-switching examples for Gemini and local backends.
+* [x] Update [`docs/opencode-hermes-guide.md`](docs/opencode-hermes-guide.md) with model-switching examples for Gemini and local backends.
 
-### Phase 2: Tier 2 Local Service Mesh (`install-local-services.sh`)
-* [ ] Add an optional `--with-llm` flag or prompt in `install-local-services.sh` to scaffold the Ollama / `llama-server` container.
-* [ ] Add model management tasks to `justfile`:
-  * `jl llm-pull <model>`: Pull a model into the container.
+### Phase 2: Tier 2 Local Service Mesh (`local-services/justfile` & `bootstrap.sh`)
+* [x] Add an optional `--with-llm` flag in [`bootstrap.sh`](bootstrap.sh) to scaffold and launch the Ollama container.
+* [x] Add model management tasks to `justfile` ([`local-services/justfile`](local-services/justfile#L67)):
+  * `jl llm-pull <model>`: Pull a model into the container (using portable `{{CONTAINER_CMD}}`).
   * `jl llm-list`: List downloaded models.
   * `jl llm-status`: Check inference engine health and memory usage.
+  * `jl llm-models`: Show recommended models for OpenCode and Hermes.
+  * `jl llm-test`: Verify OpenAI-compatible API connectivity.
 
 ### Phase 3: Verification & Diagnostics
-* [ ] Add an end-to-end connectivity check command:
+* [x] Add an end-to-end connectivity check command (`jl llm-test`):
   ```bash
   curl -s http://localhost:11434/v1/models | jq .
   ```
-* [ ] Validate fallback handling in OpenCode and Hermes when the local endpoint is unreachable.
+* [x] Graceful fallback handling in shell wrapper (`home/shell.nix`) supporting host Ollama and container fallback.
 
 ---
 

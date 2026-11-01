@@ -11,6 +11,7 @@ ACTION="switch"
 INSTALL_HOST_DEPS=false
 INSTALL_OFFICE=false
 UNINSTALL_OFFICE=false
+INSTALL_LLM=false
 TARGET_OVERRIDE=""
 CLEANUP_MODE="prompt" # options: "prompt", "auto", "skip"
 
@@ -23,6 +24,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-host-deps|--host-deps|--all)
       INSTALL_HOST_DEPS=true
+      shift
+      ;;
+    --with-llm|--llm)
+      INSTALL_LLM=true
       shift
       ;;
     --with-office|--office)
@@ -51,6 +56,7 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --build, --dry-run      Build the Home Manager generation without activating it"
       echo "  --with-host-deps, --all Install host system prerequisites (Podman, port 80 sysctl, mkcert CA)"
+      echo "  --with-llm, --llm       Launch local Ollama LLM inference service (https://ollama.localhost)"
       echo "  --with-office, --office Install local office suite (ONLYOFFICE Desktop Editors & Microsoft fonts)"
       echo "  --uninstall-office      Uninstall ONLYOFFICE Desktop Editors and Microsoft fonts"
       echo "  --cleanup, --clean      Automatically clean up detected legacy artifacts after verification"
@@ -636,7 +642,13 @@ else
 # ~/.bashrc.local - Machine-specific & Private Environment Overrides
 # This file is sourced by ~/.bashrc and is ignored by Git.
 
-# --- ☁️ Hosted AI Agent Providers ---
+# --- ☁️ Hosted AI Agent Providers (OpenCode & Hermes) ---
+# OpenAI (https://platform.openai.com/api-keys)
+# export OPENAI_API_KEY="sk-proj-..."
+
+# Anthropic (https://console.anthropic.com/settings/keys)
+# export ANTHROPIC_API_KEY="sk-ant-..."
+
 # Google Gemini (https://aistudio.google.com/app/apikey)
 # export GEMINI_API_KEY="AIzaSy..."
 # export GOOGLE_GENERATIVE_AI_API_KEY="$GEMINI_API_KEY"
@@ -648,7 +660,7 @@ else
 # export GROQ_API_KEY="gsk_..."
 
 # --- 🦙 Local Containerized LLM (Ollama / LocalAI / llama.cpp) ---
-# Uncomment to direct OpenCode or LiteLLM agents to your local mesh:
+# To direct OpenCode or LiteLLM agents to your local mesh, uncomment:
 # export OPENAI_BASE_URL="http://localhost:11434/v1"
 # export OPENAI_API_KEY="ollama"
 EOF
@@ -748,6 +760,16 @@ EOF
       echo "   Import-Certificate -FilePath \"$WIN_CA\" -CertStoreLocation Cert:\LocalMachine\Root"
     fi
   fi
+  if [ "$INSTALL_LLM" = true ]; then
+    echo ""
+    echo "==> 🦙 Launching local Ollama LLM service via justfile..."
+    if [ -f "$HOME/.local/share/local-services/justfile" ] && command -v just >/dev/null 2>&1; then
+      just -f "$HOME/.local/share/local-services/justfile" up-llm || true
+    elif [ -f "$SCRIPT_DIR/local-services/justfile" ] && command -v just >/dev/null 2>&1; then
+      just -f "$SCRIPT_DIR/local-services/justfile" up-llm || true
+    fi
+  fi
+
   if command -v podman >/dev/null 2>&1; then
     echo "👉 Local container mesh ready: run 'jl up' to start Traefik, BentoPDF, & Postgres!"
   else

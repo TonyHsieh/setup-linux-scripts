@@ -12,17 +12,44 @@ Although both tools utilize large language models to assist you, they are design
 ## ⚡ 1. First-Time Setup & Credential Configuration
 
 ### Step 1: Configure Provider API Keys
-Both agents require access to LLM model providers (such as OpenAI, Anthropic, or local Ollama instances).
+Both agents require access to LLM model providers: hosted APIs (Google Gemini, OpenAI, Anthropic, OpenRouter, Groq) or local inference (Ollama running inside your local service mesh).
 
-Add your API credentials to your local environment file (`~/.bashrc.local`):
+Add your API credentials to your local private overrides file (`~/.bashrc.local`), which is ignored by Git:
 
 ```bash
 # Open ~/.bashrc.local in your editor
 vim ~/.bashrc.local
+```
 
-# Add your model provider keys:
+#### A. Hosted Cloud Providers
+```bash
+# 1. Google Gemini (https://aistudio.google.com/app/apikey)
+export GEMINI_API_KEY="AIzaSyYourGeminiApiKeyHere"
+export GOOGLE_GENERATIVE_AI_API_KEY="$GEMINI_API_KEY"
+
+# 2. OpenRouter Unified Gateway (DeepSeek, Claude, Llama 3.3 under 1 key)
+export OPENROUTER_API_KEY="sk-or-v1-..."
+
+# 3. Groq Ultra-Low Latency Inference
+export GROQ_API_KEY="gsk_..."
+
+# 4. Direct OpenAI & Anthropic
 export OPENAI_API_KEY="sk-proj-your-openai-key"
 export ANTHROPIC_API_KEY="sk-ant-your-anthropic-key"
+```
+
+#### B. Local Offline LLMs (Ollama via `local-services`)
+If you want 100% private, zero-cost, offline AI assistance:
+```bash
+# 1. Start local Ollama container service
+jl up-llm
+
+# 2. Pull a recommended coding model (Qwen 2.5 Coder 7B or 1.5B)
+jl llm-pull qwen2.5-coder:7b
+
+# 3. Point agents to your local mesh in ~/.bashrc.local:
+export OPENAI_BASE_URL="http://localhost:11434/v1"
+export OPENAI_API_KEY="ollama"
 ```
 
 Reload your shell session:
@@ -30,7 +57,7 @@ Reload your shell session:
 exec bash
 ```
 
-### Step 2: Initialize OpenCode
+### Step 2: Initialize OpenCode (`oc`)
 Navigate to any git repository and run `opencode` (or shorthand `oc`):
 
 ```bash
@@ -38,15 +65,25 @@ cd ~/my-project
 oc
 ```
 * On first run, OpenCode will index your repository context and load provider models.
+* **Selecting Hosted Models**:
+  * Pass flag on launch: `oc --model gemini-2.5-pro` or `oc --model openrouter/deepseek/deepseek-chat`
+  * Or switch interactively inside OpenCode with `/model`.
+* **Selecting Local Models**:
+  * With `OPENAI_BASE_URL` exported, run `oc --model qwen2.5-coder:7b`.
 * Use `/help` inside the OpenCode TUI to explore interactive commands.
 
-### Step 3: Initialize Hermes Agent
+### Step 3: Initialize Hermes Agent (`ha`)
 Run the Hermes onboarding wizard:
 
 ```bash
 hermes setup --portal
 ```
 * Follow the interactive prompts to link your account or select model backends.
+* **Configuring Models in Hermes**:
+  Hermes uses LiteLLM syntax under `~/.hermes/config.yaml`:
+  * Gemini: `model: gemini/gemini-2.0-flash`
+  * OpenRouter: `model: openrouter/deepseek/deepseek-chat`
+  * Local Ollama: `model: ollama/qwen2.5-coder:7b`
 * Verify your configuration by running:
 ```bash
 hermes doctor
