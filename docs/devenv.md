@@ -73,7 +73,7 @@ When you navigate to a new repository/directory and activate a `devenv` shell (`
 
 ### 4. Integration with Host System Daemons & Hardware
 - **Docker & Containers**: The `docker` CLI inside `devenv` connects to your host OS Docker daemon via `/var/run/docker.sock` (or WSL2/macOS socket bridges), allowing seamless container orchestration.
-- **SSH & Git**: `devenv` inherits your host's active SSH agent (`$SSH_AUTH_SOCK`) and global `~/.gitconfig`, so SSH authentication and Git commit identities work out of the box without re-configuration inside the directory.
+- **SSH & Git**: `devenv` inherits your host's active SSH agent (`$SSH_AUTH_SOCK`), global `~/.gitconfig`, and declarative `~/.config/git/config` (including `push.autoSetupRemote = true` and native git aliases from `home/git.nix`), so SSH authentication, commit identities, and automatic upstream push tracking work seamlessly without re-configuration inside project workspaces.
 - **WSL2 NVIDIA GPU Acceleration**: When running under WSL2, Windows paravirtualizes GPU access through `/dev/dxg` and `/usr/lib/wsl/lib`. Because Nix binaries bypass the host dynamic linker cache, our Python templates automatically inject `/usr/lib/wsl/lib` into `LD_LIBRARY_PATH` on directory entry (see detailed architecture below).
 
 ### 5. Pure vs. Impure Shell Modes (Recommendation for New Repositories)

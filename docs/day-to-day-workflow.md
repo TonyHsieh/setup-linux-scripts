@@ -82,6 +82,26 @@ Use this for private API keys, work-only tokens, machine-specific paths, or quic
    ```
 2. `~/.bashrc.local` is automatically sourced by `~/.bashrc` at startup and takes effect immediately without needing `./bootstrap.sh` or a Home Manager rebuild. Reload with `source ~/.bashrc`.
 
+### 2.3 Global Git Setup & Automatic Remote Branch Tracking (`home/git.nix`)
+
+Global Git behaviors, aliases, and editor defaults are managed declaratively in [`home/git.nix`](../home/git.nix) via Home Manager:
+
+* **Automatic Upstream Branch Setup (`push.autoSetupRemote = true`)**:
+  Running `git push` on a newly created local branch automatically sets up remote tracking on `origin`. You never need to remember `git push -u origin <branch>` or `--set-upstream`. It works out of the box with the shell shorthand `gp` (`git push`).
+* **Core Defaults**:
+  - Default branch: `main` (`init.defaultBranch = "main"`).
+  - Pull strategy: Merge (`pull.rebase = false`).
+  - Default editor: Neovim (`core.editor = "nvim"`).
+* **Native Git Aliases**:
+  Standard git aliases are configured under `programs.git.settings.alias`:
+  - `git s` $\rightarrow$ `git status`
+  - `git l` $\rightarrow$ `git log --oneline --decorate --graph`
+  - `git d` $\rightarrow$ `git diff`
+  - `git co` $\rightarrow$ `git checkout`
+  - `git br` $\rightarrow$ `git branch`
+  - `git ci` $\rightarrow$ `git commit`
+  *(Complementary shell aliases `gs`, `gl`, `gd`, `gc`, and `gp` are defined in [`home/shell.nix`](../home/shell.nix) for rapid keystrokes).*
+
 ---
 
 ## 🌐 3. Tier 2: Routing Containers through Traefik with SSL

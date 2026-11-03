@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & Roadmap Checkpoint — 2026-11-02 23:10</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--emerald);
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .alert {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--sky);
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .alert.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--emerald);
+      color: #e2e8f0;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title.sky { color: var(--sky); }
+    .card-title.emerald { color: var(--emerald); }
+    .card-title.indigo { color: var(--indigo); }
+    .card-title.amber { color: var(--amber); }
+    ul { list-style: none; }
+    li {
+      margin-bottom: 0.6rem;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      position: relative;
+      padding-left: 1.4rem;
+    }
+    li::before {
+      content: "•";
+      color: var(--text-muted);
+      position: absolute;
+      left: 0.3rem;
+      font-weight: bold;
+    }
+    li.success::before { content: "✓"; color: var(--emerald); }
+    li.warning::before { content: "⚠️"; color: var(--amber); }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0.75rem 0 1.25rem 0;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.85rem;
+      color: #f1f5f9;
+      display: block;
+      line-height: 1.5;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    .tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .tag.green { background: rgba(52, 211, 153, 0.15); color: var(--emerald); }
+    .tag.blue { background: rgba(56, 189, 248, 0.15); color: var(--sky); }
+    .tag.purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); }
+    .priority-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+    .priority-high { background: rgba(244, 63, 94, 0.2); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.4); }
+    .priority-medium { background: rgba(251, 191, 36, 0.2); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.4); }
+    .priority-verified { background: rgba(52, 211, 153, 0.2); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.4); }
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🌿 Git Auto-Setup Remote Tracking & Global Workflow</h1>
+        <div class="meta">
+          <span>📅 Mon Nov 2 23:10 PST 2026</span>
+          <span>•</span>
+          <span>💻 Host: <code>AsusGA403u</code> (Ubuntu 24.04 WSL2)</span>
+          <span>•</span>
+          <span>🌿 Git Branch: <code>main</code> (HEAD <code>2c120c2</code>)</span>
+        </div>
+      </div>
+      <div class="status-badge">
+        <span>● All Checks Passing • Home Manager Active</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="alert success">
+    <strong>🎯 Critical Resolution Achieved:</strong> Configured <code>push.autoSetupRemote = true</code> declaratively across Home Manager (<code>home/git.nix</code>) and on the global host (<code>git config --global push.autoSetupRemote true</code>). Pushing newly created branches with <code>git push</code> or the shorthand <code>gp</code> now automatically creates and sets up upstream tracking on <code>origin</code> without requiring <code>-u</code> or <code>--set-upstream origin &lt;branch&gt;</code>. Documented comprehensively across <code>README.md</code>, <code>docs/day-to-day-workflow.md</code>, <code>docs/devenv.md</code>, and shell aliases.
+  </div>
+
+  <!-- Section 2: System Overview & Metrics Grid -->
+  <div class="grid-3">
+    <div class="card">
+      <h2 class="card-title sky">
+        <span>🖥️ Workspace Environment</span>
+        <span class="tag blue">WSL2 Active</span>
+      </h2>
+      <ul>
+        <li><strong>User:</strong> <code>tonyh</code></li>
+        <li><strong>Host:</strong> <code>AsusGA403u</code> (Ubuntu 24.04.5 LTS WSL2)</li>
+        <li><strong>GPU:</strong> NVIDIA GeForce RTX 4070 Laptop GPU (CUDA enabled via <code>/usr/lib/wsl/lib</code>)</li>
+        <li><strong>Working Directory:</strong> <code>~/setup-linux-scripts</code></li>
+        <li><strong>Shell & Prompt:</strong> Bash 5.2 + <code>ble.sh</code> (anti-lag optimized) + Starship 1.26.0</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title emerald">
+        <span>❄️ Declarative Stack</span>
+        <span class="tag green">Verified</span>
+      </h2>
+      <ul>
+        <li class="success"><strong>Nix Flakes & Home Manager:</strong> Generation active via profile <code>.#wsl</code></li>
+        <li class="success"><strong>Git Integration:</strong> Managed via <code>programs.git</code> in <code>home/git.nix</code></li>
+        <li class="success"><strong>Self-Tests:</strong> 6/6 verified (<code>starship</code>, <code>git 2.55.0</code>, <code>tmux</code>, <code>nvim 0.12.5</code>, <code>direnv 2.37.1</code>, <code>just 1.58.0</code>)</li>
+        <li class="success"><strong>SOPS / Age:</strong> Re-encrypted recipient list verified for host SSH key</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title indigo">
+        <span>🔀 Multi-Machine Matrix</span>
+        <span class="tag purple">Replicated</span>
+      </h2>
+      <ul>
+        <li class="success"><strong>Asus Laptop (WSL2):</strong> Active; <code>homeConfigurations.wsl</code></li>
+        <li class="success"><strong>Envy Laptop (Arch/CachyOS):</strong> Supported; <code>homeConfigurations.cachyos</code></li>
+        <li class="success"><strong>macOS (Darwin):</strong> Supported; <code>homeConfigurations.darwin</code></li>
+        <li class="success"><strong>Portability:</strong> Declarative <code>push.autoSetupRemote</code> auto-deploys to all targets on <code>./bootstrap.sh</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Technical Accomplishments & File Audit -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title emerald">
+      <span>🛠️ Key Technical Accomplishments & Modifications</span>
+      <span class="tag green">Completed</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Type of Change</th>
+          <th>Description & Technical Context</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>home/git.nix</code></td>
+          <td><span class="tag green">Nix Config</span></td>
+          <td>Added <code>push.autoSetupRemote = true;</code> inside <code>programs.git.settings</code> with inline architecture comments.</td>
+        </tr>
+        <tr>
+          <td><code>home/shell.nix</code></td>
+          <td><span class="tag green">Shell Config</span></td>
+          <td>Documented interaction of <code>gp = "git push"</code> with automatic upstream branch setup.</td>
+        </tr>
+        <tr>
+          <td><code>README.md</code></td>
+          <td><span class="tag blue">Documentation</span></td>
+          <td>Updated Section 6 customization table, added dedicated Git configuration subsection, and recorded 2026-11-02 changes.</td>
+        </tr>
+        <tr>
+          <td><code>docs/day-to-day-workflow.md</code></td>
+          <td><span class="tag blue">Documentation</span></td>
+          <td>Added Section 2.3 covering global Git setup, remote tracking automation, core defaults, and native Git vs shell aliases.</td>
+        </tr>
+        <tr>
+          <td><code>docs/devenv.md</code></td>
+          <td><span class="tag blue">Documentation</span></td>
+          <td>Updated Section 4 explaining that project devenv shells inherit declarative Git configurations and automatic upstream push tracking.</td>
+        </tr>
+        <tr>
+          <td><code>~/.config/git/config</code> &amp; <code>~/.gitconfig</code></td>
+          <td><span class="tag purple">Live Environment</span></td>
+          <td>Activated immediately via Home Manager switch and <code>git config --global push.autoSetupRemote true</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 4: Feature Status & Endpoints Matrix -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title sky">
+      <span>🌐 Service & Feature Health Matrix</span>
+      <span class="tag blue">Status Check</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Configuration / Target</th>
+          <th>Access / Mechanism</th>
+          <th>State / Health</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Git Remote Auto-Setup</strong></td>
+          <td><code>push.autoSetupRemote = true</code></td>
+          <td>CLI: <code>git push</code> or <code>gp</code></td>
+          <td><span class="tag green">Active</span> Verified in <code>.config/git/config</code></td>
+        </tr>
+        <tr>
+          <td><strong>Host Ollama LLM</strong></td>
+          <td><code>http://localhost:11434</code></td>
+          <td>CLI: <code>jl up-llm</code> / <code>jl llm-list</code></td>
+          <td><span class="tag green">Active</span> RTX 4070 Laptop GPU (~4.7 GB)</td>
+        </tr>
+        <tr>
+          <td><strong>AI Developer Agents</strong></td>
+          <td>OpenCode &amp; Hermes Agent</td>
+          <td>CLI: <code>oc</code> / <code>ha</code></td>
+          <td><span class="tag green">Ready</span> Dual-mode local LLM + hosted</td>
+        </tr>
+        <tr>
+          <td><strong>Local Ingress Proxy</strong></td>
+          <td>Traefik v3 (<code>*.localhost</code>)</td>
+          <td>Port 80/443, Wildcard SSL</td>
+          <td><span class="tag green">Ready</span> Managed via <code>jl up</code></td>
+        </tr>
+        <tr>
+          <td><strong>BentoPDF</strong></td>
+          <td><code>https://pdf.localhost</code></td>
+          <td>Traefik dynamic route</td>
+          <td><span class="tag green">Ready</span> Tier 2 Container Mesh</td>
+        </tr>
+        <tr>
+          <td><strong>PostgreSQL 16</strong></td>
+          <td><code>localhost:5432</code> (devdb)</td>
+          <td>Host CLI: <code>psql</code></td>
+          <td><span class="tag green">Ready</span> Standard local dev database</td>
+        </tr>
+        <tr>
+          <td><strong>Tailscale Ingress</strong></td>
+          <td><code>*.komodo-sole.ts.net</code></td>
+          <td>Dedicated Port 443 sidecars</td>
+          <td><span class="tag green">Ready</span> Scoped OAuth 90-day rotator</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 5: Prioritized Resumption Checklist -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title amber">
+      <span>📋 Prioritized Resumption Plan</span>
+      <span class="tag purple">Next Steps</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Task</th>
+          <th>Action / Commands</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="priority-badge priority-high">NEXT</span></td>
+          <td>Commit and Push Workspace Changes</td>
+          <td>
+            <pre><code>git add README.md docs/ home/
+git commit -m "feat(git): add declarative push.autoSetupRemote and document Git workflow"
+git push</code></pre>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="priority-badge priority-medium">VERIFY</span></td>
+          <td>Verify Auto-Setup Remote on a Test Branch</td>
+          <td>
+            <pre><code>git checkout -b test-branch
+# Verify git push works without -u:
+git push --dry-run
+git checkout main && git branch -D test-branch</code></pre>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="priority-badge priority-verified">DONE</span></td>
+          <td>Flake Evaluation &amp; Self-Test Health Check</td>
+          <td>Ran <code>nix flake check</code> and <code>./bootstrap.sh</code>; verified zero legacy residues and all core tools pass.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 6: Git Commit & File Audit -->
+  <div class="card">
+    <h2 class="card-title indigo">
+      <span>🌿 Recent Git Commits & Working Tree State</span>
+      <span class="tag purple">Audit Log</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Commit SHA</th>
+          <th>Commit Message</th>
+          <th>Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>2c120c2</code></td>
+          <td>chore: save session context checkpoint for 2026-10-31 23:20</td>
+          <td><span class="tag blue">Context Checkpoint</span></td>
+        </tr>
+        <tr>
+          <td><code>ec152a8</code></td>
+          <td>fix(justfile): add dual-mode host/container support for Ollama LLM recipes</td>
+          <td><span class="tag green">Bugfix / Enhancement</span></td>
+        </tr>
+        <tr>
+          <td><code>29d8919</code></td>
+          <td>chore: save session context checkpoint for 2026-10-31 22:47</td>
+          <td><span class="tag blue">Context Checkpoint</span></td>
+        </tr>
+        <tr>
+          <td><code>14c88fd</code></td>
+          <td>feat(llm): implement Phase 1 &amp; 2 AI model providers and local LLM service mesh tasks</td>
+          <td><span class="tag green">Feature</span></td>
+        </tr>
+        <tr>
+          <td><code>cb3ce77</code></td>
+          <td>chore(tailscale): rotate 90-day auth key via automated OAuth workflow [skip ci]</td>
+          <td><span class="tag purple">Automation</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>⚡ Standalone Context Checkpoint generated by <strong>Antigravity Pair Programmer</strong> • 2026-11-02 23:10 PST</p>
+  </footer>
+
+</body>
+</html>

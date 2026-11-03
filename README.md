@@ -539,12 +539,20 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 | **AI Agents** | `oc` / `ha` | Shorthand for `opencode` and `hermes` |
 | **Kubernetes** | `k` | Shorthand for `kubectl` |
 
-### 💡 Customizing Shell Aliases & Secrets
+### 💡 Customizing Shell Aliases, Secrets & Git Settings
 
 | Scope | Location | How to Apply | Tracked in Git? |
 | :--- | :--- | :--- | :--- |
 | **Permanent & Shared Aliases** | [`home/shell.nix`](home/shell.nix) (`shellAliases`) | Run `./bootstrap.sh` | ✅ Yes (replicated across all your machines) |
+| **Declarative Git Settings** | [`home/git.nix`](home/git.nix) (`programs.git.settings`) | Run `./bootstrap.sh` | ✅ Yes (`push.autoSetupRemote`, `nvim` editor, aliases) |
 | **Machine-Specific / Private** | `~/.bashrc.local` (aliases, secret tokens) | Takes effect immediately | ❌ No (safe for private keys & local paths) |
+
+### 🔧 Declarative Git Setup & Automatic Remote Tracking (`home/git.nix`)
+
+Global Git settings are declaratively managed in [`home/git.nix`](home/git.nix) and synchronized across all machines via Home Manager:
+* **Automatic Remote Branch Setup (`push.autoSetupRemote = true`)**: Eliminates the need to remember `-u` or `--set-upstream` when pushing a newly created local branch. Running `git push` (or the `gp` alias) automatically creates and links the upstream tracking branch on `origin`.
+* **Core Defaults**: `init.defaultBranch = "main"`, `pull.rebase = false`, and `core.editor = "nvim"`.
+* **Native Git Aliases**: `s` (`status`), `l` (`log --oneline --decorate --graph`), `d` (`diff`), `co` (`checkout`), `br` (`branch`), `ci` (`commit`), working alongside shell aliases (`gs`, `gd`, `gl`, `gc`, `gp`).
 
 > [!TIP]
 > For detailed instructions on adding global CLI tools, routing new web services through Traefik, or configuring project environments, consult the complete **[`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md)**.
@@ -579,6 +587,10 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 ---
 
 ## 📝 9. Changes & Architectural Fixes (CHANGES)
+
+### 2026-11-02: Declarative Git Auto-Setup Remote Branch Tracking (`push.autoSetupRemote`)
+* **Automatic Remote Branch Tracking**: Added `push.autoSetupRemote = true` to [`home/git.nix`](home/git.nix) (`programs.git.settings`) and host configuration (`git config --global push.autoSetupRemote true`). Pushing newly created branches with `git push` or `gp` automatically configures upstream tracking without requiring `git push -u origin <branch>`.
+* **Documentation & Workflows**: Updated [`README.md`](README.md), [`docs/day-to-day-workflow.md`](docs/day-to-day-workflow.md), and [`docs/devenv.md`](docs/devenv.md) detailing declarative Git settings.
 
 ### 2026-10-23: ble.sh Restoration, Tmux Tiled Layout Fix & Ghost Session Elimination
 

@@ -20,6 +20,7 @@
       la = "ls -A";
       l = "ls -CF";
 
+      # Git shorthands (push.autoSetupRemote = true in home/git.nix allows gp on new branches without -u)
       gs = "git status";
       gl = "git log --oneline --decorate --graph";
       gd = "git diff";
