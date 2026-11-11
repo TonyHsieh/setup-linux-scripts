@@ -183,6 +183,6 @@ With the reverse proxy prefix cleared, URLs are short, clean, and consistent:
   *(e.g., `https://books-envy.komodo-sole.ts.net/` or `https://books-asus.komodo-sole.ts.net/`)*
 * **Native iOS E-Reader OPDS Catalog (KyBook 3 / PocketBook / Panels)**:
   ```text
-  https://books-<machine-name>.komodo-sole.ts.net/opds-books
+  https://books-<machine-name>.komodo-sole.ts.net/opds
   ```
-  *(For Comics: `https://books-<machine-name>.komodo-sole.ts.net/opds-comics`)*
+  *(Or specific feeds: `/opds-books` for books only, `/opds-comics` for comics only)*
