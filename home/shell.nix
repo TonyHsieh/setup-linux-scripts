@@ -35,6 +35,7 @@
       # AI Agent Shorthands
       oc = "opencode";
       ha = "hermes";
+      hc = "herdr";
 
       # Quick Tmux launcher
       t = "tmux";

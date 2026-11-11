@@ -153,6 +153,7 @@ flowchart LR
 | `./bootstrap.sh --with-host-deps` | Enables rootless Podman, port 80/443 sysctl, and local SSL CA trust | First-time machine setup |
 | `./bootstrap.sh --with-office` (or `--office`) | Installs ONLYOFFICE Desktop Editors & Microsoft TrueType fonts | Local office suite setup |
 | `./bootstrap.sh --uninstall-office` | Uninstalls ONLYOFFICE Desktop Editors and Microsoft TrueType fonts | Remove local office suite |
+| `./bootstrap.sh --with-herdr` (or `--herdr`) | Installs Herdr agent supervisor runtime (`herdr`, `hc`) into `~/.local/bin` | Terminal AI agent orchestration |
 | `./bootstrap.sh --cleanup` (or `--clean`) | Automatically cleans up detected legacy/duplicate artifacts after self-test verification | Automated installs & clean upgrades |
 | `./bootstrap.sh --no-cleanup` | Skips legacy artifact detection and keeps all backups intact | Safe testing without touching old files |
 | `./bootstrap.sh --build` (or `--dry-run`) | Dry-run build testing flake evaluation without mutating `$HOME` | CI, validation, syntax checks |
@@ -488,6 +489,12 @@ jl up-desktop    # Enable host Remote Desktop server (krdp on Linux / Screen Sha
 jl status-desktop # Check Remote Desktop listening ports, addresses, and connection URLs
 jl down-desktop  # Disable Remote Desktop on the host
 
+# 🐂 Herdr Agent Supervisor Runtime (Layer 2 Orchestration)
+jl herdr-up      # Start Herdr background daemon (hc daemon start)
+jl herdr-status  # Check Herdr supervisor status and active agent panes
+jl herdr-down    # Stop Herdr background daemon
+jl herdr-spawn <a> # Spawn agent pane in Herdr (e.g., jl herdr-spawn agy)
+
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
 
@@ -529,8 +536,13 @@ You do **not** need to manually renew certificates. Both local and remote layers
 
 ## 🤖 5. Terminal AI Agents & MCP Tooling
 
-Modern AI developer agents are provisioned and pre-configured out of the box:
+Modern AI developer agents and supervisors are provisioned and pre-configured out of the box:
 
+* **[Herdr](https://github.com/herdrdev/herdr)** (`herdr` / shorthand `hc`): Agent supervisor and terminal multiplexer runtime.
+  - Layer 2 terminal supervisor providing session persistence and an attention queue for multi-agent workflows.
+  - Concurrently coordinates **Google Antigravity CLI (`agy`)**, **OpenCode (`oc`)**, and **Hermes Agent (`ha`)**.
+  - Programmatic subagent delegation via CLI/socket API (`hc spawn`, `hc send`, `hc wait`).
+  - Read the complete **[docs/herdr-guide.md](docs/herdr-guide.md)** for architecture, local Ollama vs. Google Gemini model routing, and multi-agent coordination examples.
 * **[OpenCode](https://opencode.ai/)** (`opencode` / shorthand `oc`): Open-source pair programming agent.
   - Pre-configured with the **Google Antigravity (`agy`)** skill and `/agy` command.
   - Pre-configured with containerized on-demand **Puppeteer MCP**.
@@ -557,8 +569,9 @@ echo '{"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVe
 | **Container Mesh** | `jl status` | View local container status |
 | **Container Mesh** | `jl restart` | Restart Traefik, BentoPDF, and PostgreSQL |
 | **PostgreSQL CLI** | `psql -h localhost -U devuser -d devdb` | Native host CLI connection to dev database |
+| **AI Supervisor** | `hc` / `jl herdr-up` | Shorthand for Herdr supervisor and daemon start |
+| **AI Agents** | `oc` / `ha` / `agy` | Shorthand for OpenCode, Hermes, and Google Antigravity |
 | **Git Shorthands** | `gs`, `gd`, `gl`, `gc`, `gp` | Fast git status, diff, log graph, commit, push |
-| **AI Agents** | `oc` / `ha` | Shorthand for `opencode` and `hermes` |
 | **Kubernetes** | `k` | Shorthand for `kubectl` |
 
 ### 💡 Customizing Shell Aliases, Secrets & Git Settings
@@ -609,6 +622,11 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 ---
 
 ## 📝 9. Changes & Architectural Fixes (CHANGES)
+
+### 2026-11-11: Herdr Agent Supervisor Runtime Integration (Track A Phase 6)
+* **Herdr Installer**: Added `--with-herdr` (or `--herdr`) opt-in flag to [`bootstrap.sh`](bootstrap.sh) that auto-detects system architecture (`x86_64`, `aarch64`), downloads the pre-compiled GitHub release from `herdrdev/herdr`, creates `hc` shorthand symlinks in `~/.local/bin/`, and falls back to `cargo install`.
+* **Task Runner & Shell Aliases**: Added `jl herdr-up`, `jl herdr-status`, `jl herdr-down`, and `jl herdr-spawn` recipes to [`local-services/justfile`](local-services/justfile) and configured the `hc = "herdr"` shell alias in [`home/shell.nix`](home/shell.nix).
+* **Comprehensive Herdr Guide**: Authored [`docs/herdr-guide.md`](docs/herdr-guide.md) addressing core operational questions: Google Antigravity CLI (`agy`) integration with PTY attachment, API vs. TUI terminal interfaces, local Ollama vs. hosted Google Gemini model routing, and automated multi-agent coordination pipelines.
 
 ### 2026-11-11: Track B Language Templates Completion & Ubooquity 3 Ingress
 * **Track B Language Templates**: Implemented, verified, and cataloged 4 new declarative Devenv templates across [`flake.nix`](flake.nix) and [`templates/`](templates/):

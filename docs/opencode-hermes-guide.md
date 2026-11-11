@@ -283,6 +283,10 @@ flowchart TD
 3. **Subagent Delegation**: Hermes can programmatically invoke `hc spawn` to launch OpenCode in an isolated Git worktree, execute refactoring, and collect the resulting diff.
 4. **Remote Mobile Ingress (Ovis)**: Connect from your iPhone or iPad over your Tailscale mesh (`*.komodo-sole.ts.net`) to check agent progress or approve tool executions on the go.
 
+> [!TIP]
+> **Complete Herdr Guide & Google Antigravity CLI Integration**:  
+> For comprehensive architectural blueprints, API vs. TUI workflows, local Ollama vs. Google Gemini routing, and running the Google Antigravity CLI (`agy`) inside Herdr, see **[`docs/herdr-guide.md`](herdr-guide.md)**.
+
 ---
 
 ## 📌 6. Quick Reference & Command Cheatsheet

@@ -12,6 +12,7 @@ INSTALL_HOST_DEPS=false
 INSTALL_OFFICE=false
 UNINSTALL_OFFICE=false
 INSTALL_LLM=false
+INSTALL_HERDR=false
 TARGET_OVERRIDE=""
 CLEANUP_MODE="prompt" # options: "prompt", "auto", "skip"
 
@@ -28,6 +29,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --with-llm|--llm)
       INSTALL_LLM=true
+      shift
+      ;;
+    --with-herdr|--herdr)
+      INSTALL_HERDR=true
       shift
       ;;
     --with-office|--office)
@@ -57,6 +62,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --build, --dry-run      Build the Home Manager generation without activating it"
       echo "  --with-host-deps, --all Install host system prerequisites (Podman, port 80 sysctl, mkcert CA)"
       echo "  --with-llm, --llm       Launch local Ollama LLM inference service (https://ollama.localhost)"
+      echo "  --with-herdr, --herdr   Install Herdr AI coding agent multiplexer & supervisor (hc)"
       echo "  --with-office, --office Install local office suite (ONLYOFFICE Desktop Editors & Microsoft fonts)"
       echo "  --uninstall-office      Uninstall ONLYOFFICE Desktop Editors and Microsoft fonts"
       echo "  --cleanup, --clean      Automatically clean up detected legacy artifacts after verification"
@@ -191,6 +197,75 @@ uninstall_office_suite() {
     command -v flatpak >/dev/null 2>&1 && flatpak uninstall -y org.onlyoffice.extra.DesktopEditors 2>/dev/null || true
     command -v snap >/dev/null 2>&1 && sudo snap remove onlyoffice-desktopeditors 2>/dev/null || true
     sudo apt-get remove -y ttf-mscorefonts-installer 2>/dev/null || true
+  fi
+}
+
+# 0.7. Optional: Install Herdr AI Agent Multiplexer & Supervisor (hc)
+install_herdr() {
+  echo ""
+  echo "==> 🐾 Setting up Herdr AI agent multiplexer & supervisor runtime (hc)..."
+  mkdir -p "$HOME/.local/bin"
+
+  if command -v herdr >/dev/null 2>&1 || command -v hc >/dev/null 2>&1 || [ -x "$HOME/.local/bin/herdr" ] || [ -x "$HOME/.local/bin/hc" ]; then
+    echo "✅ Herdr is already installed."
+    return 0
+  fi
+
+  ARCH="$(uname -m)"
+  OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  INSTALLED=false
+  REPO="herdrdev/herdr"
+  TARGET=""
+
+  if [ "$OS" = "linux" ] && [ "$ARCH" = "x86_64" ]; then
+    TARGET="x86_64-unknown-linux-gnu"
+  elif [ "$OS" = "linux" ] && [ "$ARCH" = "aarch64" ]; then
+    TARGET="aarch64-unknown-linux-gnu"
+  elif [ "$OS" = "darwin" ] && [ "$ARCH" = "arm64" ]; then
+    TARGET="aarch64-apple-darwin"
+  elif [ "$OS" = "darwin" ] && [ "$ARCH" = "x86_64" ]; then
+    TARGET="x86_64-apple-darwin"
+  fi
+
+  # 1. Attempt pre-compiled binary download from GitHub releases
+  if [ -n "$TARGET" ] && command -v curl >/dev/null 2>&1; then
+    echo "==> Checking for latest GitHub release binary ($TARGET)..."
+    LATEST_TAG="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' || true)"
+    if [ -n "$LATEST_TAG" ]; then
+      DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/herdr-${TARGET}.tar.gz"
+      TMP_DIR="$(mktemp -d)"
+      if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_DIR/herdr.tar.gz" 2>/dev/null; then
+        tar -xzf "$TMP_DIR/herdr.tar.gz" -C "$TMP_DIR" 2>/dev/null || true
+        for bin in herdr herdr-core hc; do
+          if [ -f "$TMP_DIR/$bin" ]; then
+            install -m 755 "$TMP_DIR/$bin" "$HOME/.local/bin/$bin"
+            [ "$bin" != "hc" ] && ln -sf "$HOME/.local/bin/$bin" "$HOME/.local/bin/hc"
+            INSTALLED=true
+          fi
+        done
+      fi
+      rm -rf "$TMP_DIR"
+    fi
+  fi
+
+  # 2. Fallback to Cargo build if binary release wasn't found or failed
+  if [ "$INSTALLED" = false ]; then
+    if command -v cargo >/dev/null 2>&1; then
+      echo "==> Building herdr-core from source via Cargo (fallback)..."
+      if cargo install --git "https://github.com/$REPO" herdr-core --root "$HOME/.local" 2>/dev/null || cargo install --git "https://github.com/$REPO" --root "$HOME/.local" 2>/dev/null; then
+        INSTALLED=true
+      fi
+    fi
+  fi
+
+  # 3. Create convenient helper symlink
+  if [ "$INSTALLED" = true ] || [ -f "$HOME/.local/bin/herdr" ] || [ -f "$HOME/.local/bin/herdr-core" ]; then
+    [ -f "$HOME/.local/bin/herdr" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr" "$HOME/.local/bin/hc"
+    [ -f "$HOME/.local/bin/herdr-core" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr-core" "$HOME/.local/bin/hc"
+    echo "🎉 Herdr successfully installed into ~/.local/bin/ (accessible via 'herdr' or 'hc')."
+  else
+    echo "⚠️ Notice: Pre-compiled binary unavailable and Cargo build skipped."
+    echo "   To build manually: cargo install --git https://github.com/herdrdev/herdr herdr-core"
   fi
 }
 
@@ -768,6 +843,10 @@ EOF
     elif [ -f "$SCRIPT_DIR/local-services/justfile" ] && command -v just >/dev/null 2>&1; then
       just -f "$SCRIPT_DIR/local-services/justfile" up-llm || true
     fi
+  fi
+
+  if [ "$INSTALL_HERDR" = true ]; then
+    install_herdr
   fi
 
   if command -v podman >/dev/null 2>&1; then

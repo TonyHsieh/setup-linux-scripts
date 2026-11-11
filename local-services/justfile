@@ -443,3 +443,49 @@ mcp-info:
     @echo '    command: "podman"'
     @echo '    args: ["run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"]'
     @echo "======================================================================"
+
+# --- 🐾 Herdr Multi-Agent Multiplexer & Supervisor Tasks ---
+# Start the Herdr supervisor daemon
+herdr-up:
+    #!/usr/bin/env bash
+    if command -v hc >/dev/null 2>&1; then
+        echo "==> Starting Herdr supervisor daemon..."
+        hc daemon start 2>/dev/null || hc start 2>/dev/null || echo "💡 Run 'hc' to attach or view active agent sessions."
+    elif command -v herdr >/dev/null 2>&1; then
+        echo "==> Starting Herdr supervisor daemon..."
+        herdr daemon start 2>/dev/null || herdr start 2>/dev/null || echo "💡 Run 'herdr' to attach."
+    else
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+    fi
+
+# Check Herdr supervisor daemon and agent sessions status
+herdr-status:
+    #!/usr/bin/env bash
+    if command -v hc >/dev/null 2>&1; then
+        hc status 2>/dev/null || hc list 2>/dev/null || echo "💡 Herdr is not currently running."
+    elif command -v herdr >/dev/null 2>&1; then
+        herdr status 2>/dev/null || herdr list 2>/dev/null || echo "💡 Herdr is not currently running."
+    else
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+    fi
+
+# Stop the Herdr supervisor daemon
+herdr-down:
+    #!/usr/bin/env bash
+    if command -v hc >/dev/null 2>&1; then
+        hc daemon stop 2>/dev/null || hc stop 2>/dev/null || true
+    elif command -v herdr >/dev/null 2>&1; then
+        herdr daemon stop 2>/dev/null || herdr stop 2>/dev/null || true
+    fi
+
+# Spawn an agent into a supervised Herdr pane (e.g. jl herdr-spawn agy or jl herdr-spawn oc)
+herdr-spawn AGENT *ARGS:
+    #!/usr/bin/env bash
+    HC_BIN="$(command -v hc || command -v herdr || echo "")"
+    if [ -z "$HC_BIN" ]; then
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+        exit 1
+    fi
+    echo "==> Spawning {{AGENT}} inside Herdr session..."
+    $HC_BIN spawn --name "{{AGENT}}" {{AGENT}} {{ARGS}} 2>/dev/null || $HC_BIN new-pane --name "{{AGENT}}" {{AGENT}} {{ARGS}} 2>/dev/null || echo "💡 Ensure Herdr is running via 'jl herdr-up' before spawning panes."
+

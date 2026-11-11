@@ -255,10 +255,10 @@ volumes:
   5. **Remote Mobile / Web Supervision (Ovis)**:
      * Connects with companion web/mobile clients over Tailscale, enabling developers to review diffs and approve actions on mobile devices.
 * **Implementation Deliverables**:
-  * [ ] Add `herdr` installation / build recipe via Cargo / GitHub release to Tier 1 (`install-dev-env.sh` / `home/packages.nix`).
-  * [ ] Add shell aliases and environment variables in `home/shell.nix`.
-  * [ ] Add task runner management commands in `local-services/justfile` (`jl herdr-up`, `jl herdr-status`, `jl herdr-down`).
-  * [ ] Document multi-agent workflows in `docs/opencode-hermes-guide.md`.
+  * [x] Add `herdr` installation / build recipe via Cargo / GitHub release to Tier 1 (`install-dev-env.sh` / `home/packages.nix` / `bootstrap.sh`).
+  * [x] Add shell aliases and environment variables in `home/shell.nix` (`hc = "herdr"`).
+  * [x] Add task runner management commands in `local-services/justfile` (`jl herdr-up`, `jl herdr-status`, `jl herdr-down`, `jl herdr-spawn`).
+  * [x] Document Herdr architecture, Antigravity CLI (`agy`) integration, model routing (Gemini vs. Ollama), and multi-agent coordination in `docs/herdr-guide.md` and `docs/opencode-hermes-guide.md`.
 
 ---
 
