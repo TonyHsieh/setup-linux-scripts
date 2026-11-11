@@ -171,13 +171,18 @@ With the reverse proxy prefix cleared, URLs are short, clean, and consistent:
 > If accessing via `https://books.localhost` for the first time, ensure you run `jl certs` so `books.localhost` and `books-admin.localhost` are included in the local wildcard certificate.
 
 ### Remote Access over Tailscale (iPhone / iPad / Secondary Laptop)
+
+> [!IMPORTANT]
+> **Tailscale FQDN Naming Convention**:
+> All dedicated ingress endpoints strictly adhere to the `books-<machine-name>.komodo-sole.ts.net` convention (where `<machine-name>` matches your machine's `TS_MACHINE_ID` from `.env`, e.g., `envy` or `asus`).
+
 * **Web Reader**:
   ```text
-  https://books-<machine>.komodo-sole.ts.net/
+  https://books-<machine-name>.komodo-sole.ts.net/
   ```
-  *(e.g., `https://books-envy.komodo-sole.ts.net/` or `https://books-asus1.komodo-sole.ts.net/`)*
+  *(e.g., `https://books-envy.komodo-sole.ts.net/` or `https://books-asus.komodo-sole.ts.net/`)*
 * **Native iOS E-Reader OPDS Catalog (KyBook 3 / PocketBook / Panels)**:
   ```text
-  https://books-<machine>.komodo-sole.ts.net/opds-books
+  https://books-<machine-name>.komodo-sole.ts.net/opds-books
   ```
-  *(For Comics: `https://books-<machine>.komodo-sole.ts.net/opds-comics`)*
+  *(For Comics: `https://books-<machine-name>.komodo-sole.ts.net/opds-comics`)*

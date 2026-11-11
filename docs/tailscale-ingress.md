@@ -347,7 +347,7 @@ jl test-remote
 3. **Rootless Podman DNS**: Validates upstream fallback DNS (`1.1.1.1`, `8.8.8.8`) in `containers.conf` to prevent ACME TLS certificate generation timeouts.
 4. **Dedicated Ingress Sidecars Health**: Verifies all 6+ ingress containers are running in healthy status.
 5. **Tailscale Serve Schema**: Asserts that Port 80 uses `"HTTP": true` (avoiding schema-drop bugs), Port 80 has an active 301 permanent redirect, Port 443 has `"HTTPS": true`, and Port 443 forwards to the correct internal proxy targets.
-6. **Backend Services Health**: Verifies that `traefik-ingress`, `bentopdf`, `local-postgres`, `local-kavita`, and `local-plex` are running.
+6. **Backend Services Health**: Verifies that `traefik-ingress`, `bentopdf`, `local-postgres`, `local-ubooquity`, and `local-plex` are running.
 
 
 

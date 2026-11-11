@@ -260,7 +260,7 @@ services:
     labels:
       - "io.containers.autoupdate=registry"
 
-  # 🌐 Tailscale Ingress: Kavita E-Books
+  # 🌐 Tailscale Ingress: Ubooquity E-Books
   tailscale-books:
     image: docker.io/tailscale/tailscale:latest
     container_name: local-tailscale-books

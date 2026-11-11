@@ -11,7 +11,7 @@ Before editing configuration files, identify which tier your change belongs to:
 | Tier | Scope | What Lives Here | How to Modify |
 | :--- | :--- | :--- | :--- |
 | **Tier 1: Global User** | All shells & folders | CLI tools (`git`, `jq`, `sops`), shell aliases, tmux, starship, neovim | Edit files in [`home/`](../home/), then run `./bootstrap.sh` |
-| **Tier 2: Local Mesh** | Local machine services | Traefik v3 proxy, local Postgres, BentoPDF, future apps (Ollama, Kavita, Plex) | Edit [`local-services/`](../local-services/), manage via `jl` |
+| **Tier 2: Local Mesh** | Local machine services | Traefik v3 proxy, local Postgres, BentoPDF, apps (Ollama, Ubooquity, Plex) | Edit [`local-services/`](../local-services/), manage via `jl` |
 | **Tier 3: Project Workspaces** | Specific project directory | Compilers (Node, Python, Rust, Go), project linters, mock DBs, pre-commit hooks | Edit `devenv.nix` in that project folder |
 
 ---
@@ -114,37 +114,37 @@ To add a new service (e.g. an e-book server, local AI, or dashboard) to the mesh
 1. Open [`local-services/docker-compose.yml`](../local-services/docker-compose.yml).
 2. Add your service with standard Traefik routing labels:
    ```yaml
-     # 📖 Kavita E-Book / Manga Server
-     kavita:
-       image: lscr.io/linuxserver/kavita:latest
-       container_name: local-kavita
+     # 📚 Ubooquity 3 E-Book & Comic Server
+     ubooquity:
+       image: lscr.io/linuxserver/ubooquity:latest
+       container_name: local-ubooquity
        restart: unless-stopped
        environment:
          - PUID=1000
          - PGID=1000
          - TZ=America/Los_Angeles
        volumes:
-         - kavita-data:/config
-         - /mnt/d/Books:/data/books:ro   # Mount your host books directory
+         - ubooquity-data:/config
+         - ${BOOKS_DIR:-$HOME/Books}:/books:ro
        networks:
          - local-mesh
        labels:
          - "traefik.enable=true"
-         - "traefik.http.routers.kavita.rule=Host(`kavita.localhost`)"
-         - "traefik.http.routers.kavita.entrypoints=web,websecure"
-         - "traefik.http.routers.kavita.tls=true"
-         - "traefik.http.services.kavita.loadbalancer.server.port=5000"
+         - "traefik.http.routers.ubooquity.rule=Host(`books.localhost`)"
+         - "traefik.http.routers.ubooquity.entrypoints=web,websecure"
+         - "traefik.http.routers.ubooquity.tls=true"
+         - "traefik.http.services.ubooquity.loadbalancer.server.port=2202"
    ```
 3. Update the `mkcert` certificate recipe in [`local-services/justfile`](../local-services/justfile) if you want the subdomain explicitly listed in the SAN:
    ```just
-   mkcert -cert-file ... "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "kavita.localhost" "127.0.0.1" "::1"
+   mkcert -cert-file ... "*.localhost" "localhost" "pdf.localhost" "traefik.localhost" "books.localhost" "127.0.0.1" "::1"
    ```
 4. Spin up the updated mesh:
    ```bash
    jl certs   # Regenerates certificate with new SAN
    jl up      # Starts/recreates containers
    ```
-5. Open your browser: `https://kavita.localhost` (clean HTTPS padlock, zero warnings).
+5. Open your browser: `https://books.localhost` (clean HTTPS padlock, zero warnings).
 
 ---
 

@@ -9,7 +9,7 @@ This guide documents the automated, zero-touch **Tailscale Auth Key Rotator** ar
 
 ## 🎯 1. The Problem with Static Tailscale Auth Keys
 
-When deploying containerized or headless Tailscale nodes (such as our dedicated Port 443 ingress sidecars for BentoPDF, Open WebUI, Ollama, Kavita, and Traefik):
+When deploying containerized or headless Tailscale nodes (such as our dedicated Port 443 ingress sidecars for BentoPDF, Open WebUI, Ollama, Ubooquity, and Traefik):
 
 1. **Strict 90-Day Lifespan**: Tailscale reusable auth keys have a hard maximum expiration window of **90 days**. When an auth key expires, any container recreate or machine re-provisioning silently fails with authentication errors.
 2. **Personal API Keys Are Over-Privileged**: Using personal API tokens carries excessive security risks because they grant full administrative access across your entire Tailnet.

@@ -53,7 +53,7 @@ flowchart TD
 
     subgraph WebServices["1. Local Services (Web Apps)"]
         Sidecars["Dedicated Tailscale Ingress Containers\n(TS_USERSPACE=true)"]
-        WebApps["BentoPDF • Open WebUI • Ollama • Kavita • Plex"]
+        WebApps["BentoPDF • Open WebUI • Ollama • Ubooquity • Plex"]
         Sidecars --> WebApps
     end
 
