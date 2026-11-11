@@ -215,6 +215,134 @@ To stop running background services, press `Ctrl+C`.
 
 ---
 
+## 📚 Built-In Project Flake Templates (Multi-Language Stack Catalog)
+
+This repository provides production-ready, declarative Nix Flake templates for modern development stacks. Each template implements a standardized **3-file declarative pattern**:
+
+```text
+my-project/
+├── flake.nix      # Flake entry point calling devenv.lib.mkShell
+├── devenv.nix     # Declarative languages, compilers, CLI tools, scripts & hooks
+└── .envrc         # Direnv activation with automatic dependency manifest watching
+```
+
+### ⚡ The Dual-Condition Dependency Auto-Sync Pattern
+All templates adhere to our **Phase 5 auto-sync standard**:
+1. **Zero-Error Initialization**: When first initialized via `nix flake init`, the environment never crashes if project manifest files (e.g. `package.json`, `Cargo.toml`, `go.mod`, `build.sbt`) have not yet been created.
+2. **Helpful Scaffolding Guidance**: `enterShell` displays a friendly terminal banner advising the developer on the idiomatic command to initialize the project (e.g., `pnpm init`, `cargo init`, `go mod init`, `sbt new zio/zio-seed.g8`).
+3. **Automatic Change Detection (`watch_file`)**: The pre-configured `.envrc` watches language dependency manifests. As soon as you save or modify a manifest file, `direnv` automatically reloads the shell and executes the fast native package manager (`pnpm install`, `go mod download`, `cargo check`).
+
+---
+
+### 🗂️ Template Catalog & Capabilities Matrix
+
+| Stack | Initialize Command | Key Toolchains & Packages | Auto-Watched Manifests | Primary Strengths |
+| :--- | :--- | :--- | :--- | :--- |
+| **Go** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#go` | Go 1.23+, `gopls`, `golangci-lint`, `delve` (`dlv`), `gotools` | `go.mod`, `go.sum` | Zero-dependency microservices, high-concurrency APIs, CLI tools |
+| **Rust / WASM** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#wasm`<br>*(or `#rust-wasm`)* | Rust `wasm32-unknown-unknown`, `wasm-pack`, `wasm-bindgen-cli`, `binaryen` (`wasm-opt`), `wabt`, `rust-analyzer` | `Cargo.toml`, `Cargo.lock` | High-performance WebAssembly in browser/Node, client-side PDF/image compute (like BentoPDF) |
+| **TypeScript / Effect** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#effect`<br>*(or `#ts-effect`)* | Node.js 22, pnpm, `tsx`, Biome linter/formatter, Effect-TS ecosystem | `package.json`, `pnpm-lock.yaml`, `tsconfig.json` | Type-safe functional programming, structured concurrency, typed errors, resilient backend services |
+| **Scala 3 / ZIO** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#zio`<br>*(or `#scala-zio`)* | Eclipse Temurin Java 21 LTS, Scala 3, `sbt`, `scala-cli`, `scalafmt`, Metals LSP | `build.sbt`, `project/build.properties`, `project.scala` | Purely functional, type-driven asynchronous microservices, resilient concurrent pipelines |
+| **Node.js / TS** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#node` | Node.js 22, TypeScript, pnpm, Biome | `package.json`, `pnpm-lock.yaml` | Standard full-stack web apps, REST/GraphQL APIs, CLI scripts |
+| **Python / ML** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#python` | Python 3.12, `uv` fast manager, `ruff`, WSL2 CUDA paravirtualization | `requirements.txt`, `pyproject.toml` | Machine Learning, PyTorch, LLM agents, local CUDA acceleration on RTX GPUs |
+| **Systems Rust** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#rust` | Rust stable, `cargo-watch`, `cargo-edit`, `rust-analyzer` | `Cargo.toml`, `Cargo.lock` | Native systems programming, daemon tools, high-speed CLI utilities |
+| **Kubernetes** | `nix flake init -t github:TonyHsieh/setup-linux-scripts#kubernetes`<br>*(or `#ckad`)* | `kubectl`, `minikube`, `helm`, `k9s`, `kustomize`, exam shorthands | `kustomization.yaml`, `Chart.yaml`, `values.yaml` | Cloud-native deployments, CKAD / CKA certification labs, microservice orchestration |
+| **Minimal Starter** | `nix flake init -t github:TonyHsieh/setup-linux-scripts` | Reusable common module, pre-commit hooks, `git`, `jq`, `yq-go` | `flake.nix`, `devenv.nix` | Lightweight boilerplate for generic shell scripting or custom tools |
+
+---
+
+### 📖 In-Depth Template Reference
+
+#### 1. Go Developer Environment (`#go`)
+* **Scaffolding**:
+  ```bash
+  mkdir my-go-service && cd my-go-service
+  nix flake init -t github:TonyHsieh/setup-linux-scripts#go
+  direnv allow
+  ```
+* **Toolchains Included**:
+  * `languages.go.enable = true` (Go 1.23+)
+  * `pkgs.gopls`: Official Go language server protocol daemon.
+  * `pkgs.golangci-lint`: Fast multi-linter runner.
+  * `pkgs.delve`: The premier Go debugger (`dlv`).
+  * `pkgs.gotools`: Standard Go formatting and refactoring utilities (`goimports`, etc.).
+* **Auto-Sync Hook**:
+  ```bash
+  if [ -f go.mod ]; then
+    echo "📦 Syncing Go module dependencies from go.mod..."
+    go mod download 2>/dev/null || echo "💡 Run 'go mod tidy' to synchronize module requirements."
+  fi
+  ```
+
+#### 2. Rust & WebAssembly / WASM (`#wasm`, `#rust-wasm`)
+* **Scaffolding**:
+  ```bash
+  mkdir my-wasm-app && cd my-wasm-app
+  nix flake init -t github:TonyHsieh/setup-linux-scripts#wasm
+  direnv allow
+  ```
+* **Toolchains Included**:
+  * `languages.rust = { enable = true; channel = "stable"; targets = [ "wasm32-unknown-unknown" ]; }`
+  * `pkgs.wasm-pack`: All-in-one tool for building and packaging Rust-generated WebAssembly for the browser or npm.
+  * `pkgs.wasm-bindgen-cli`: High-level interactions between Rust and JavaScript.
+  * `pkgs.binaryen`: Provides `wasm-opt` (production code size & speed optimization) and `wasm-merge`.
+  * `pkgs.wabt`: The WebAssembly Binary Toolkit (`wasm2wat`, `wat2wasm`).
+  * `pkgs.rust-analyzer` & `pkgs.cargo-watch`.
+* **Workflow**:
+  ```bash
+  wasm-pack build --target web      # Compile Rust directly into browser-ready WASM + JS glue
+  wasm-opt -O3 pkg/my_app_bg.wasm -o pkg/my_app_bg.opt.wasm # Optimize payload size
+  ```
+
+#### 3. TypeScript & Effect-TS (`#effect`, `#ts-effect`)
+* **Scaffolding**:
+  ```bash
+  mkdir my-effect-app && cd my-effect-app
+  nix flake init -t github:TonyHsieh/setup-linux-scripts#effect
+  direnv allow
+  ```
+* **Toolchains Included**:
+  * `languages.javascript` (Node.js 22 LTS) + `languages.typescript.enable = true`
+  * `pnpm.enable = true`: Fast, disk-efficient package manager.
+  * `pkgs.tsx`: Blazing-fast TypeScript script execution engine (runs `.ts` files with zero build step).
+  * `pkgs.biome`: Next-generation ultra-fast linter and formatter.
+* **Effect Ecosystem Guidance**:
+  The environment displays guidance to seed modern functional TypeScript dependencies:
+  ```bash
+  pnpm init
+  pnpm add effect @effect/schema @effect/platform
+  pnpm add -D typescript @types/node tsx biome vitest
+  ```
+
+#### 4. Scala 3 & ZIO (`#zio`, `#scala-zio`)
+* **Scaffolding**:
+  ```bash
+  mkdir my-zio-service && cd my-zio-service
+  nix flake init -t github:TonyHsieh/setup-linux-scripts#zio
+  direnv allow
+  ```
+* **Toolchains Included**:
+  * `languages.java.jdk.package = pkgs.temurin-bin-21`: Eclipse Temurin Java 21 LTS runtime.
+  * `languages.scala = { enable = true; sbt.enable = true; }`: Scala 3 runtime and sbt build tool.
+  * `pkgs.scala-cli`: Revolutionary single-file Scala runner and prototyping tool.
+  * `pkgs.scalafmt`: Code formatting engine.
+  * `pkgs.metals`: Metals Language Server for Neovim / VS Code / Zed integration.
+* **Workflow**:
+  ```bash
+  # Quick single-file script with ZIO:
+  cat << 'EOF' > Main.scala
+  //> using scala 3.5.2
+  //> using dep dev.zio::zio:2.1.13
+  import zio._
+
+  object Main extends ZIOAppDefault:
+    def run = Console.printLine("Hello from ZIO and Devenv!")
+  EOF
+
+  scala-cli run .
+  ```
+
+---
+
 ## 🎮 WSL2 NVIDIA & CUDA GPU Acceleration (Machine Learning & PyTorch)
 
 When running Machine Learning, Deep Learning (e.g. PyTorch, Hugging Face Transformers, SentencePiece), or CUDA compute workloads inside **WSL2** (Windows Subsystem for Linux), standard Linux GPU workflows require specific understanding of the paravirtualized driver stack and Nix linker behavior.

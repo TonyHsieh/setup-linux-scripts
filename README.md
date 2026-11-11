@@ -215,6 +215,10 @@ This creates three starter files in your project directory:
 * **`devenv.nix`**: Your declarative project dependencies, compilers, and tools.
 * **`.envrc`**: Directs `direnv` to automatically load the project environment.
 
+> [!TIP]
+> **Detailed Template Catalog & Manifest Auto-Sync**:  
+> For an in-depth breakdown of all 9 templates, toolchains, and auto-sync behaviors (`watch_file`, `go.mod`, `Cargo.toml`, `package.json`, `build.sbt`), read **[`docs/devenv.md#built-in-project-flake-templates-multi-language-stack-catalog`](docs/devenv.md#built-in-project-flake-templates-multi-language-stack-catalog)**.
+
 ---
 
 ### Working with Your Environment (Two Workflows)
@@ -605,6 +609,15 @@ The original procedural scripts and templates are archived under [`legacy/`](leg
 ---
 
 ## 📝 9. Changes & Architectural Fixes (CHANGES)
+
+### 2026-11-11: Track B Language Templates Completion & Ubooquity 3 Ingress
+* **Track B Language Templates**: Implemented, verified, and cataloged 4 new declarative Devenv templates across [`flake.nix`](flake.nix) and [`templates/`](templates/):
+  * **Go (`#go`)**: Go 1.23+, `gopls`, `golangci-lint`, Delve (`dlv`), and `go.mod` auto-sync.
+  * **Rust & WebAssembly (`#wasm`, `#rust-wasm`)**: Stable Rust with `wasm32-unknown-unknown`, `wasm-pack`, `wasm-bindgen-cli`, `binaryen` (`wasm-opt`), and `wabt`.
+  * **TypeScript & Effect-TS (`#effect`, `#ts-effect`)**: Node.js 22, pnpm, `tsx`, Biome, and Effect ecosystem guidance.
+  * **Scala 3 & ZIO (`#zio`, `#scala-zio`)**: Eclipse Temurin Java 21 LTS, Scala 3, `sbt`, `scala-cli`, `scalafmt`, and Metals LSP.
+* **Comprehensive Devenv Guide**: Added a dedicated template catalog and capabilities matrix in [`docs/devenv.md`](docs/devenv.md#built-in-project-flake-templates-multi-language-stack-catalog).
+* **Ubooquity 3 Migration**: Replaced legacy Kavita with Ubooquity 3 (`books.localhost` and `books-<id>.komodo-sole.ts.net`), normalized root reverse proxy paths, enabled OPDS feeds (`/opds`), and verified on mobile e-readers (KyBook 3).
 
 ### 2026-11-02: Declarative Git Auto-Setup Remote Branch Tracking (`push.autoSetupRemote`)
 * **Automatic Remote Branch Tracking**: Added `push.autoSetupRemote = true` to [`home/git.nix`](home/git.nix) (`programs.git.settings`) and host configuration (`git config --global push.autoSetupRemote true`). Pushing newly created branches with `git push` or `gp` automatically configures upstream tracking without requiring `git push -u origin <branch>`.
