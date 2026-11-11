@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & Roadmap Checkpoint — 2026-11-11 01:35</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--emerald);
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .alert {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--sky);
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .alert.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--emerald);
+      color: #e2e8f0;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title.sky { color: var(--sky); }
+    .card-title.emerald { color: var(--emerald); }
+    .card-title.indigo { color: var(--indigo); }
+    .card-title.amber { color: var(--amber); }
+    ul { list-style: none; }
+    li {
+      margin-bottom: 0.6rem;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      position: relative;
+      padding-left: 1.4rem;
+    }
+    li::before {
+      content: "•";
+      color: var(--text-muted);
+      position: absolute;
+      left: 0.3rem;
+      font-weight: bold;
+    }
+    li.success::before { content: "✓"; color: var(--emerald); }
+    li.warning::before { content: "⚠️"; color: var(--amber); }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #e2e8f0;
+      padding: 0.15rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0.75rem 0 1.25rem 0;
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 0.85rem;
+      color: #f1f5f9;
+      display: block;
+      line-height: 1.5;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    .tag {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      display: inline-block;
+    }
+    .tag.green { background: rgba(52, 211, 153, 0.15); color: var(--emerald); }
+    .tag.blue { background: rgba(56, 189, 248, 0.15); color: var(--sky); }
+    .tag.purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); }
+    .priority-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+      letter-spacing: 0.05em;
+    }
+    .priority-high { background: rgba(244, 63, 94, 0.2); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.4); }
+    .priority-medium { background: rgba(251, 191, 36, 0.2); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.4); }
+    .priority-verified { background: rgba(52, 211, 153, 0.2); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.4); }
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🚀 Track B Flake Templates, Ubooquity Ingress & Herdr Roadmap Alignment</h1>
+        <div class="meta">
+          <span>📅 Wed Nov 11 01:35 PST 2026</span>
+          <span>•</span>
+          <span>💻 Host: <code>envy-cachyos-x8664</code> (Arch/CachyOS Linux)</span>
+          <span>•</span>
+          <span>🌿 Git Branch: <code>main</code> (HEAD <code>3280082</code>)</span>
+        </div>
+      </div>
+      <div class="status-badge">
+        <span>● All Checks Passing • Flake Validated • Services Healthy</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="alert success">
+    <strong>🎯 Major Multi-Track Milestones Achieved:</strong>
+    1. <strong>Track B Completed</strong>: Built and validated 4 new declarative Nix templates across Go, Rust/WASM, TypeScript/Effect, and Scala/ZIO with automatic dependency watching (<code>watch_file</code>) and comprehensive catalog documentation in <code>docs/devenv.md</code>.<br>
+    2. <strong>Ubooquity 3 Migration Operational</strong>: Replaced legacy Kavita with Ubooquity 3, cleared reverse proxy prefixes to root, resolved 502 Tailscale proxy target caching, and verified OPDS catalog on iPhone KyBook 3 (<code>https://books-envy.komodo-sole.ts.net/opds</code>).<br>
+    3. <strong>Track A Roadmap Formulated</strong>: Scheduled <strong>Herdr</strong> as Phase 6 (agent multiplexer and supervisor runtime) followed by Phase 7 exploration of local decision models (<strong>Laya</strong> & <strong>Respan Span-01/02</strong>).
+  </div>
+
+  <!-- Section 2: System Overview & Metrics Grid -->
+  <div class="grid-3">
+    <div class="card">
+      <h2 class="card-title sky">
+        <span>🖥️ Host Environment</span>
+        <span class="tag blue">Arch / CachyOS</span>
+      </h2>
+      <ul>
+        <li><strong>User:</strong> <code>thsieh</code></li>
+        <li><strong>Host:</strong> <code>envy-cachyos-x8664</code> (Linux x86_64)</li>
+        <li><strong>Nix Flakes & HM:</strong> Active via profile <code>.#cachyos</code></li>
+        <li><strong>Git Configuration:</strong> <code>push.autoSetupRemote = true</code> active and verified</li>
+        <li><strong>Tailnet:</strong> <code>komodo-sole.ts.net</code> (Machine ID: <code>envy</code>)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title emerald">
+        <span>📦 Flake Templates (Track B)</span>
+        <span class="tag green">13/13 Validated</span>
+      </h2>
+      <ul>
+        <li class="success"><strong>Go:</strong> <code>#go</code> (Go 1.23+, gopls, golangci-lint, delve)</li>
+        <li class="success"><strong>Rust / WASM:</strong> <code>#wasm</code> (wasm32 target, wasm-pack, binaryen)</li>
+        <li class="success"><strong>TS / Effect:</strong> <code>#effect</code> (Node 22, pnpm, tsx, Biome, Effect-TS)</li>
+        <li class="success"><strong>Scala / ZIO:</strong> <code>#zio</code> (Java 21 LTS, Scala 3, sbt, scala-cli, Metals)</li>
+        <li class="success"><strong>Validation:</strong> <code>nix flake check</code> passes with zero errors</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2 class="card-title indigo">
+        <span>🤖 AI & Ingress Mesh</span>
+        <span class="tag purple">Mesh Active</span>
+      </h2>
+      <ul>
+        <li class="success"><strong>Ubooquity 3:</strong> <code>https://books.localhost</code> & <code>books-envy</code></li>
+        <li class="success"><strong>OPDS Feed:</strong> <code>https://books-envy.komodo-sole.ts.net/opds</code></li>
+        <li class="success"><strong>Local LLM Backend:</strong> Ollama active on <code>11434</code></li>
+        <li class="success"><strong>Track A Roadmap:</strong> Phase 6 (Herdr) & Phase 7 (Laya/Respan)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Technical Accomplishments & Incident Resolutions -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title emerald">
+      <span>🛠️ Incident Resolutions & Key Technical Accomplishments</span>
+      <span class="tag green">Resolved & Documented</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Diagnosis / Root Cause</th>
+          <th>Permanent Solution & Architecture</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ubooquity 502 on Tailscale</strong></td>
+          <td><code>local-tailscale-books</code> was running for 12 days and held stale in-memory proxy target <code>local-kavita:5000</code>. When Kavita was stopped, proxy failed with Connection Refused.</td>
+          <td>Restarted <code>local-tailscale-books</code> to reload <code>serve-books.json</code> pointing to <code>http://local-ubooquity:2202</code>. Verified <code>HTTP/2 200 OK</code> on web and OPDS.</td>
+        </tr>
+        <tr>
+          <td><strong>Ubooquity Root Prefix (500 Error)</strong></td>
+          <td>Default container configuration had <code>"reverseProxyPrefix": "ubooquity"</code>, causing requests to root URL <code>/</code> or <code>/books</code> to return Jetty 500 error.</td>
+          <td>Used <code>podman unshare</code> to configure <code>"reverseProxyPrefix": ""</code> and <code>"isOpdsProviderEnabled": true</code> in <code>preferences-2.json</code>, enabling clean root URLs.</td>
+        </tr>
+        <tr>
+          <td><strong>Devenv Rust WASM Cross-Compilation</strong></td>
+          <td>Using <code>languages.rust.targets = ["wasm32-unknown-unknown"]</code> with default <code>channel = "nixpkgs"</code> threw devenv assertion error because nixpkgs channel does not support target cross-compilation.</td>
+          <td>Configured <code>languages.rust.channel = "stable"</code> with <code>targets = ["wasm32-unknown-unknown"]</code>, resolving cleanly in devenv devShell.</td>
+        </tr>
+        <tr>
+          <td><strong>Track B Templates Manifest Auto-Sync</strong></td>
+          <td>Need unified developer guidance and auto-sync across Go, WASM, Effect, and Scala without crashing when manifests are missing.</td>
+          <td>Implemented Phase 5 dual-condition pattern: friendly terminal banner if manifest is absent, <code>watch_file</code> in <code>.envrc</code>, and native package sync on detection.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 4: Live Service Health & Endpoints Matrix -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title sky">
+      <span>🌐 Live Service Health & Endpoints Matrix</span>
+      <span class="tag blue">Active Endpoints</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Internal Target</th>
+          <th>Local URL (Port 443 TLS)</th>
+          <th>Tailscale Remote FQDN (Port 443 TLS)</th>
+          <th>State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Ubooquity 3 Reader</strong></td>
+          <td><code>local-ubooquity:2202</code></td>
+          <td><code>https://books.localhost</code></td>
+          <td><code>https://books-envy.komodo-sole.ts.net/</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>Ubooquity OPDS Feed</strong></td>
+          <td><code>local-ubooquity:2202/opds</code></td>
+          <td><code>https://books.localhost/opds</code></td>
+          <td><code>https://books-envy.komodo-sole.ts.net/opds</code></td>
+          <td><span class="tag green">Verified (KyBook 3)</span></td>
+        </tr>
+        <tr>
+          <td><strong>Ubooquity Admin</strong></td>
+          <td><code>local-ubooquity:2203</code></td>
+          <td><code>https://books-admin.localhost/admin/</code></td>
+          <td>Local only (Port 2203 / Traefik)</td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>BentoPDF</strong></td>
+          <td><code>bentopdf:8080</code></td>
+          <td><code>https://pdf.localhost</code></td>
+          <td><code>https://pdf-envy.komodo-sole.ts.net</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>Open WebUI (AI Chat)</strong></td>
+          <td><code>local-open-webui:8080</code></td>
+          <td><code>https://chat.localhost</code></td>
+          <td><code>https://chat-envy.komodo-sole.ts.net</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>Ollama LLM API</strong></td>
+          <td><code>local-ollama:11434</code></td>
+          <td><code>https://ollama.localhost</code></td>
+          <td><code>https://ollama-envy.komodo-sole.ts.net</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>Plex Media Server</strong></td>
+          <td><code>local-plex:32400</code></td>
+          <td><code>https://plex.localhost</code></td>
+          <td><code>https://plex-envy.komodo-sole.ts.net</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+        <tr>
+          <td><strong>Remote Desktop (KRDP)</strong></td>
+          <td><code>host:3389 / krdp</code></td>
+          <td><code>localhost:3389</code> (Native RDP)</td>
+          <td><code>https://desktop-envy.komodo-sole.ts.net</code></td>
+          <td><span class="tag green">Live</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 5: Prioritized Resumption Checklist -->
+  <div class="card" style="margin-bottom: 2rem;">
+    <h2 class="card-title amber">
+      <span>📋 Prioritized Resumption Plan</span>
+      <span class="tag purple">Next Steps</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Priority</th>
+          <th>Milestone / Task</th>
+          <th>Action & Commands</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="priority-badge priority-high">NEXT</span></td>
+          <td>Track A — Phase 6: Herdr Terminal Supervisor</td>
+          <td>
+            <p>Prototype <code>herdr-core</code> (<code>hc</code>) agent multiplexer:</p>
+            <pre><code># Provision Herdr runtime & test daemon:
+cargo install --git https://github.com/herdrdev/herdr herdr-core
+# Verify attention queue and wrap Hermes Agent ('ha') & OpenCode ('oc')</code></pre>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="priority-badge priority-medium">FOLLOW-UP</span></td>
+          <td>Track A — Phase 7: Decision Models (Laya / Respan)</td>
+          <td>
+            <p>Evaluate local "System One" discriminative decision models:</p>
+            <pre><code># Explore Laya (ModernBERT) for sub-15ms CPU code search ('jevgrep' equivalent)
+# Evaluate Respan Span-01 / Span-02 for automated agent trace judging</code></pre>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="priority-badge priority-verified">DONE</span></td>
+          <td>Track B: Modern Language Templates</td>
+          <td>Completed Go (<code>#go</code>), Rust/WASM (<code>#wasm</code>), TS/Effect (<code>#effect</code>), and Scala/ZIO (<code>#zio</code>). Documented in <code>docs/devenv.md</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="priority-badge priority-verified">DONE</span></td>
+          <td>Ubooquity 3 Ingress & OPDS Routing</td>
+          <td>Fully operational with clean root prefix and verified KyBook 3 catalog resolution over Tailscale.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 6: Recent Git Commits -->
+  <div class="card">
+    <h2 class="card-title indigo">
+      <span>🌿 Recent Git Commits</span>
+      <span class="tag purple">Audit Log</span>
+    </h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Commit SHA</th>
+          <th>Commit Message</th>
+          <th>Category</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>3280082</code></td>
+          <td>docs(devenv): add comprehensive template catalog and cross-references in README</td>
+          <td><span class="tag blue">Documentation</span></td>
+        </tr>
+        <tr>
+          <td><code>dc43fa5</code></td>
+          <td>feat(templates): complete Track B with Go, Rust/WASM, TypeScript/Effect, and Scala/ZIO templates</td>
+          <td><span class="tag green">Feature</span></td>
+        </tr>
+        <tr>
+          <td><code>8ec45b0</code></td>
+          <td>feat(roadmap): add Herdr and decision models (Laya/Respan) to Track A</td>
+          <td><span class="tag purple">Roadmap</span></td>
+        </tr>
+        <tr>
+          <td><code>464deb5</code></td>
+          <td>docs(books): document /opds unified catalog endpoint for iOS readers</td>
+          <td><span class="tag blue">Documentation</span></td>
+        </tr>
+        <tr>
+          <td><code>afbce31</code></td>
+          <td>feat(services): replace Kavita with Ubooquity 3 and document Tailscale FQDN pattern</td>
+          <td><span class="tag green">Feature</span></td>
+        </tr>
+        <tr>
+          <td><code>1e8111b</code></td>
+          <td>feat(git): add declarative push.autoSetupRemote and document Git workflow</td>
+          <td><span class="tag green">Feature</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer>
+    <p>⚡ Standalone Context Checkpoint generated by <strong>Antigravity Pair Programmer</strong> • 2026-11-11 01:35 PST</p>
+  </footer>
+
+</body>
+</html>
