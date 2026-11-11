@@ -234,4 +234,50 @@ volumes:
   * [x] **Kubernetes / CKAD** (`templates/kubernetes`): Watch `kustomization.yaml`, `Chart.yaml`, `values.yaml`. Context-aware guidance for Kustomize overlays and Helm charts.
   * [ ] **Future Stacks** (`go`, `java`, `c`): Pre-wire `go.mod`, `pom.xml`/`build.gradle.kts`, `CMakeLists.txt`.
 
+---
+
+### Phase 6: Herdr Terminal Multiplexer & Multi-Agent Orchestration (Track A Active Priority)
+* **Goal**: Integrate **Herdr** (`herdrdev/herdr`, written in Rust) as the dedicated agent terminal multiplexer and supervisor runtime (`herdr-core` / `hc`), providing session persistence, an attention queue, and programmatic subagent delegation for **Hermes Agent** (`ha`) and **OpenCode** (`oc`).
+* **Key Architecture & Capabilities**:
+  1. **Supervisor Runtime (Layer 2)**:
+     * Does **not** replace Hermes or OpenCode.
+     * Operates as the underlying terminal multiplexer and background supervisor (replacing raw `tmux` for AI workloads).
+  2. **Agent-Aware Attention Queue**:
+     * Detects agent lifecycle states (`working`, `blocked / needs input`, `idle`, `done`).
+     * Aggregates multiple concurrent agents into a unified notification inbox, alerting the developer only when human decision or approval is needed.
+  3. **Headless Session Persistence**:
+     * `herdr-core` runs as a background daemon, ensuring long-running refactoring sweeps, research tasks, and benchmarks survive terminal closures or SSH disconnects.
+  4. **Inter-Agent Subagent Delegation API**:
+     * Exposes a Unix socket and CLI API (`hc spawn`, `hc send`, `hc wait`) allowing Hermes to autonomously spawn helper agent panes (e.g., launching OpenCode in an isolated Git worktree) and collect results.
+  5. **Remote Mobile / Web Supervision (Ovis)**:
+     * Connects with companion web/mobile clients over Tailscale, enabling developers to review diffs and approve actions on mobile devices.
+* **Implementation Deliverables**:
+  * [ ] Add `herdr` installation / build recipe via Cargo / GitHub release to Tier 1 (`install-dev-env.sh` / `home/packages.nix`).
+  * [ ] Add shell aliases and environment variables in `home/shell.nix`.
+  * [ ] Add task runner management commands in `local-services/justfile` (`jl herdr-up`, `jl herdr-status`, `jl herdr-down`).
+  * [ ] Document multi-agent workflows in `docs/opencode-hermes-guide.md`.
+
+---
+
+### Phase 7: "System One" Decision Models: Laya & Respan (Span-01/02) (Track A Follow-Up)
+* **Goal**: Explore and evaluate non-autoregressive, low-latency discriminative decision models as open-source, local alternatives to proprietary "System One" APIs (such as TypeSafe AI Jev / `yev.ai`).
+* **Why "System One" Decision Models**:
+  * Unlike generative LLMs that generate prose token-by-token (200ms–1500ms), decision models evaluate input context in a **single non-autoregressive forward pass (5ms–25ms)**.
+  * Return typed, calibrated outputs (`Choice`, `Score`, `Noul` / Boolean) for instant agent routing, code search relevance, and test pass/fail judging.
+* **Target Technologies for Evaluation**:
+  1. **Laya** (ModernBERT-large & mmBERT):
+     * 100% open-source, multilingual (100+ languages), optimized for CPU-friendly triage.
+     * Primary use case: Offline task/intent routing and `jevgrep`-style semantic code file triage.
+  2. **Respan (Span-01 & Span-02)**:
+     * Open-weight decision and judging models.
+     * `Span-01`: Specialized for AI agent trace evaluation and automated grading of test runs / PR diffs.
+     * `Span-02`: Specialized for runtime application decision-making and policy guardrails.
+  3. **Kev / SemIf (Fallback & Comparison)**:
+     * Compare against Kev (Qwen + LoRA adapter) and SemIf (direct LLM logit extraction).
+* **Implementation Deliverables**:
+  * [ ] Prototype Laya local inference on CPU/GPU via Python/ONNX microservice or container in `local-services/docker-compose.yml`.
+  * [ ] Benchmark latency and calibration vs. local Ollama grammar-constrained models.
+  * [ ] Wire decision endpoint into OpenCode / Hermes search and verification loops (`jevgrep` equivalent).
+
+
 

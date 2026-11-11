@@ -249,7 +249,43 @@ flowchart TD
 
 ---
 
-## 📌 5. Quick Reference & Command Cheatsheet
+## 🐾 5. Multi-Agent Supervision & Orchestration with Herdr
+
+To run multiple concurrent coding and operator sessions without managing complex terminal multiplexers manually, the environment incorporates **Herdr** (`herdrdev/herdr`, written in Rust) as an agent-aware supervisor runtime:
+
+### 5.1 How Herdr Fits into the Stack
+**Herdr does NOT replace Hermes or OpenCode.** Instead, it serves as the **supervisor runtime and multiplexer (Layer 2)** that hosts and orchestrates both agents:
+
+```mermaid
+flowchart TD
+    User["👨‍💻 Developer (CLI / Web / Ovis Mobile)"]
+    
+    subgraph HerdrRuntime["Layer 2: Herdr Multiplexer & Supervisor ('hc')"]
+        Queue["📥 Attention Queue\n(Working • Blocked on Input • Done • Idle)"]
+        Daemon["🐾 herdr-core Daemon (Persistent Sessions)"]
+        InterAPI["🔌 Agent Delegation Socket API"]
+    end
+    
+    subgraph Agents["Layer 1: Execution & Reasoning Agents"]
+        HA["🤖 Hermes Agent ('ha')\n(Background Researcher & Operator)"]
+        OC["🛠️ OpenCode ('oc')\n(Interactive Pair Programmer)"]
+    end
+    
+    User --> HerdrRuntime
+    HerdrRuntime --> HA
+    HerdrRuntime --> OC
+    HA <-->|"hc spawn / subagent delegation"| InterAPI
+```
+
+### 5.2 Key Advantages of Herdr for Hermes & OpenCode:
+1. **Agent-Aware Attention Queue**: Unlike standard multiplexers (`tmux`, `zellij`) that only manage raw terminal buffers, Herdr detects agent states (`working`, `blocked on input`, `idle`, `done`). When OpenCode is blocked waiting for human approval or Hermes finishes a background benchmark, Herdr flags it in your unified inbox.
+2. **Session & Process Persistence**: `herdr-core` runs as a headless background daemon, ensuring long-running sweeps and research tasks survive terminal exits and SSH disconnects.
+3. **Subagent Delegation**: Hermes can programmatically invoke `hc spawn` to launch OpenCode in an isolated Git worktree, execute refactoring, and collect the resulting diff.
+4. **Remote Mobile Ingress (Ovis)**: Connect from your iPhone or iPad over your Tailscale mesh (`*.komodo-sole.ts.net`) to check agent progress or approve tool executions on the go.
+
+---
+
+## 📌 6. Quick Reference & Command Cheatsheet
 
 | Action | OpenCode (`oc`) | Hermes Agent (`ha`) |
 | :--- | :--- | :--- |
