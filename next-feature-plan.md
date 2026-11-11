@@ -232,7 +232,10 @@ volumes:
   * [x] **Node / TypeScript** (`templates/node`): Watch `package.json`, `pnpm-lock.yaml`. Auto-syncs via `pnpm install`; friendly warning to run `pnpm init` if missing.
   * [x] **Rust** (`templates/rust`): Watch `Cargo.toml`, `Cargo.lock`. Auto-validates via `cargo check`; guidance to run `cargo init` if missing.
   * [x] **Kubernetes / CKAD** (`templates/kubernetes`): Watch `kustomization.yaml`, `Chart.yaml`, `values.yaml`. Context-aware guidance for Kustomize overlays and Helm charts.
-  * [ ] **Future Stacks** (`go`, `java`, `c`): Pre-wire `go.mod`, `pom.xml`/`build.gradle.kts`, `CMakeLists.txt`.
+  * [x] **Go** (`templates/go`): Watch `go.mod`, `go.sum`. Auto-syncs via `go mod download`; friendly guidance if missing; includes `gopls`, `golangci-lint`, `delve`.
+  * [x] **Rust & WebAssembly / WASM** (`templates/rust-wasm`, alias `#wasm`): Watch `Cargo.toml`, `Cargo.lock`. Cross-compiles to `wasm32-unknown-unknown`; includes `wasm-pack`, `wasm-bindgen-cli`, `binaryen`, `wabt`.
+  * [x] **TypeScript & Effect-TS** (`templates/ts-effect`, alias `#effect`): Watch `package.json`, `pnpm-lock.yaml`, `tsconfig.json`. Node 22, pnpm, tsx, Biome, and Effect ecosystem guidance.
+  * [x] **Scala 3 & ZIO** (`templates/scala-zio`, alias `#zio`): Watch `build.sbt`, `project/build.properties`, `project.scala`. Includes Java 21 LTS, sbt, scala-cli, scalafmt, and Metals LSP.
 
 ---
 

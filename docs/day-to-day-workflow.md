@@ -165,10 +165,28 @@ nix flake init -t github:TonyHsieh/setup-linux-scripts#python
 # 3. Systems Rust, cargo-watch, rust-analyzer
 nix flake init -t github:TonyHsieh/setup-linux-scripts#rust
 
-# 4. Kubernetes & CKAD (kubectl, minikube, helm, k9s)
+# 4. Go Developer Environment (Go 1.23+, gopls, golangci-lint, delve)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#go
+
+# 5. Rust & WebAssembly / WASM (wasm-pack, wasm-bindgen, binaryen, wabt)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#rust-wasm
+# or alias:
+nix flake init -t github:TonyHsieh/setup-linux-scripts#wasm
+
+# 6. TypeScript & Effect-TS (Node 22, pnpm, tsx, Biome, Effect ecosystem)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#ts-effect
+# or alias:
+nix flake init -t github:TonyHsieh/setup-linux-scripts#effect
+
+# 7. Scala 3 & ZIO (Java 21 LTS, sbt, scala-cli, Metals LSP)
+nix flake init -t github:TonyHsieh/setup-linux-scripts#scala-zio
+# or alias:
+nix flake init -t github:TonyHsieh/setup-linux-scripts#zio
+
+# 8. Kubernetes & CKAD (kubectl, minikube, helm, k9s)
 nix flake init -t github:TonyHsieh/setup-linux-scripts#kubernetes
 
-# 5. Minimal starter
+# 9. Minimal starter
 nix flake init -t github:TonyHsieh/setup-linux-scripts
 ```
 

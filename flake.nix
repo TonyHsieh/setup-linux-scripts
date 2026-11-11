@@ -51,6 +51,34 @@
           path = ./templates/kubernetes;
           description = "Alias for kubernetes template";
         };
+        go = {
+          path = ./templates/go;
+          description = "Go toolchain with gopls, golangci-lint, delve, and go.mod auto-sync";
+        };
+        "rust-wasm" = {
+          path = ./templates/rust-wasm;
+          description = "Rust & WebAssembly (WASM) with wasm-pack, wasm-bindgen, binaryen, and wabt";
+        };
+        wasm = {
+          path = ./templates/rust-wasm;
+          description = "Alias for rust-wasm template";
+        };
+        "ts-effect" = {
+          path = ./templates/ts-effect;
+          description = "TypeScript & Effect-TS stack with Node.js (v22), pnpm, tsx, and Biome";
+        };
+        effect = {
+          path = ./templates/ts-effect;
+          description = "Alias for ts-effect template";
+        };
+        "scala-zio" = {
+          path = ./templates/scala-zio;
+          description = "Scala 3 & ZIO ecosystem with Java 21 LTS, sbt, scala-cli, and Metals";
+        };
+        zio = {
+          path = ./templates/scala-zio;
+          description = "Alias for scala-zio template";
+        };
       };
 
       # 3. User Home Manager Configurations across your machines
