@@ -261,9 +261,11 @@ install_herdr() {
     [ -f "$HOME/.local/bin/herdr" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr" "$HOME/.local/bin/hc"
     [ -f "$HOME/.local/bin/herdr-core" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr-core" "$HOME/.local/bin/hc"
     echo "🎉 Herdr successfully installed into ~/.local/bin/ (accessible via 'herdr' or 'hc')."
+    return 0
   else
-    echo "⚠️ Notice: Pre-compiled binary unavailable and Cargo build skipped."
-    echo "   To build manually: cargo install --git https://github.com/herdrdev/herdr herdr-core"
+    echo "❌ Error: Failed to download pre-compiled Herdr binary or compile via Cargo."
+    echo "   To build manually: cargo install --git https://github.com/herdrdev/herdr"
+    return 1
   fi
 }
 
@@ -445,6 +447,22 @@ verify_deployment() {
     echo "   ✓ Office suite: ONLYOFFICE Desktop Editors ready"
   elif command -v libreoffice >/dev/null 2>&1; then
     echo "   ✓ Office suite: LibreOffice ready"
+  fi
+
+  # Check Herdr AI agent supervisor if requested or installed
+  if [ "$INSTALL_HERDR" = true ]; then
+    if [ -x "$HOME/.local/bin/herdr" ] || command -v herdr >/dev/null 2>&1 || [ -x "$HOME/.local/bin/hc" ] || command -v hc >/dev/null 2>&1; then
+      local herdr_ver
+      herdr_ver="$("$HOME/.local/bin/herdr" --version 2>/dev/null || herdr --version 2>/dev/null || echo "ready")"
+      echo "   ✓ AI Agent Supervisor: herdr ($herdr_ver) ready"
+    else
+      echo "   ❌ Error: Herdr requested via --herdr but binary missing from ~/.local/bin/herdr"
+      test_failures=$((test_failures + 1))
+    fi
+  elif [ -x "$HOME/.local/bin/herdr" ] || command -v herdr >/dev/null 2>&1; then
+    local herdr_ver
+    herdr_ver="$("$HOME/.local/bin/herdr" --version 2>/dev/null || herdr --version 2>/dev/null || echo "ready")"
+    echo "   ✓ AI Agent Supervisor: herdr ($herdr_ver) ready"
   fi
 
   if [ "$test_failures" -eq 0 ]; then
@@ -809,6 +827,11 @@ EOF
     "$SCRIPT_DIR/scripts/sync-tailscale-key.sh" || true
   fi
 
+  # 7.10. Install optional post-switch tools (Herdr AI agent supervisor)
+  if [ "$INSTALL_HERDR" = true ]; then
+    install_herdr || true
+  fi
+
   echo ""
   echo "🎉 Environment successfully activated via Nix Home Manager!"
   echo "👉 Your declarative CLI packages are now linked into ~/.nix-profile/bin"
@@ -841,10 +864,6 @@ EOF
     elif [ -f "$SCRIPT_DIR/local-services/justfile" ] && command -v just >/dev/null 2>&1; then
       just -f "$SCRIPT_DIR/local-services/justfile" up-llm || true
     fi
-  fi
-
-  if [ "$INSTALL_HERDR" = true ]; then
-    install_herdr
   fi
 
   if command -v podman >/dev/null 2>&1; then
