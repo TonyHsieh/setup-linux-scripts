@@ -218,41 +218,39 @@ install_herdr() {
   TARGET=""
 
   if [ "$OS" = "linux" ] && [ "$ARCH" = "x86_64" ]; then
-    TARGET="x86_64-unknown-linux-gnu"
+    TARGET="linux-x86_64"
   elif [ "$OS" = "linux" ] && [ "$ARCH" = "aarch64" ]; then
-    TARGET="aarch64-unknown-linux-gnu"
+    TARGET="linux-aarch64"
   elif [ "$OS" = "darwin" ] && [ "$ARCH" = "arm64" ]; then
-    TARGET="aarch64-apple-darwin"
+    TARGET="macos-aarch64"
   elif [ "$OS" = "darwin" ] && [ "$ARCH" = "x86_64" ]; then
-    TARGET="x86_64-apple-darwin"
+    TARGET="macos-x86_64"
   fi
 
   # 1. Attempt pre-compiled binary download from GitHub releases
   if [ -n "$TARGET" ] && command -v curl >/dev/null 2>&1; then
-    echo "==> Checking for latest GitHub release binary ($TARGET)..."
+    echo "==> Checking for latest GitHub release binary (herdr-$TARGET)..."
     LATEST_TAG="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' || true)"
     if [ -n "$LATEST_TAG" ]; then
-      DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/herdr-${TARGET}.tar.gz"
-      TMP_DIR="$(mktemp -d)"
-      if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_DIR/herdr.tar.gz" 2>/dev/null; then
-        tar -xzf "$TMP_DIR/herdr.tar.gz" -C "$TMP_DIR" 2>/dev/null || true
-        for bin in herdr herdr-core hc; do
-          if [ -f "$TMP_DIR/$bin" ]; then
-            install -m 755 "$TMP_DIR/$bin" "$HOME/.local/bin/$bin"
-            [ "$bin" != "hc" ] && ln -sf "$HOME/.local/bin/$bin" "$HOME/.local/bin/hc"
-            INSTALLED=true
-          fi
-        done
+      DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_TAG/herdr-${TARGET}"
+      TMP_BIN="$(mktemp)"
+      if curl -fsSL "$DOWNLOAD_URL" -o "$TMP_BIN" 2>/dev/null; then
+        chmod +x "$TMP_BIN"
+        if "$TMP_BIN" --version >/dev/null 2>&1; then
+          mv "$TMP_BIN" "$HOME/.local/bin/herdr"
+          ln -sf "$HOME/.local/bin/herdr" "$HOME/.local/bin/hc"
+          INSTALLED=true
+        fi
       fi
-      rm -rf "$TMP_DIR"
+      rm -f "$TMP_BIN"
     fi
   fi
 
   # 2. Fallback to Cargo build if binary release wasn't found or failed
   if [ "$INSTALLED" = false ]; then
     if command -v cargo >/dev/null 2>&1; then
-      echo "==> Building herdr-core from source via Cargo (fallback)..."
-      if cargo install --git "https://github.com/$REPO" herdr-core --root "$HOME/.local" 2>/dev/null || cargo install --git "https://github.com/$REPO" --root "$HOME/.local" 2>/dev/null; then
+      echo "==> Building herdr from source via Cargo (fallback)..."
+      if cargo install --git "https://github.com/$REPO" --root "$HOME/.local" 2>/dev/null; then
         INSTALLED=true
       fi
     fi
