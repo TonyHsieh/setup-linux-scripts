@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-12 00:13</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(52, 211, 153, 0.12);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      color: var(--emerald);
+      padding: 0.45rem 0.9rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .alert {
+      background: rgba(56, 189, 248, 0.1);
+      border-left: 4px solid var(--sky);
+      padding: 1rem 1.25rem;
+      border-radius: 6px;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .alert.success {
+      background: rgba(52, 211, 153, 0.1);
+      border-left-color: var(--emerald);
+      color: #e2e8f0;
+    }
+    .alert.warning {
+      background: rgba(251, 191, 36, 0.1);
+      border-left-color: var(--amber);
+      color: #e2e8f0;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+    .card h3 {
+      font-size: 1.1rem;
+      color: var(--sky);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul {
+      list-style-type: none;
+    }
+    .card li {
+      margin-bottom: 0.6rem;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.4rem;
+    }
+    .card li:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .label {
+      color: var(--text-muted);
+    }
+    .val {
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2.5rem 0 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge.green { background: rgba(52, 211, 153, 0.15); color: var(--emerald); }
+    .badge.blue { background: rgba(56, 189, 248, 0.15); color: var(--sky); }
+    .badge.purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); }
+    .badge.amber { background: rgba(251, 191, 36, 0.15); color: var(--amber); }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: var(--sky);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      margin: 0.75rem 0;
+    }
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .step-num {
+      font-weight: 700;
+      color: var(--sky);
+      font-size: 1.1rem;
+    }
+    footer {
+      margin-top: 3.5rem;
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🐾 Session Context: Herdr Integration & Bootstrap Hardening</h1>
+        <div class="meta">
+          <span>📅 2026-11-12 00:13 (US/Pacific)</span>
+          <span>💻 Host: <code>envy-cachyos-x8664</code> (Arch/CachyOS)</span>
+          <span>👤 User: <code>thsieh</code></span>
+          <span>🌿 Git Branch: <code>main</code> (Commit <code>f2ea26b</code>)</span>
+        </div>
+      </div>
+      <div>
+        <span class="status-badge">● Systems Verified & Active</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="alert success">
+    <strong>Session Milestone:</strong> Completed Track A Phase 6 by integrating <strong>Herdr</strong> (<code>herdrdev/herdr</code>, CLI <code>hc</code>) as an agent-aware terminal supervisor runtime. Resolved asset download URL schema, reordered bootstrap verification execution, and added strict self-test assertions. Verified <code>herdr 0.9.5</code> locally and documented WSL2, macOS, and tmux coexistence architectures.
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>💻 Runtime Environment</h3>
+      <ul>
+        <li><span class="label">OS / Kernel</span><span class="val">CachyOS Linux (x86_64)</span></li>
+        <li><span class="label">Declarative Engine</span><span class="val">Nix Flakes & Home Manager</span></li>
+        <li><span class="label">Container Engine</span><span class="val">Rootless Podman 5.x</span></li>
+        <li><span class="label">Primary Shell</span><span class="val">Bash 5.2 + ble.sh + Starship</span></li>
+        <li><span class="label">Multiplexer</span><span class="val">tmux (vi, resurrect, continuum)</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🤖 AI Agent Tooling</h3>
+      <ul>
+        <li><span class="label">AI Supervisor</span><span class="val">Herdr v0.9.5 (~/.local/bin/hc)</span></li>
+        <li><span class="label">Pair Programmer</span><span class="val">OpenCode (oc)</span></li>
+        <li><span class="label">Autonomous Operator</span><span class="val">Hermes Agent (ha)</span></li>
+        <li><span class="label">Reasoning Engine</span><span class="val">Google Antigravity CLI (agy)</span></li>
+        <li><span class="label">Local LLM Engine</span><span class="val">Ollama (port 11434, qwen2.5)</span></li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🔒 Network & Mesh State</h3>
+      <ul>
+        <li><span class="label">Tailscale Node</span><span class="val">envy (komodo-sole.ts.net)</span></li>
+        <li><span class="label">HTTPS Ingress</span><span class="val">Port 443 + Port 80 Redirect</span></li>
+        <li><span class="label">Local Ingress</span><span class="val">Traefik v3 (*.localhost SSL)</span></li>
+        <li><span class="label">Secrets Management</span><span class="val">SOPS (in-memory ed25519)</span></li>
+        <li><span class="label">OPDS E-Book Server</span><span class="val">Ubooquity 3 (port 2202)</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section-title">🔍 Incident Analysis & Architecture Resolutions</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">1. Herdr Download 404 & Silent Skip Resolution</span>
+      <span class="badge green">RESOLVED</span>
+    </div>
+    <p><strong>Root Cause:</strong> Upstream GitHub releases (<code>herdrdev/herdr</code>) publish standalone uncompressed executables named <code>herdr-linux-x86_64</code>, <code>herdr-linux-aarch64</code>, <code>herdr-macos-aarch64</code>, and <code>herdr-macos-x86_64</code>. The initial script assumed an archive named <code>herdr-x86_64-unknown-linux-gnu.tar.gz</code>. When curl failed with 404, it fell back to Cargo which failed silently with <code>2>/dev/null</code>, printing an informational notice without exiting non-zero.</p>
+    <p><strong>Fix:</strong> Corrected download asset URL in <code>bootstrap.sh</code> to fetch raw binary directly, execute <code>chmod +x</code>, move to <code>~/.local/bin/herdr</code>, and create symlink <code>~/.local/bin/hc</code>. Verified binary runs cleanly: <code>herdr 0.9.5</code>.</p>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">2. Bootstrap Verification Sequencing & Idempotency Gap</span>
+      <span class="badge green">RESOLVED</span>
+    </div>
+    <p><strong>Root Cause:</strong> In <code>bootstrap.sh</code>, <code>verify_deployment()</code> was executed at Step 8, while <code>install_herdr</code> was called at Step 9+ (after the self-test had already reported "Verification passed!"). Furthermore, <code>verify_deployment()</code> lacked an assertion for <code>herdr</code>, and <code>install_herdr</code> returned exit code 0 on failure.</p>
+    <p><strong>Fix:</strong> Moved <code>install_herdr</code> before <code>verify_deployment()</code>. Added a strict verification test in <code>verify_deployment()</code> that asserts <code>~/.local/bin/herdr</code> exists and prints version. Ensured <code>install_herdr</code> returns <code>1</code> on failure to halt execution. Verified live test passes with 0 warnings.</p>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">3. Cross-Platform & Multiplexer Coexistence</span>
+      <span class="badge blue">DOCUMENTED</span>
+    </div>
+    <p><strong>Architectural Blueprint:</strong> Formulated clear operational paradigms for using Herdr with <code>tmux</code>, WSL2, and macOS:</p>
+    <ul style="margin: 0.5rem 0 0.5rem 1.5rem; font-size: 0.9rem;">
+      <li><strong>With tmux:</strong> Herdr acts as the Layer 2 agent supervisor with an attention queue; tmux acts as the developer workbench. They can run headless in the background (Pattern A), nested inside a tmux window without prefix conflict (Pattern B: tmux <code>Ctrl-b</code> vs Herdr <code>Ctrl-a</code>), or side-by-side (Pattern C).</li>
+      <li><strong>On WSL2:</strong> Runs as native Linux binary using WSL2 Linux kernel PTYs and Unix sockets; integrates with Windows Terminal; background persistence via WSL2 systemd.</li>
+      <li><strong>On macOS:</strong> Native Mach-O binary for Apple Silicon (<code>herdr-macos-aarch64</code>) and Intel (<code>herdr-macos-x86_64</code>); works out-of-the-box with Ghostty, iTerm2, and Kitty.</li>
+    </ul>
+  </div>
+
+  <h2 class="section-title">🌐 Active Service Endpoints & Status</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Local Endpoint (*.localhost)</th>
+        <th>Tailscale MagicDNS (*.ts.net)</th>
+        <th>Host Port</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Herdr Supervisor</strong></td>
+        <td><code>hc</code> / <code>herdr</code> CLI & TUI</td>
+        <td>Socket: <code>~/.config/herdr/herdr.sock</code></td>
+        <td>PTY / Daemon</td>
+        <td><span class="badge green">Active (v0.9.5)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ubooquity 3 Books</strong></td>
+        <td><a href="https://books.localhost" style="color: var(--sky);">https://books.localhost</a></td>
+        <td><code>https://books-envy.komodo-sole.ts.net</code></td>
+        <td>2202 (OPDS /opds)</td>
+        <td><span class="badge green">Active (Up 26h)</span></td>
+      </tr>
+      <tr>
+        <td><strong>BentoPDF UI</strong></td>
+        <td><a href="https://pdf.localhost" style="color: var(--sky);">https://pdf.localhost</a></td>
+        <td><code>https://pdf-envy.komodo-sole.ts.net</code></td>
+        <td>8080 (Traefik)</td>
+        <td><span class="badge green">Active (Up 13d)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ollama Local LLM</strong></td>
+        <td><a href="https://ollama.localhost" style="color: var(--sky);">https://ollama.localhost</a></td>
+        <td><code>https://ollama-envy.komodo-sole.ts.net</code></td>
+        <td>11434</td>
+        <td><span class="badge green">Active (Up 13d)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Open WebUI</strong></td>
+        <td><a href="https://chat.localhost" style="color: var(--sky);">https://chat.localhost</a></td>
+        <td><code>https://chat-envy.komodo-sole.ts.net</code></td>
+        <td>8080 (Traefik)</td>
+        <td><span class="badge green">Active (Up 13d)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Plex Media Server</strong></td>
+        <td><a href="https://plex.localhost" style="color: var(--sky);">https://plex.localhost</a></td>
+        <td><code>https://plex-envy.komodo-sole.ts.net</code></td>
+        <td>32400</td>
+        <td><span class="badge green">Active (Up 13d)</span></td>
+      </tr>
+      <tr>
+        <td><strong>Traefik Dashboard</strong></td>
+        <td><a href="https://traefik.localhost/dashboard/" style="color: var(--sky);">https://traefik.localhost/dashboard/</a></td>
+        <td><code>https://traefik-envy.komodo-sole.ts.net</code></td>
+        <td>8088</td>
+        <td><span class="badge green">Active (Up 8h)</span></td>
+      </tr>
+      <tr>
+        <td><strong>PostgreSQL Database</strong></td>
+        <td><code>localhost:5432</code></td>
+        <td>Host Loopback Only</td>
+        <td>5432</td>
+        <td><span class="badge green">Active (Up 13d)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-title">🚀 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">Step 1: Test Live Herdr Multi-Agent Spawning (Track A Active)</span>
+      <span class="badge green">HIGH PRIORITY</span>
+    </div>
+    <p>Launch the Herdr daemon and test interactive subagent spawning with Google Antigravity CLI (<code>agy</code>) and OpenCode (<code>oc</code>):</p>
+    <pre># 1. Start the Herdr supervisor daemon
+jl herdr-up
+
+# 2. Spawn an interactive Antigravity CLI pane inside Herdr
+jl herdr-spawn agy
+
+# 3. Check supervisor attention queue
+jl herdr-status
+
+# 4. Attach interactively to Herdr TUI
+hc</pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">Step 2: Track A Follow-Up — "System One" Decision Models (Laya & Respan)</span>
+      <span class="badge blue">NEXT ARCHITECTURE</span>
+    </div>
+    <p>Begin Phase 7 evaluation of low-latency non-autoregressive decision models as local alternatives to proprietary "System One" APIs (such as TypeSafe AI Jev / <code>yev.ai</code>):</p>
+    <ul style="margin: 0.5rem 0 0.5rem 1.5rem; font-size: 0.9rem;">
+      <li><strong>Laya:</strong> ModernBERT-large & mmBERT for 5ms–20ms semantic code file triage (<code>jevgrep</code> equivalent).</li>
+      <li><strong>Respan:</strong> Open-weight decision and judging models (<code>Span-01</code> agent trace grading, <code>Span-02</code> policy guardrails).</li>
+      <li><strong>Prototype:</strong> Add Python/ONNX container microservice in <code>local-services/docker-compose.yml</code>.</li>
+    </ul>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-num">Step 3: Multi-Machine Sync (WSL2 / macOS)</span>
+      <span class="badge purple">CROSS-PLATFORM</span>
+    </div>
+    <p>Run the hardened bootstrap on secondary machines to verify seamless cross-platform binary installation:</p>
+    <pre>git pull origin main
+./bootstrap.sh --herdr</pre>
+  </div>
+
+  <h2 class="section-title">📝 Git Commit Audit (Recent History)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Commit SHA</th>
+        <th>Message</th>
+        <th>Scope / Impact</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>f2ea26b</code></td>
+        <td>fix(bootstrap): move herdr installation before verify_deployment and add self-test assertion</td>
+        <td>Reorders installer execution; adds hard verification assertion and exit-1 handling</td>
+      </tr>
+      <tr>
+        <td><code>4e41fd1</code></td>
+        <td>fix(herdr): update binary asset download URL and align CLI commands with herdr v0.9.5</td>
+        <td>Fixes standalone binary download URL; aligns justfile with native herdr commands</td>
+      </tr>
+      <tr>
+        <td><code>1c6c9bd</code></td>
+        <td>feat(herdr): integrate Herdr agent supervisor runtime in bootstrap.sh, justfile, and add comprehensive guide</td>
+        <td>Track A Phase 6 initial release: bootstrap flag, justfile recipes, shell alias, docs</td>
+      </tr>
+      <tr>
+        <td><code>8f78778</code></td>
+        <td>chore: save session context checkpoint for 2026-11-11 01:35</td>
+        <td>Previous session context HTML report</td>
+      </tr>
+      <tr>
+        <td><code>3280082</code></td>
+        <td>docs(devenv): add comprehensive template catalog and cross-references in README</td>
+        <td>Track B Devenv template documentation</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <div>Generated by <strong>Google Antigravity CLI</strong> &bull; Skill: <code>save-current-context</code></div>
+    <div>Report: <code>context/2026-11-12-0013-context.html</code></div>
+  </footer>
+
+</body>
+</html>
