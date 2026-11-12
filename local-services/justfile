@@ -448,41 +448,113 @@ mcp-info:
 # Start the Herdr supervisor daemon
 herdr-up:
     #!/usr/bin/env bash
-    if command -v herdr >/dev/null 2>&1 || command -v hc >/dev/null 2>&1; then
-        echo "==> Starting Herdr supervisor server..."
-        (herdr server >/dev/null 2>&1 &) || echo "💡 Run 'herdr' to launch or attach to session."
-    else
-        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    if [ -z "$HC_BIN" ]; then
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --herdr"
+        exit 1
     fi
+    if $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
+        echo "✅ Herdr supervisor daemon is ALREADY running."
+        echo "👉 Socket: ~/.config/herdr/herdr.sock"
+        exit 0
+    fi
+    echo "==> Starting Herdr supervisor server..."
+    if command -v systemd-run >/dev/null 2>&1 && systemctl --user is-system-running >/dev/null 2>&1; then
+        systemd-run --user --unit=herdr "$HC_BIN" server >/dev/null 2>&1
+    else
+        mkdir -p "$HOME/.config/herdr"
+        nohup "$HC_BIN" server >> "$HOME/.config/herdr/herdr-server.log" 2>&1 & disown
+    fi
+    for i in {1..15}; do
+        if $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
+            echo "✅ Herdr supervisor server started successfully!"
+            echo "👉 Socket: ~/.config/herdr/herdr.sock"
+            exit 0
+        fi
+        sleep 0.2
+    done
+    echo "⚠️ Herdr server failed to start or initialize socket. Check ~/.config/herdr/herdr-server.log"
 
 # Check Herdr supervisor daemon and agent sessions status
 herdr-status:
     #!/usr/bin/env bash
-    if command -v herdr >/dev/null 2>&1; then
-        herdr status 2>/dev/null || echo "💡 Herdr server is not currently running. Start it with 'jl herdr-up'."
-    elif command -v hc >/dev/null 2>&1; then
-        hc status 2>/dev/null || echo "💡 Herdr server is not currently running. Start it with 'jl herdr-up'."
-    else
-        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    if [ -z "$HC_BIN" ]; then
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --herdr"
+        exit 1
     fi
+    if ! $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
+        echo "💡 Herdr server is not currently running. Start it with 'jl herdr-up'."
+        exit 0
+    fi
+    echo "======================================================================"
+    echo "🐾 Herdr Supervisor Server: RUNNING (v$($HC_BIN --version | cut -d' ' -f2))"
+    echo "======================================================================"
+    AGENTS_JSON="$($HC_BIN agent list 2>/dev/null || echo '{"result":{"agents":[]}}')"
+    WORKSPACES_JSON="$($HC_BIN workspace list 2>/dev/null || echo '{"result":{"workspaces":[]}}')"
+    AGENT_COUNT="$(echo "$AGENTS_JSON" | jq -r '.result.agents | length' 2>/dev/null || echo 0)"
+    WS_COUNT="$(echo "$WORKSPACES_JSON" | jq -r '.result.workspaces | length' 2>/dev/null || echo 0)"
+    echo "• Active Workspaces: $WS_COUNT"
+    echo "• Active Agents:     $AGENT_COUNT"
+    if [ "$AGENT_COUNT" -gt 0 ]; then
+        echo ""
+        echo "🤖 Managed Agent Panes:"
+        echo "$AGENTS_JSON" | jq -r '.result.agents[] | "  - [\(.name)] kind=\(.agent) state=\(.agent_status) pane=\(.pane_id) cwd=\(.cwd)"'
+    fi
+    echo ""
+    echo "💡 Attach to interactive TUI:  hc  (or herdr)"
+    echo "======================================================================"
 
 # Stop the Herdr supervisor daemon
 herdr-down:
     #!/usr/bin/env bash
-    if command -v herdr >/dev/null 2>&1; then
-        herdr server stop 2>/dev/null || true
-    elif command -v hc >/dev/null 2>&1; then
-        hc server stop 2>/dev/null || true
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    echo "==> Stopping Herdr supervisor server..."
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user stop herdr >/dev/null 2>&1 || true
     fi
+    if [ -n "$HC_BIN" ]; then
+        $HC_BIN server stop >/dev/null 2>&1 || true
+    fi
+    echo "✅ Herdr supervisor server stopped."
 
-# Spawn an agent into a supervised Herdr pane (e.g. jl herdr-spawn agy or jl herdr-spawn oc)
+# Spawn an agent into a supervised Herdr workspace pane (e.g. jl herdr-spawn agy or jl herdr-spawn oc)
 herdr-spawn AGENT *ARGS:
     #!/usr/bin/env bash
     HC_BIN="$(command -v herdr || command -v hc || echo "")"
     if [ -z "$HC_BIN" ]; then
-        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --with-herdr"
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --herdr"
         exit 1
     fi
-    echo "==> Spawning {{AGENT}} inside Herdr session..."
-    $HC_BIN pane new --name "{{AGENT}}" {{AGENT}} {{ARGS}} 2>/dev/null || $HC_BIN spawn --name "{{AGENT}}" {{AGENT}} {{ARGS}} 2>/dev/null || echo "💡 Run 'herdr' to attach interactively."
+    # Map common CLI aliases to supported Herdr agent kinds
+    KIND="{{AGENT}}"
+    case "$KIND" in
+        oc|opencode) KIND="opencode" ;;
+        ha|hermes)   KIND="hermes" ;;
+        agy|antigravity) KIND="agy" ;;
+    esac
+
+    # Ensure supervisor daemon is running
+    if ! $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
+        echo "==> Starting Herdr supervisor server..."
+        just -f "{{justfile()}}" herdr-up
+    fi
+
+    echo "==> Creating Herdr workspace for agent '$KIND'..."
+    WS_JSON="$($HC_BIN workspace create --label "$KIND" --cwd "$PWD")"
+    PANE_ID="$(echo "$WS_JSON" | jq -r '.result.root_pane.pane_id // empty')"
+    if [ -z "$PANE_ID" ]; then
+        echo "⚠️ Failed to create Herdr pane for agent. Server output: $WS_JSON"
+        exit 1
+    fi
+
+    AGENT_NAME="${KIND}-$(date +%s | tail -c 5)"
+    echo "==> Starting '$KIND' (name: $AGENT_NAME) in pane $PANE_ID..."
+    $HC_BIN agent start "$AGENT_NAME" --kind "$KIND" --pane "$PANE_ID" {{ARGS}}
+
+    echo ""
+    echo "✅ Agent '$AGENT_NAME' ($KIND) is running under Herdr supervision!"
+    echo "👉 Attach to TUI:         hc"
+    echo "👉 Send prompt to agent:  herdr agent prompt $AGENT_NAME '<your prompt>' --wait"
+    echo "👉 View agent screen:     herdr agent read $AGENT_NAME"
 
