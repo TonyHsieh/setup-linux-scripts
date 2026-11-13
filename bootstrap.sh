@@ -19,31 +19,31 @@ CLEANUP_MODE="prompt" # options: "prompt", "auto", "skip"
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run|--build)
+    --dry-run|--build|-build)
       ACTION="build"
       shift
       ;;
-    --with-host-deps|--host-deps|--all)
+    --with-host-deps|--host-deps|--all|-all)
       INSTALL_HOST_DEPS=true
       shift
       ;;
-    --with-llm|--llm)
+    --with-llm|--llm|-llm)
       INSTALL_LLM=true
       shift
       ;;
-    --with-herdr|--herdr)
+    --with-herdr|--herdr|-herdr)
       INSTALL_HERDR=true
       shift
       ;;
-    --with-office|--office)
+    --with-office|--office|-office)
       INSTALL_OFFICE=true
       shift
       ;;
-    --uninstall-office)
+    --uninstall-office|-uninstall-office)
       UNINSTALL_OFFICE=true
       shift
       ;;
-    --clean|--cleanup)
+    --clean|--cleanup|-clean|-cleanup)
       CLEANUP_MODE="auto"
       shift
       ;;
@@ -51,12 +51,12 @@ while [[ $# -gt 0 ]]; do
       CLEANUP_MODE="skip"
       shift
       ;;
-    --profile)
+    --profile|-profile)
       TARGET_OVERRIDE="$2"
       shift 2
       ;;
-    -h|--help)
-      echo "Usage: ./bootstrap.sh [OPTIONS]"
+    -h|--help|-help)
+      echo "Usage: ./bootstrap.sh [OPTIONS] [PROFILE]"
       echo ""
       echo "Options:"
       echo "  --build, --dry-run      Build the Home Manager generation without activating it"
@@ -67,9 +67,14 @@ while [[ $# -gt 0 ]]; do
       echo "  --uninstall-office      Uninstall ONLYOFFICE Desktop Editors and Microsoft fonts"
       echo "  --cleanup, --clean      Automatically clean up detected legacy artifacts after verification"
       echo "  --no-cleanup            Skip detection and cleanup of legacy deployment artifacts"
-      echo "  --profile <name>        Manually specify profile (wsl, cachyos, darwin)"
+      echo "  --profile <name>        Manually specify profile (wsl, wsl-thsieh, cachyos, cachyos-thsieh01, darwin)"
       echo "  -h, --help              Show this help message"
       exit 0
+      ;;
+    -*)
+      echo "❌ Error: Unrecognized option '$1'"
+      echo "👉 Run './bootstrap.sh --help' for available options."
+      exit 1
       ;;
     *)
       TARGET_OVERRIDE="$1"
