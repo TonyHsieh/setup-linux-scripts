@@ -19,31 +19,31 @@ CLEANUP_MODE="prompt" # options: "prompt", "auto", "skip"
 # Parse arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --dry-run|--build|-build)
+    --dry-run|--build)
       ACTION="build"
       shift
       ;;
-    --with-host-deps|--host-deps|--all|-all)
+    --with-host-deps|--host-deps|--all)
       INSTALL_HOST_DEPS=true
       shift
       ;;
-    --with-llm|--llm|-llm)
+    --with-llm|--llm)
       INSTALL_LLM=true
       shift
       ;;
-    --with-herdr|--herdr|-herdr)
+    --with-herdr|--herdr)
       INSTALL_HERDR=true
       shift
       ;;
-    --with-office|--office|-office)
+    --with-office|--office)
       INSTALL_OFFICE=true
       shift
       ;;
-    --uninstall-office|-uninstall-office)
+    --uninstall-office)
       UNINSTALL_OFFICE=true
       shift
       ;;
-    --clean|--cleanup|-clean|-cleanup)
+    --clean|--cleanup)
       CLEANUP_MODE="auto"
       shift
       ;;
@@ -51,11 +51,11 @@ while [[ $# -gt 0 ]]; do
       CLEANUP_MODE="skip"
       shift
       ;;
-    --profile|-profile)
+    --profile)
       TARGET_OVERRIDE="$2"
       shift 2
       ;;
-    -h|--help|-help)
+    -h|--help)
       echo "Usage: ./bootstrap.sh [OPTIONS] [PROFILE]"
       echo ""
       echo "Options:"
@@ -73,6 +73,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     -*)
       echo "❌ Error: Unrecognized option '$1'"
+      # If passed with a single hyphen like -herdr, suggest the double-hyphen equivalent
+      if [[ "$1" =~ ^-[a-zA-Z0-9_-]{2,}$ ]]; then
+        SUGGESTION="-${1}"
+        case "$SUGGESTION" in
+          --herdr|--with-herdr|--llm|--with-llm|--office|--with-office|--build|--dry-run|--all|--host-deps|--with-host-deps|--cleanup|--clean|--profile|--help)
+            echo "👉 Did you mean '$SUGGESTION'?"
+            ;;
+        esac
+      fi
       echo "👉 Run './bootstrap.sh --help' for available options."
       exit 1
       ;;
