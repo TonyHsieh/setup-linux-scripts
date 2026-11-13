@@ -44,11 +44,11 @@ This guide details the architecture, setup, multi-model configuration (Google Ge
 Herdr attaches an interactive pseudo-terminal (PTY) to any CLI process. You can run `agy` directly inside a dedicated Herdr pane:
 
 ```bash
-# 1. Start an interactive Antigravity CLI session inside Herdr:
-hc spawn --name "agy-planner" agy
+# 1. Start an interactive Antigravity CLI session inside Herdr via task runner:
+jl herdr-spawn agy
 
-# 2. Or pass a direct instruction to Antigravity inside Herdr:
-hc spawn --name "arch-plan" agy "Analyze our Nix templates and propose a C++ template"
+# 2. Or attach directly to the interactive Herdr TUI:
+hc
 ```
 
 **Why pairing Antigravity with Herdr is powerful**:
@@ -61,13 +61,13 @@ hc spawn --name "arch-plan" agy "Analyze our Nix templates and propose a C++ tem
 > **NO. Herdr offers two complementary faces:**
 
 1. **Interactive TUI / Terminal Manager**:
-   * Like `tmux` or `zellij`, running `hc` attaches to an interactive full-screen terminal interface with tabbed windows, split panes, and mouse/keyboard navigation.
-   * Features a global **Attention Inbox** listing every active agent and its status.
-2. **Programmatic CLI & Unix Domain Socket API (`hc`)**:
-   * Commands like `hc spawn`, `hc send`, `hc list`, `hc kill`, and `hc wait` allow you (or autonomous agents like Hermes) to orchestrate child agents via scripts:
+   * Like `tmux` or `zellij`, running `hc` (or `herdr`) attaches to an interactive full-screen terminal interface with tabbed windows, split panes, and mouse/keyboard navigation.
+   * Features a global **Attention Inbox** listing every active agent and its status (`idle`, `working`, `blocked`, `done`).
+2. **Programmatic CLI & Unix Domain Socket API (`herdr` / `hc`)**:
+   * Commands like `jl herdr-spawn`, `herdr agent start`, `herdr agent prompt`, `herdr agent read`, and `herdr agent list` allow you (or autonomous agents like Hermes) to orchestrate child agents via scripts:
      ```bash
      # Programmatically launch an agent pane from a script or another agent:
-     hc spawn --name "refactor-worker" oc "Refactor src/api.ts to use Effect-TS"
+     jl herdr-spawn opencode
      ```
 
 ---
@@ -124,6 +124,52 @@ hc          # Launches / attaches to the interactive Herdr session
 hc --help   # Displays command options
 ```
 
+### 3.3 Installing Agent Integrations (State Tracking & Lifecycle Hooks)
+In Herdr, the **Settings → Integrations** screen inside the TUI is a **read-only status dashboard** showing whether lifecycle hooks are installed. To enable deep state tracking (e.g., detecting when an agent transitions into `working` vs `idle` or `blocked`):
+
+```bash
+# Install integration for Google Antigravity CLI:
+herdr integration install antigravity-cli
+
+# Install integration for OpenCode:
+herdr integration install opencode
+
+# List installed status:
+herdr integration list
+```
+
+* **How Antigravity State Reporting Works:** Installing `antigravity-cli` registers a lifecycle hook in `~/.gemini/antigravity-cli/` so that whenever `agy` starts a reasoning step, invokes tools, or awaits input, it signals the Herdr API socket to update its state banner to `working` or `blocked`. Without the hook, Herdr passively monitors terminal output, which may only report `idle` or `unknown`.
+
+### 3.4 How to Start an Agent in Herdr (`hc`)
+You can launch and supervise an agent using three straightforward methods:
+
+#### Method 1: Directly inside any `hc` Terminal Pane (Interactive)
+Every pane in Herdr is a standard shell session:
+1. Inside `hc`, navigate to your terminal prompt (`❯`).
+2. Simply type the agent command and press **Enter**:
+   * `agy` — launches Google Antigravity CLI
+   * `opencode` (or `oc`) — launches OpenCode
+   * `hermes` (or `ha`) — launches Hermes Agent
+3. Herdr immediately detects the process in that pane, attaches the agent badge in the sidebar, and begins tracking its attention lifecycle (`working`, `blocked`, `idle`).
+
+*(Tip: Split a pane first with `Ctrl-a %` or open a new tab with `Ctrl-a c`, then launch the agent in the new pane.)*
+
+#### Method 2: From the UI Sidebar (`+` Menu)
+If mouse or trackpad reporting is enabled in your terminal:
+* Click the **`+`** icon on the top tab bar or workspace sidebar to spawn a new agent pane directly from the list of recognized agents.
+
+#### Method 3: From Outside `hc` via Task Runner (`jl`)
+If you are at your regular terminal prompt (outside of `hc`) and want to spin up an agent in the background before attaching:
+```bash
+# Spawn Antigravity under Herdr supervision
+jl herdr-spawn agy
+
+# Or spawn OpenCode
+jl herdr-spawn opencode
+```
+This automatically provisions an isolated workspace, starts the agent under supervision, and begins attention tracking. When ready, run `hc` to attach directly to it.
+
+
 ---
 
 ## 🛠️ 4. Managing Herdr via Task Runner (`jl`)
@@ -155,20 +201,36 @@ flowchart TD
     end
 ```
 
-1. **Step 1: Launch Herdr**:
+1. **Step 1: Start Herdr Supervisor Daemon**:
    ```bash
    jl herdr-up
    ```
 2. **Step 2: Spawn Antigravity for Architecture Planning**:
    ```bash
-   hc spawn --name "spec-architect" agy "Design the authentication schema for our Go service"
+   jl herdr-spawn agy
    ```
-3. **Step 3: Spawn OpenCode for Offline Implementation**:
+3. **Step 3: Spawn OpenCode for Offline Coding**:
    ```bash
-   hc spawn --name "code-refactor" oc --model qwen2.5-coder:7b
+   jl herdr-spawn opencode
    ```
-4. **Step 4: Supervise via Attention Queue**:
-   * Switch into Herdr anytime with `hc`.
+4. **Step 4: Check Attention Queue & Active Panes**:
+   ```bash
+   jl herdr-status
+   ```
+5. **Step 5: Attach Interactively to the Herdr TUI**:
+   ```bash
+   hc    # (or bare 'herdr')
+   ```
+   * **Prefix Key**: Configured as `Ctrl-a` in `~/.config/herdr/config.toml` (defaults to `Ctrl-b` in upstream Herdr). Press `Ctrl-a`, release, then press your action key.
+   * **Keybindings Reference**:
+     * `Ctrl-a d` or `Ctrl-a q` — **Detach** client (leaves all agents & panes running in background).
+     * `Ctrl-a ?` — Show **interactive keybindings help overlay**.
+     * `Ctrl-a c` — Create a new **tab**.
+     * `Ctrl-a %` or `Ctrl-a v` — **Split pane vertically** (side-by-side, tmux style).
+     * `Ctrl-a "` or `Ctrl-a -` — **Split pane horizontally** (top/bottom, tmux style).
+     * `Ctrl-a h / j / k / l` — **Navigate** between panes (vim direction keys).
+     * `Ctrl-a w` — **Workspace / Attention Inbox** switcher.
+     * `Ctrl-a z` — **Zoom / maximize** active pane.
    * Herdr notifies you only when an agent finishes or pauses for human confirmation.
 
 ---
