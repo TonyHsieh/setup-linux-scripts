@@ -1,0 +1,17 @@
+From: Geoffrey Huntley <ghuntley@ghuntley.com>
+Subject: [PATCH] builtin/push.c: disable force push options
+
+Disables the --force, -f, and --force-with-lease command-line flags in git push
+to prevent autonomous coding agents and users from rewriting git history.
+
+--- a/builtin/push.c
++++ b/builtin/push.c
+@@ -580,8 +580,6 @@ int cmd_push(int argc, const char **argv, const char *prefix)
+ 		OPT_STRING(0, "receive-pack", &receivepack, "receive-pack", N_("receive pack program")),
+ 		OPT_STRING(0, "exec", &receivepack, "receive-pack", N_("receive pack program")),
+ 		OPT_BIT('u', "set-upstream", &flags, N_("set upstream for git pull/status"), TRANSPORT_PUSH_SET_UPSTREAM),
+-		OPT_BIT('f', "force", &flags, N_("force updates"), TRANSPORT_PUSH_FORCE),
+-		OPT_CALLBACK_F(0, "force-with-lease", &flags, N_("refname>:<expect"),
+ 		OPT_BIT(0, "tags", &flags, N_("push tags (can be used with --all)"), TRANSPORT_PUSH_ALL | TRANSPORT_PUSH_TAGS),
+ 		OPT_BIT('n', "dry-run", &flags, N_("dry run"), TRANSPORT_PUSH_DRY_RUN),
+ 		OPT_BIT(0, "porcelain", &flags, N_("machine-readable output"), TRANSPORT_PUSH_PORCELAIN),

@@ -215,6 +215,27 @@ uninstall_office_suite() {
 }
 
 # 0.7. Optional: Install Herdr AI Agent Multiplexer & Supervisor (hc)
+setup_herdr_config() {
+  mkdir -p "$HOME/.config/herdr"
+  if [ -f "$SCRIPT_DIR/dotfiles/herdr/config.toml" ]; then
+    if [ ! -f "$HOME/.config/herdr/config.toml" ]; then
+      echo "==> Scaffolding initial Herdr configuration with Ctrl-a prefix (~/.config/herdr/config.toml)..."
+      cp "$SCRIPT_DIR/dotfiles/herdr/config.toml" "$HOME/.config/herdr/config.toml"
+    elif ! grep -q "prefix =" "$HOME/.config/herdr/config.toml" 2>/dev/null; then
+      echo "==> Updating Herdr configuration with Ctrl-a prefix (~/.config/herdr/config.toml)..."
+      cat << 'EOF' >> "$HOME/.config/herdr/config.toml"
+
+[keys]
+# Prefix key configured to Ctrl-a to avoid collision with Tmux's default Ctrl-b
+prefix = "ctrl+a"
+split_vertical = ["prefix+%", "prefix+v"]
+split_horizontal = ["prefix+\"", "prefix+-"]
+detach = ["prefix+d", "prefix+q"]
+EOF
+    fi
+  fi
+}
+
 install_herdr() {
   echo ""
   echo "==> 🐾 Setting up Herdr AI agent multiplexer & supervisor runtime (hc)..."
@@ -222,6 +243,7 @@ install_herdr() {
 
   if command -v herdr >/dev/null 2>&1 || command -v hc >/dev/null 2>&1 || [ -x "$HOME/.local/bin/herdr" ] || [ -x "$HOME/.local/bin/hc" ]; then
     echo "✅ Herdr is already installed."
+    setup_herdr_config
     return 0
   fi
 
@@ -274,6 +296,7 @@ install_herdr() {
   if [ "$INSTALLED" = true ] || [ -f "$HOME/.local/bin/herdr" ] || [ -f "$HOME/.local/bin/herdr-core" ]; then
     [ -f "$HOME/.local/bin/herdr" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr" "$HOME/.local/bin/hc"
     [ -f "$HOME/.local/bin/herdr-core" ] && [ ! -f "$HOME/.local/bin/hc" ] && ln -sf "$HOME/.local/bin/herdr-core" "$HOME/.local/bin/hc"
+    setup_herdr_config
     echo "🎉 Herdr successfully installed into ~/.local/bin/ (accessible via 'herdr' or 'hc')."
     return 0
   else
@@ -357,7 +380,7 @@ detect_existing_deployments() {
 
   # 1. Check for legacy/duplicate binaries in /usr/local/bin and ~/.local/bin
   local candidate_bins=(
-    argocd flux minikube nvim k9s sops kind yq kubectl starship hermes ha opencode oc devenv
+    argocd flux minikube nvim k9s sops kind yq kubectl starship hermes ha opencode oc devenv herdr hc claude copilot
   )
   for b in "${candidate_bins[@]}"; do
     if [ -f "/usr/local/bin/$b" ]; then
@@ -779,7 +802,10 @@ EOF
     cp "$SCRIPT_DIR/dotfiles/opencode/opencode.json" "$HOME/.config/opencode/opencode.json"
   fi
 
-  # 7.7. Bootstrap local-services machine identity (.env) if missing
+  # 7.7. Bootstrap Herdr configuration (~/.config/herdr/config.toml) with Ctrl-a prefix to prevent Tmux conflict
+  setup_herdr_config
+
+  # 7.8. Bootstrap local-services machine identity (.env) if missing
   PROJECT_LOCAL_ENV="$SCRIPT_DIR/local-services/.env"
   XDG_LOCAL_ENV="$HOME/.local/share/local-services/.env"
 

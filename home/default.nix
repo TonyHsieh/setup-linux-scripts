@@ -13,6 +13,9 @@
   # Enable Home Manager and Direnv
   programs.home-manager.enable = true;
 
+  # Allow unfree packages (e.g. antigravity-cli)
+  nixpkgs.config.allowUnfree = true;
+
   programs.direnv = {
     enable = true;
     nix-direnv.enable = true;

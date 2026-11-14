@@ -1,6 +1,15 @@
 {
   description = "Cross-Platform Declarative Developer Environment & Devenv Ecosystem";
 
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.numtide.com"
+    ];
+    extra-trusted-public-keys = [
+      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -15,6 +24,11 @@
     };
 
     systems.url = "github:nix-systems/default";
+
+    # Unified AI Agent Suite (Do NOT set follows on nixpkgs - preserves cache.numtide.com substitution)
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, devenv, systems, ... }@inputs:
@@ -78,6 +92,14 @@
         zio = {
           path = ./templates/scala-zio;
           description = "Alias for scala-zio template";
+        };
+        "agent-sandbox" = {
+          path = ./templates/agent-sandbox;
+          description = "Geoffrey Huntley Agent Sandbox Environment with Safe Git guardrails (no force-push)";
+        };
+        sandbox = {
+          path = ./templates/agent-sandbox;
+          description = "Alias for agent-sandbox template";
         };
       };
 

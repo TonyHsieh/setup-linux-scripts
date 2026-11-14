@@ -518,6 +518,33 @@ herdr-down:
     fi
     echo "✅ Herdr supervisor server stopped."
 
+# Reload Herdr server configuration (e.g. prefix key, keybindings) live
+herdr-reload:
+    #!/usr/bin/env bash
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    if [ -z "$HC_BIN" ] && [ -x "$HOME/.local/bin/herdr" ]; then
+        HC_BIN="$HOME/.local/bin/herdr"
+    elif [ -z "$HC_BIN" ] && [ -x "$HOME/.local/bin/hc" ]; then
+        HC_BIN="$HOME/.local/bin/hc"
+    fi
+    if [ -z "$HC_BIN" ]; then
+        echo "⚠️ Herdr not found."
+        exit 1
+    fi
+    echo "==> Reloading Herdr server configuration..."
+    $HC_BIN server reload-config 2>/dev/null || echo "💡 Herdr server not running or reloaded."
+    echo "✅ Herdr configuration reloaded."
+
+# Surgically update AI CLI agent suite (OpenCode, Hermes, Claude, Herdr, Antigravity) via numtide/llm-agents
+update-agents:
+    #!/usr/bin/env bash
+    SCRIPT_DIR="$(cd "$(dirname "{{justfile()}}")/.." && pwd)"
+    echo "==> 🔄 Surgically updating AI agent suite (numtide/llm-agents.nix)..."
+    nix flake lock "$SCRIPT_DIR" --update-input llm-agents
+    echo "==> Activating updated agents via Home Manager..."
+    home-manager switch --flake "$SCRIPT_DIR"
+    echo "🎉 AI CLI agent suite successfully updated to latest upstream releases!"
+
 # Spawn an agent into a supervised Herdr workspace pane (e.g. jl herdr-spawn agy or jl herdr-spawn oc)
 herdr-spawn AGENT *ARGS:
     #!/usr/bin/env bash
@@ -557,4 +584,26 @@ herdr-spawn AGENT *ARGS:
     echo "👉 Attach to TUI:         hc"
     echo "👉 Send prompt to agent:  herdr agent prompt $AGENT_NAME '<your prompt>' --wait"
     echo "👉 View agent screen:     herdr agent read $AGENT_NAME"
+
+# Launch an agent inside an isolated, safe-git devenv worktree under Herdr supervision (Geoff Huntley Pattern)
+agent-sandbox AGENT BRANCH="agent/task":
+    #!/usr/bin/env bash
+    ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    WORKTREE_PATH="$ROOT_DIR/.worktrees/{{BRANCH}}"
+    mkdir -p "$ROOT_DIR/.worktrees"
+    if [ ! -d "$WORKTREE_PATH" ]; then
+        echo "==> 🛡️ Creating isolated Git worktree at $WORKTREE_PATH (branch: {{BRANCH}})..."
+        git worktree add -b "{{BRANCH}}" "$WORKTREE_PATH" 2>/dev/null || git worktree add "$WORKTREE_PATH" "{{BRANCH}}"
+    fi
+    echo "==> 🛡️ Scaffolding Geoffrey Huntley agent-sandbox guardrails..."
+    cp "$ROOT_DIR/templates/agent-sandbox/devenv.nix" "$WORKTREE_PATH/devenv.nix" 2>/dev/null || true
+    cp "$ROOT_DIR/templates/agent-sandbox/flake.nix" "$WORKTREE_PATH/flake.nix" 2>/dev/null || true
+    cp "$ROOT_DIR/templates/agent-sandbox/.envrc" "$WORKTREE_PATH/.envrc" 2>/dev/null || true
+    echo "==> 🐾 Spawning {{AGENT}} inside Herdr workspace: $WORKTREE_PATH..."
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    if [ -n "$HC_BIN" ]; then
+        $HC_BIN workspace create --label "sandbox-{{AGENT}}" --cwd "$WORKTREE_PATH" >/dev/null 2>&1 || true
+    fi
+    just -f "{{justfile()}}" herdr-spawn {{AGENT}}
+    echo "✅ Agent {{AGENT}} spawned under Herdr with Safe Git guardrails in $WORKTREE_PATH!"
 

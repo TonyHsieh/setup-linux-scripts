@@ -27,6 +27,9 @@ test/
 result
 result-*
 
+# Isolated Agent Sandboxes (Geoffrey Huntley Worktrees)
+.worktrees/
+
 # Local SSL certificates & secrets
 local-services/certs/*.pem
 .env

@@ -1,0 +1,12 @@
+# Herdr Agent Supervisor Configuration (~/.config/herdr/config.toml)
+# Agent Supervisor & Terminal Multiplexer runtime configuration
+onboarding = false
+
+[keys]
+# Prefix key configured to Ctrl-a to avoid collision with Tmux's default Ctrl-b
+prefix = "ctrl+a"
+
+# Tmux-compatible split keybindings
+split_vertical = ["prefix+%", "prefix+v"]
+split_horizontal = ["prefix+\"", "prefix+-"]
+detach = ["prefix+d", "prefix+q"]

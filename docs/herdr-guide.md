@@ -180,6 +180,7 @@ You can control the Herdr supervisor daemon using our `jl` task runner:
 | :--- | :--- |
 | `jl herdr-up` | Starts the Herdr supervisor daemon in the background |
 | `jl herdr-status` | Displays active daemon status and running agent sessions |
+| `jl herdr-reload` | Reloads configuration (`~/.config/herdr/config.toml`) live without restarting panes |
 | `jl herdr-spawn <agent> [args]` | Spawns an agent into Herdr (e.g. `jl herdr-spawn agy` or `jl herdr-spawn oc`) |
 | `jl herdr-down` | Gracefully stops the Herdr supervisor daemon |
 

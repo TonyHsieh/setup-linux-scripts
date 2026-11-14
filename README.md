@@ -50,6 +50,19 @@ flowchart TD
     Tier1 --> Tier3
 ```
 
+### 📜 1.1 Architectural Prime Directives
+
+This repository adheres to strict architectural boundaries governing how tools and services are managed:
+
+1. **The 90/10 Split**: 90% of user-space tools are managed declaratively via Nix; a thin 10% native host (kernel, GPU drivers, rootless Podman, Tailscale, secrets on disk) remains native.
+2. **Never Install Global Compilers**: Language compilers (Rust, Go, Node, Python) live strictly inside per-project `devenv.nix` environments, never in global profiles.
+3. **Unified AI Agent Suite (`numtide/llm-agents.nix`)**: All AI CLIs (OpenCode, Hermes, Claude Code, Herdr, Antigravity) are declared in Nix. The binary cache (`cache.numtide.com`) is preserved by never overriding `nixpkgs.follows`.
+4. **Geoffrey Huntley 3-Layer Sandbox**: Enforces source-patched safe Git guardrails (no force pushes) and isolated worktrees before granting agents execution access.
+5. **MCP Boundaries**: Heavy browser tools (Puppeteer) run as Podman containers; local filesystem tools run as offline Nix store binaries.
+6. **Multiplexer Harmony**: Tmux uses prefix `Ctrl-b`; Herdr uses prefix `Ctrl-a`.
+
+👉 Read the complete manifesto in **[`docs/prime-directives.md`](docs/prime-directives.md)** and the AI operating rules in **[`AGENTS.md`](AGENTS.md)**.
+
 ---
 
 ## 🚀 2. Quickstart: One-Line Bootstrap
@@ -492,8 +505,11 @@ jl down-desktop  # Disable Remote Desktop on the host
 # 🐂 Herdr Agent Supervisor Runtime (Layer 2 Orchestration)
 jl herdr-up      # Start Herdr background daemon (hc daemon start)
 jl herdr-status  # Check Herdr supervisor status and active agent panes
+jl herdr-reload  # Reload Herdr configuration live (e.g., prefix key, keybindings)
 jl herdr-down    # Stop Herdr background daemon
 jl herdr-spawn <a> # Spawn agent pane in Herdr (e.g., jl herdr-spawn agy)
+jl update-agents # Surgically update AI CLI agents (llm-agents) without local compilation
+jl agent-sandbox <a> # Spawn agent inside safe-git worktree sandbox (Huntley Pattern)
 
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
