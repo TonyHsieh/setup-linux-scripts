@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-14 00:46</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul {
+      list-style: none;
+    }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong {
+      color: var(--text);
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    td code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      color: var(--sky);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      color: #e2e8f0;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .step-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🛡️ AI Agent Suite & 3-Layer Sandbox Checkpoint</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-14 00:46 (US/Pacific)</span>
+          <span>💻 <strong>Host:</strong> tonyh@AsusGA403u (Ubuntu 24.04.5 LTS / WSL2)</span>
+          <span>🌿 <strong>Branch:</strong> <code>main</code> (clean, 6 commits ahead of origin)</span>
+          <span>🔑 <strong>Latest SHA:</strong> <code>66bfe20</code></span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">● Environment Healthy</span>
+        <span class="badge badge-purple">Nix Flakes Verified</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: Metrics Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ System & Host Profile</h2>
+      <ul>
+        <li><strong>Host OS:</strong> Ubuntu 24.04.5 LTS (x86_64 Linux on WSL2)</li>
+        <li><strong>User & Home:</strong> <code>tonyh</code> (<code>/home/tonyh</code>)</li>
+        <li><strong>Nix Engine:</strong> Determinate Nix with Flakes</li>
+        <li><strong>Substituters:</strong> <code>cache.nixos.org</code> + <code>cache.numtide.com</code></li>
+        <li><strong>Multiplexers:</strong> Tmux (<code>Ctrl-b</code>) & Herdr (<code>Ctrl-a</code>)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🤖 Active AI Agent Suite</h2>
+      <ul>
+        <li><strong>Claude Code:</strong> <code>v2.1.325</code> (via <code>llm-agents</code>)</li>
+        <li><strong>Hermes Agent:</strong> <code>v0.23.0</code> (via <code>llm-agents</code>)</li>
+        <li><strong>OpenCode:</strong> <code>v1.19.5</code> (via <code>llm-agents</code>)</li>
+        <li><strong>Google AntiGravity CLI:</strong> <code>v1.15.8</code> (via <code>llm-agents</code>)</li>
+        <li><strong>GitHub Copilot CLI:</strong> <code>v1.0.91</code> (via <code>nixpkgs</code>)</li>
+        <li><strong>Herdr Supervisor:</strong> <code>v0.9.5</code> (via <code>llm-agents</code>)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🛡️ Sandboxing & Swarm Stack</h2>
+      <ul>
+        <li><strong>Layer 1 (Toolset):</strong> <code>safeGit</code> overlay (force-push blocked)</li>
+        <li><strong>Layer 2 (Worktree):</strong> <code>templates/agent-sandbox</code> (stripped secrets)</li>
+        <li><strong>Layer 3 (Container):</strong> <code>agent-sandbox:latest</code> (Nix OCI + gVisor)</li>
+        <li><strong>Orchestrator:</strong> Hermes Kanban Swarms (SQLite <code>kanban.db</code>)</li>
+        <li><strong>Spec Ingestion:</strong> Auto-attachment of Markdown/text specs</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Critical Milestones Achieved -->
+  <h2 class="section-title">🏆 Key Accomplishments & Architectural Milestones</h2>
+
+  <div class="alert alert-success">
+    <h3>1. Terminal Multiplexer Harmony (Tmux vs. Herdr Collision Resolved)</h3>
+    <p>Resolved the <code>Ctrl-b</code> interception collision between outer developer workbench (Tmux) and inner agent supervisor (Herdr). Configured <code>[keys] prefix = "ctrl+a"</code> in canonical <code>dotfiles/herdr/config.toml</code>, updated <code>bootstrap.sh</code> with automated scaffolding, and added live config reloading via <code>jl herdr-reload</code>.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>2. Codification of the Six Architectural Prime Directives</h3>
+    <p>Authored <code>AGENTS.md</code> at repository root and human guide <code>docs/prime-directives.md</code> defining: (1) 90/10 Nix-to-Native Host split, (2) Never install global compilers, (3) Unified AI agent lane without <code>follows</code> to protect Numtide binary cache, (4) Geoffrey Huntley 3-layer sandbox, (5) Container vs Nix MCP boundaries, and (6) Multiplexer harmony.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>3. Declarative AI CLI Suite Migration via <code>numtide/llm-agents.nix</code></h3>
+    <p>Migrated all AI agent tools into declarative Nix under <code>home/ai-agents.nix</code>. Crucially omitted <code>llm-agents.inputs.nixpkgs.follows = "nixpkgs"</code>, ensuring binary cache hits from <code>cache.numtide.com</code> without hours of local Rust/Python compilation. Verified all 5 Herdr integration hooks active.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>4. Geoffrey Huntley 3-Layer Sandbox & Safe-Git Overlay</h3>
+    <p>Vendored compile-time patch <code>third_party/git/001-disable-force-push.patch</code>. Created <code>nix/overlays/agent-git.nix</code> pinning <code>gitMinimal = prev.gitMinimal;</code> to avoid world rebuilds. Created self-contained <code>templates/agent-sandbox/</code> worktree environment stripping <code>SSH_AUTH_SOCK</code> and <code>SOPS_AGE_KEY_FILE</code>. Verified <code>git push --force</code> is physically blocked.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>5. Layer 3 True System Sandbox (Nix-Built OCI Image + gVisor)</h3>
+    <p>Built declarative container image <code>nix/docker/agent-sandbox.nix</code> via <code>pkgs.dockerTools.buildLayeredImage</code>. Loaded into rootless Podman as <code>localhost/agent-sandbox:latest</code>. Tested inside container: force-pushes blocked, host disk unmounted, capabilities dropped. Implemented dual network modes: strictly-local air-gapped vs. cloud-egress.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>6. Hermes Kanban Swarms & Specification File Ingestion</h3>
+    <p>Initialized SQLite task queue at <code>~/.hermes/kanban.db</code>. Enhanced <code>jl kanban-swarm</code> to auto-detect whether input is a string goal or a specification file path (<code>specs/feature.md</code>). Automatically reads full content into root task, physically attaches the file via <code>hermes kanban attach</code>, and auto-provisions custom board queues.</p>
+  </div>
+
+  <!-- Section 4: Command Matrix -->
+  <h2 class="section-title">⚡ Operational Command Matrix</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>Layer</th>
+        <th>Description</th>
+        <th>Target / Scope</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>jl agent-sandbox &lt;agent&gt; [branch]</code></td>
+        <td>Layer 2</td>
+        <td>Spawn agent in isolated Git worktree under Herdr (<code>Ctrl-a</code>)</td>
+        <td>Worktree with safeGit & stripped secrets</td>
+      </tr>
+      <tr>
+        <td><code>jl build-agent-image</code></td>
+        <td>Layer 3</td>
+        <td>Declaratively build OCI image via Nix and load into Podman</td>
+        <td><code>localhost/agent-sandbox:latest</code></td>
+      </tr>
+      <tr>
+        <td><code>jl agent-container &lt;agent&gt; [br] cloud</code></td>
+        <td>Layer 3</td>
+        <td>Run agent in rootless Podman with outbound HTTPS for cloud LLMs</td>
+        <td>Containerized worktree + scoped tokens</td>
+      </tr>
+      <tr>
+        <td><code>jl agent-container &lt;agent&gt; [br] local</code></td>
+        <td>Layer 3</td>
+        <td>Run agent air-gapped; DNS blocked; internal Ollama routing only</td>
+        <td>100% private, zero data exfiltration</td>
+      </tr>
+      <tr>
+        <td><code>jl agent-container &lt;agent&gt; [br] local gvisor</code></td>
+        <td>Layer 3</td>
+        <td>Run agent with gVisor (<code>runsc</code>) user-space kernel virtualization</td>
+        <td>VM-grade isolation, no kernel sharing</td>
+      </tr>
+      <tr>
+        <td><code>jl kanban-board [board]</code></td>
+        <td>Orchestration</td>
+        <td>Display active task board and status in SQLite</td>
+        <td><code>~/.hermes/kanban.db</code></td>
+      </tr>
+      <tr>
+        <td><code>jl kanban-swarm &lt;goal|spec.md&gt; [board]</code></td>
+        <td>Orchestration</td>
+        <td>Dispatch multi-agent swarm with auto-attached specification</td>
+        <td>Worker -> Verifier -> Synthesizer</td>
+      </tr>
+      <tr>
+        <td><code>jl update-agents</code></td>
+        <td>Tier 1</td>
+        <td>Update AI CLI agents from Numtide cache without touching nixpkgs</td>
+        <td><code>llm-agents.nix</code> lock update</td>
+      </tr>
+      <tr>
+        <td><code>jl herdr-reload</code></td>
+        <td>Supervisor</td>
+        <td>Live reload Herdr daemon configuration (prefix key, bindings)</td>
+        <td><code>~/.config/herdr/config.toml</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Plan -->
+  <h2 class="section-title">🎯 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">1. Test Real-World Feature Swarm with a Specification File</div>
+      <span class="badge badge-warn">HIGH PRIORITY — STEP 1</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      Write a concrete feature specification in <code>specs/auth-flow.md</code> and dispatch a Hermes Kanban Swarm to verify end-to-end task decomposition, attachment persistence, and verifier review.
+    </p>
+    <pre><code># 1. Create a sample specification file
+cat &lt;&lt; 'EOF' > specs/auth-flow.md
+# Feature: Role-Based Authorization Guardrail
+Goal: Add role-based middleware to Express backend ensuring 'admin' role on /admin routes.
+Criteria: 1. Unit tests pass with 100% branch coverage. 2. No force-pushes.
+EOF
+
+# 2. Dispatch swarm onto a dedicated project board
+jl kanban-swarm specs/auth-flow.md auth-feature
+
+# 3. View board progress
+jl kanban-board auth-feature</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">2. Verify Synchronized Flake on CachyOS / Arch Machine</div>
+      <span class="badge badge-info">MEDIUM PRIORITY — NEXT MACHINE</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      Push the 6 clean commits to remote and run <code>home-manager switch --flake .#cachyos</code> on your bare-metal Arch/CachyOS workstation to verify the Numtide cache hits and Herdr prefix synchronization across devices.
+    </p>
+    <pre><code># On WSL2:
+git push origin main
+
+# On CachyOS / Arch:
+git pull
+home-manager switch --flake .#cachyos
+herdr integration status</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">3. Explore Local Kubernetes Validation (Phase 2 Roadmap)</div>
+      <span class="badge badge-purple">FUTURE MILESTONE</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      When ready to test the GitOps roadmap outlined in <code>docs/agent-sandbox-k8s-roadmap.md</code>, spin up a local Kind/Minikube cluster and load the Nix-built OCI image (<code>kind load docker-image localhost/agent-sandbox:latest</code>) to test Kubernetes ephemeral runner jobs.
+    </p>
+  </div>
+
+  <!-- Section 6: Commit Log Audit -->
+  <h2 class="section-title">📦 Git Commit Audit (Current Session)</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>SHA</th>
+        <th>Commit Message</th>
+        <th>Key Changed Files</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>66bfe20</code></td>
+        <td>docs: document Layer 3 sandboxes, Hermes Kanban swarms, and spec file workflows in README and docs</td>
+        <td><code>README.md</code>, <code>docs/opencode-hermes-guide.md</code>, <code>docs/agent-sandboxes-and-swarms.md</code></td>
+      </tr>
+      <tr>
+        <td><code>1e342cb</code></td>
+        <td>feat(justfile): support passing specification files directly to kanban-swarm with auto-attachment</td>
+        <td><code>local-services/justfile</code></td>
+      </tr>
+      <tr>
+        <td><code>1bca321</code></td>
+        <td>fix(justfile): fix kanban-swarm flag positioning and use default profile</td>
+        <td><code>local-services/justfile</code></td>
+      </tr>
+      <tr>
+        <td><code>3cadd5f</code></td>
+        <td>feat(sandbox): implement Layer 3 Nix-built OCI container sandbox, Hermes Kanban swarms, and GitOps K8s roadmap</td>
+        <td><code>flake.nix</code>, <code>nix/docker/agent-sandbox.nix</code>, <code>docs/agent-sandbox-k8s-roadmap.md</code></td>
+      </tr>
+      <tr>
+        <td><code>f473220</code></td>
+        <td>fix(justfile): refine agent-sandbox and herdr-spawn to support all agent kinds and target cwd</td>
+        <td><code>local-services/justfile</code></td>
+      </tr>
+      <tr>
+        <td><code>39f34c1</code></td>
+        <td>feat(agents): consolidate AI CLI suite in Nix via llm-agents and implement Geoff Huntley 3-layer sandbox</td>
+        <td><code>AGENTS.md</code>, <code>docs/prime-directives.md</code>, <code>home/ai-agents.nix</code>, <code>templates/agent-sandbox/</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <div>Generated by <strong>Antigravity AI Agent</strong> (Google DeepMind)</div>
+    <div>Session Checkpoint: <code>2026-11-14-0046-context.html</code></div>
+  </footer>
+
+</body>
+</html>
