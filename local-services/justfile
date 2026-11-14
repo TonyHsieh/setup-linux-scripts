@@ -545,7 +545,7 @@ update-agents:
     home-manager switch --flake "$SCRIPT_DIR"
     echo "🎉 AI CLI agent suite successfully updated to latest upstream releases!"
 
-# Spawn an agent into a supervised Herdr workspace pane (e.g. jl herdr-spawn agy or jl herdr-spawn oc)
+# Spawn an agent into a supervised Herdr workspace pane (e.g. jl herdr-spawn claude or jl herdr-spawn agy)
 herdr-spawn AGENT *ARGS:
     #!/usr/bin/env bash
     HC_BIN="$(command -v herdr || command -v hc || echo "")"
@@ -553,13 +553,32 @@ herdr-spawn AGENT *ARGS:
         echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --herdr"
         exit 1
     fi
+
     # Map common CLI aliases to supported Herdr agent kinds
     KIND="{{AGENT}}"
     case "$KIND" in
-        oc|opencode) KIND="opencode" ;;
-        ha|hermes)   KIND="hermes" ;;
-        agy|antigravity) KIND="agy" ;;
+        oc|opencode)                     KIND="opencode" ;;
+        ha|hermes|hermes-agent)          KIND="hermes" ;;
+        agy|antigravity|antigravity-cli) KIND="agy" ;;
+        claude|claude-code)              KIND="claude" ;;
+        copilot|github-copilot|gh-copilot) KIND="copilot" ;;
     esac
+
+    TARGET_CWD="$PWD"
+    AGENT_ARGS=()
+    # Parse custom options like --cwd <DIR> if provided in ARGS
+    RAW_ARGS=({{ARGS}})
+    i=0
+    while [ $i -lt ${#RAW_ARGS[@]} ]; do
+        arg="${RAW_ARGS[$i]}"
+        if [ "$arg" = "--cwd" ] && [ $((i + 1)) -lt ${#RAW_ARGS[@]} ]; then
+            TARGET_CWD="${RAW_ARGS[$((i + 1))]}"
+            i=$((i + 2))
+        else
+            AGENT_ARGS+=("$arg")
+            i=$((i + 1))
+        fi
+    done
 
     # Ensure supervisor daemon is running
     if ! $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
@@ -567,8 +586,8 @@ herdr-spawn AGENT *ARGS:
         just -f "{{justfile()}}" herdr-up
     fi
 
-    echo "==> Creating Herdr workspace for agent '$KIND'..."
-    WS_JSON="$($HC_BIN workspace create --label "$KIND" --cwd "$PWD")"
+    echo "==> Creating Herdr workspace for agent '$KIND' in $TARGET_CWD..."
+    WS_JSON="$($HC_BIN workspace create --label "$KIND" --cwd "$TARGET_CWD")"
     PANE_ID="$(echo "$WS_JSON" | jq -r '.result.root_pane.pane_id // empty')"
     if [ -z "$PANE_ID" ]; then
         echo "⚠️ Failed to create Herdr pane for agent. Server output: $WS_JSON"
@@ -577,7 +596,7 @@ herdr-spawn AGENT *ARGS:
 
     AGENT_NAME="${KIND}-$(date +%s | tail -c 5)"
     echo "==> Starting '$KIND' (name: $AGENT_NAME) in pane $PANE_ID..."
-    $HC_BIN agent start "$AGENT_NAME" --kind "$KIND" --pane "$PANE_ID" {{ARGS}}
+    $HC_BIN agent start "$AGENT_NAME" --kind "$KIND" --pane "$PANE_ID" ${AGENT_ARGS[@]+"${AGENT_ARGS[@]}"}
 
     echo ""
     echo "✅ Agent '$AGENT_NAME' ($KIND) is running under Herdr supervision!"
@@ -598,12 +617,20 @@ agent-sandbox AGENT BRANCH="agent/task":
     echo "==> 🛡️ Scaffolding Geoffrey Huntley agent-sandbox guardrails..."
     cp "$ROOT_DIR/templates/agent-sandbox/devenv.nix" "$WORKTREE_PATH/devenv.nix" 2>/dev/null || true
     cp "$ROOT_DIR/templates/agent-sandbox/flake.nix" "$WORKTREE_PATH/flake.nix" 2>/dev/null || true
+    cp "$ROOT_DIR/templates/agent-sandbox/overlay.nix" "$WORKTREE_PATH/overlay.nix" 2>/dev/null || true
     cp "$ROOT_DIR/templates/agent-sandbox/.envrc" "$WORKTREE_PATH/.envrc" 2>/dev/null || true
-    echo "==> 🐾 Spawning {{AGENT}} inside Herdr workspace: $WORKTREE_PATH..."
-    HC_BIN="$(command -v herdr || command -v hc || echo "")"
-    if [ -n "$HC_BIN" ]; then
-        $HC_BIN workspace create --label "sandbox-{{AGENT}}" --cwd "$WORKTREE_PATH" >/dev/null 2>&1 || true
+    if command -v direnv >/dev/null 2>&1; then
+        direnv allow "$WORKTREE_PATH" >/dev/null 2>&1 || true
     fi
-    just -f "{{justfile()}}" herdr-spawn {{AGENT}}
-    echo "✅ Agent {{AGENT}} spawned under Herdr with Safe Git guardrails in $WORKTREE_PATH!"
+    echo "==> 🐾 Spawning {{AGENT}} inside Herdr workspace: $WORKTREE_PATH..."
+    just -f "{{justfile()}}" herdr-spawn {{AGENT}} --cwd "$WORKTREE_PATH"
+    echo ""
+    echo "======================================================================"
+    echo "🛡️  SANDBOX ACTIVE: Agent '{{AGENT}}' is isolated in $WORKTREE_PATH"
+    echo "======================================================================"
+    echo "• Safe-Git guardrail active (force-push blocked)"
+    echo "• Host secrets stripped (SSH agent, SOPS age key)"
+    echo "• To attach to Herdr TUI:            hc"
+    echo "• To run manually in terminal:       cd $WORKTREE_PATH && devenv shell -- {{AGENT}}"
+    echo "======================================================================"
 
