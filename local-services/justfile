@@ -707,16 +707,14 @@ agent-container AGENT BRANCH="agent/container-task" MODE="cloud" RUNTIME="runc":
 # Display or watch the Hermes Kanban task board
 kanban-board BOARD="default":
     #!/usr/bin/env bash
-    hermes kanban list --board "{{BOARD}}"
+    hermes kanban --board "{{BOARD}}" list
 
 # Dispatch a Hermes Kanban multi-agent swarm (worker -> verifier -> synthesizer)
 kanban-swarm GOAL BOARD="default":
     #!/usr/bin/env bash
     echo "==> 🐝 Dispatching Hermes Kanban Swarm: '{{GOAL}}' on board '{{BOARD}}'..."
-    hermes kanban swarm "{{GOAL}}" \
-        --board "{{BOARD}}" \
-        --worker coder:implementation \
-        --worker tester:tests \
-        --verifier reviewer \
-        --synthesizer architect
+    hermes kanban --board "{{BOARD}}" swarm "{{GOAL}}" \
+        --worker default:implementation \
+        --verifier default \
+        --synthesizer default
 
