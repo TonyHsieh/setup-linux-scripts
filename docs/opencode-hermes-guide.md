@@ -283,9 +283,18 @@ flowchart TD
 3. **Subagent Delegation**: Hermes can programmatically invoke `hc spawn` to launch OpenCode in an isolated Git worktree, execute refactoring, and collect the resulting diff.
 4. **Remote Mobile Ingress (Ovis)**: Connect from your iPhone or iPad over your Tailscale mesh (`*.komodo-sole.ts.net`) to check agent progress or approve tool executions on the go.
 
+### 5.3 Hermes Kanban Swarms & Sandboxing
+Hermes Agent natively includes a durable, SQLite-backed task board (`~/.hermes/kanban.db`) and swarm orchestrator (`hermes kanban swarm`):
+- **Automated Role Decomposition**: Decomposes complex epics into parallel `coder` tasks, an automated `verifier` review step, and a final `synthesizer` PR pass.
+- **Specification Files as Input**: You can pass Markdown/text specification files directly to `jl kanban-swarm <spec-file>`—the full content is injected into the root task and physically attached via `hermes kanban attach`.
+- **True System Sandboxing (Layer 3)**: For untrusted runs, agents execute inside declarative, Nix-built OCI containers (`agent-sandbox:latest`) with optional gVisor (`runsc`) user-space kernel virtualization, air-gapped local networking, and stripped host credentials.
+
 > [!TIP]
-> **Complete Herdr Guide & Google Antigravity CLI Integration**:  
-> For comprehensive architectural blueprints, API vs. TUI workflows, local Ollama vs. Google Gemini routing, and running the Google Antigravity CLI (`agy`) inside Herdr, see **[`docs/herdr-guide.md`](herdr-guide.md)**.
+> **Complete Sandboxing & Swarms Guide**:  
+> For complete instructions on running isolated worktree shells, launching gVisor containers, passing spec files to swarms, and the future Kubernetes GitOps roadmap, see:
+> - **[`docs/agent-sandboxes-and-swarms.md`](agent-sandboxes-and-swarms.md)** — Complete Sandbox & Swarm Guide
+> - **[`docs/agent-sandbox-k8s-roadmap.md`](agent-sandbox-k8s-roadmap.md)** — GitOps & Kubernetes Production Runway
+> - **[`docs/herdr-guide.md`](herdr-guide.md)** — Herdr Multi-Agent Supervisor Guide
 
 ---
 
@@ -297,6 +306,10 @@ flowchart TD
 | **Session Lifetime** | Workspace-scoped interactive session | Persistent 24/7 background agent |
 | **Launch Command** | `opencode` (or `oc`) | `hermes` (or `ha`) |
 | **Interactive TUI** | Yes (`oc`) | Yes (`hermes tui`) |
+| **Isolated Sandbox (L2)** | `jl agent-sandbox opencode` | `jl agent-sandbox hermes` |
+| **Container Sandbox (L3)** | `jl agent-container opencode` | `jl agent-container hermes` |
+| **Kanban Board** | N/A | `jl kanban-board` |
+| **Dispatch Swarm** | N/A | `jl kanban-swarm <goal-or-spec.md>` |
 | **Config Directory** | `~/.config/opencode/` | `~/.config/hermes/` and `~/.hermes/` |
 | **Onboarding Wizard**| Automatic on first run | `hermes setup --portal` |
 | **Diagnostics** | `opencode --version` | `hermes doctor` |

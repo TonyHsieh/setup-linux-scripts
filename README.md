@@ -57,11 +57,15 @@ This repository adheres to strict architectural boundaries governing how tools a
 1. **The 90/10 Split**: 90% of user-space tools are managed declaratively via Nix; a thin 10% native host (kernel, GPU drivers, rootless Podman, Tailscale, secrets on disk) remains native.
 2. **Never Install Global Compilers**: Language compilers (Rust, Go, Node, Python) live strictly inside per-project `devenv.nix` environments, never in global profiles.
 3. **Unified AI Agent Suite (`numtide/llm-agents.nix`)**: All AI CLIs (OpenCode, Hermes, Claude Code, Herdr, Antigravity) are declared in Nix. The binary cache (`cache.numtide.com`) is preserved by never overriding `nixpkgs.follows`.
-4. **Geoffrey Huntley 3-Layer Sandbox**: Enforces source-patched safe Git guardrails (no force pushes) and isolated worktrees before granting agents execution access.
+4. **Geoffrey Huntley 3-Layer Sandbox**: Enforces source-patched safe Git guardrails (no force pushes) and isolated worktrees (Layer 2) or Nix-built rootless Podman/gVisor containers (Layer 3) before granting agents execution access.
 5. **MCP Boundaries**: Heavy browser tools (Puppeteer) run as Podman containers; local filesystem tools run as offline Nix store binaries.
 6. **Multiplexer Harmony**: Tmux uses prefix `Ctrl-b`; Herdr uses prefix `Ctrl-a`.
 
-👉 Read the complete manifesto in **[`docs/prime-directives.md`](docs/prime-directives.md)** and the AI operating rules in **[`AGENTS.md`](AGENTS.md)**.
+👉 Essential Architectural Documentation:
+- **[`AGENTS.md`](AGENTS.md)** — Repository operating rules & prompt injections for autonomous agents
+- **[`docs/prime-directives.md`](docs/prime-directives.md)** — Architectural Prime Directives manifesto
+- **[`docs/agent-sandboxes-and-swarms.md`](docs/agent-sandboxes-and-swarms.md)** — 3-Layer sandboxing, gVisor containers, and Hermes Kanban swarms
+- **[`docs/agent-sandbox-k8s-roadmap.md`](docs/agent-sandbox-k8s-roadmap.md)** — Evolution from local Podman to GitOps Kubernetes (ArgoCD + Kargo)
 
 ---
 
@@ -507,9 +511,17 @@ jl herdr-up      # Start Herdr background daemon (hc daemon start)
 jl herdr-status  # Check Herdr supervisor status and active agent panes
 jl herdr-reload  # Reload Herdr configuration live (e.g., prefix key, keybindings)
 jl herdr-down    # Stop Herdr background daemon
-jl herdr-spawn <a> # Spawn agent pane in Herdr (e.g., jl herdr-spawn agy)
+jl herdr-spawn <a> # Spawn agent pane in Herdr (e.g., jl herdr-spawn agy or claude)
 jl update-agents # Surgically update AI CLI agents (llm-agents) without local compilation
-jl agent-sandbox <a> # Spawn agent inside safe-git worktree sandbox (Huntley Pattern)
+
+# 🛡️ Autonomous Agent Sandboxes (Layer 2 & Layer 3)
+jl agent-sandbox <a> [br] # Spawn agent in isolated worktree with safeGit & stripped secrets (L2)
+jl build-agent-image     # Build declarative OCI image via Nix and load into Podman
+jl agent-container <a> [br] [m] [rt] # Run agent in rootless Podman/gVisor container (L3, modes: cloud/local)
+
+# 🐝 Hermes Kanban Multi-Agent Swarms
+jl kanban-board [board]  # View active tasks and status on the Hermes Kanban board
+jl kanban-swarm <target> [board] # Dispatch multi-agent swarm (accepts string goal or spec file path)
 
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```
