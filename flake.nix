@@ -36,10 +36,17 @@
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
     in
     {
-      # 1. Reusable Devenv Module (Phase 4)
+      # 1. Packages (Layer 3 Container Images)
+      packages = forEachSystem (system: {
+        agent-sandbox-image = import ./nix/docker/agent-sandbox.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+        };
+      });
+
+      # 2. Reusable Devenv Module (Phase 4)
       devenvModules.common = import ./modules/devenv-common.nix;
 
-      # 2. Project Flake Templates
+      # 3. Project Flake Templates
       templates = {
         default = {
           path = ./templates/devenv-starter;

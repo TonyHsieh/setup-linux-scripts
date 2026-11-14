@@ -634,3 +634,89 @@ agent-sandbox AGENT BRANCH="agent/task":
     echo "• To run manually in terminal:       cd $WORKTREE_PATH && devenv shell -- {{AGENT}}"
     echo "======================================================================"
 
+# Build the hermetic Nix agent sandbox OCI container image and load into Podman
+build-agent-image:
+    #!/usr/bin/env bash
+    ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    echo "==> 🐳 Building declarative agent-sandbox OCI image via Nix..."
+    nix build "$ROOT_DIR#agent-sandbox-image" -o "$ROOT_DIR/result-agent-image"
+    echo "==> 📥 Loading image into rootless Podman..."
+    podman load -i "$ROOT_DIR/result-agent-image"
+    rm -f "$ROOT_DIR/result-agent-image"
+    echo "✅ Image 'localhost/agent-sandbox:latest' successfully loaded into Podman!"
+
+# Run an agent inside a fully isolated rootless Podman container (Layer 3 boundary)
+agent-container AGENT BRANCH="agent/container-task" MODE="cloud" RUNTIME="runc":
+    #!/usr/bin/env bash
+    ROOT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    WORKTREE_PATH="$ROOT_DIR/.worktrees/{{BRANCH}}"
+    mkdir -p "$ROOT_DIR/.worktrees"
+    if [ ! -d "$WORKTREE_PATH" ]; then
+        echo "==> 🛡️ Creating isolated Git worktree at $WORKTREE_PATH (branch: {{BRANCH}})..."
+        git worktree add -b "{{BRANCH}}" "$WORKTREE_PATH" 2>/dev/null || git worktree add "$WORKTREE_PATH" "{{BRANCH}}"
+    fi
+
+    # 1. Resolve OCI Runtime (gVisor runsc vs standard runc)
+    RUNTIME_ARG=""
+    if [ "{{RUNTIME}}" = "gvisor" ] || [ "{{RUNTIME}}" = "runsc" ]; then
+        if command -v runsc >/dev/null 2>&1 || podman info 2>/dev/null | grep -qi "runsc"; then
+            RUNTIME_ARG="--runtime=runsc"
+            echo "==> 🛡️ gVisor user-space kernel active (runsc)!"
+        else
+            echo "💡 gVisor (runsc) not found. Running under standard rootless namespace isolation."
+        fi
+    fi
+
+    # 2. Resolve Network & LLM Egress Mode
+    NET_ARGS=()
+    ENV_ARGS=()
+    if [ "{{MODE}}" = "local" ]; then
+        echo "==> 🔒 STRICTLY-LOCAL AIR-GAPPED MODE: Public internet egress is disabled."
+        NET_ARGS=(--network=local-mesh --dns=127.0.0.1)
+        ENV_ARGS=(
+            -e "OPENAI_BASE_URL=http://local-ollama:11434/v1"
+            -e "OPENAI_API_KEY=ollama"
+        )
+    else
+        echo "==> 🌐 CLOUD-EGRESS MODE: Outbound HTTPS permitted for LLM API calls."
+        NET_ARGS=(--network=local-mesh)
+        # Pass through specific scoped API keys without exposing host disk/secrets
+        [ -n "${GEMINI_API_KEY:-}" ] && ENV_ARGS+=(-e "GEMINI_API_KEY=$GEMINI_API_KEY")
+        [ -n "${ANTHROPIC_API_KEY:-}" ] && ENV_ARGS+=(-e "ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY")
+        [ -n "${OPENROUTER_API_KEY:-}" ] && ENV_ARGS+=(-e "OPENROUTER_API_KEY=$OPENROUTER_API_KEY")
+        [ -n "${OPENAI_API_KEY:-}" ] && ENV_ARGS+=(-e "OPENAI_API_KEY=$OPENAI_API_KEY")
+    fi
+
+    # 3. Mount shared Hermes Kanban storage
+    KANBAN_DIR="$HOME/.hermes/kanban"
+    mkdir -p "$KANBAN_DIR"
+
+    echo "==> 🚀 Spawning {{AGENT}} in isolated container ($WORKTREE_PATH -> /workspace)..."
+    podman run --rm -it \
+        "${NET_ARGS[@]}" \
+        $RUNTIME_ARG \
+        --name "agent-{{AGENT}}-$(date +%s | tail -c 5)" \
+        --security-opt=no-new-privileges \
+        --cap-drop=ALL \
+        -v "$WORKTREE_PATH:/workspace:rw" \
+        -v "$KANBAN_DIR:/shared-kanban:rw" \
+        "${ENV_ARGS[@]}" \
+        -e "AGENT_KIND={{AGENT}}" \
+        localhost/agent-sandbox:latest
+
+# Display or watch the Hermes Kanban task board
+kanban-board BOARD="default":
+    #!/usr/bin/env bash
+    hermes kanban list --board "{{BOARD}}"
+
+# Dispatch a Hermes Kanban multi-agent swarm (worker -> verifier -> synthesizer)
+kanban-swarm GOAL BOARD="default":
+    #!/usr/bin/env bash
+    echo "==> 🐝 Dispatching Hermes Kanban Swarm: '{{GOAL}}' on board '{{BOARD}}'..."
+    hermes kanban swarm "{{GOAL}}" \
+        --board "{{BOARD}}" \
+        --worker coder:implementation \
+        --worker tester:tests \
+        --verifier reviewer \
+        --synthesizer architect
+
