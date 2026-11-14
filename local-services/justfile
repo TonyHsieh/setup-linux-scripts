@@ -709,12 +709,31 @@ kanban-board BOARD="default":
     #!/usr/bin/env bash
     hermes kanban --board "{{BOARD}}" list
 
-# Dispatch a Hermes Kanban multi-agent swarm (worker -> verifier -> synthesizer)
-kanban-swarm GOAL BOARD="default":
+# Dispatch a Hermes Kanban multi-agent swarm (accepts either a string goal or a specification file path)
+kanban-swarm TARGET BOARD="default":
     #!/usr/bin/env bash
-    echo "==> 🐝 Dispatching Hermes Kanban Swarm: '{{GOAL}}' on board '{{BOARD}}'..."
-    hermes kanban --board "{{BOARD}}" swarm "{{GOAL}}" \
+    SPEC_FILE=""
+    GOAL_TEXT="{{TARGET}}"
+    if [ -f "{{TARGET}}" ]; then
+        echo "==> 📄 Detected specification file: '{{TARGET}}'"
+        SPEC_FILE="{{TARGET}}"
+        GOAL_TEXT="$(cat "{{TARGET}}")"
+    fi
+    if [ "{{BOARD}}" != "default" ]; then
+        hermes kanban boards create "{{BOARD}}" 2>/dev/null || true
+    fi
+    echo "==> 🐝 Dispatching Hermes Kanban Swarm on board '{{BOARD}}'..."
+    SWARM_JSON="$(hermes kanban --board "{{BOARD}}" swarm "$GOAL_TEXT" \
         --worker default:implementation \
         --verifier default \
-        --synthesizer default
+        --synthesizer default \
+        --json)"
+    ROOT_ID="$(echo "$SWARM_JSON" | jq -r '.root_id // empty')"
+    if [ -n "$SPEC_FILE" ] && [ -n "$ROOT_ID" ]; then
+        echo "==> 📎 Attaching '$SPEC_FILE' to swarm root task $ROOT_ID..."
+        hermes kanban --board "{{BOARD}}" attach "$ROOT_ID" "$SPEC_FILE"
+    fi
+    echo "$SWARM_JSON" | jq .
+    echo ""
+    echo "✅ Swarm dispatched! View board with: jl kanban-board {{BOARD}}"
 
