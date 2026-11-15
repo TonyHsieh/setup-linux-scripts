@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-15 10:40</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul {
+      list-style: none;
+    }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong {
+      color: var(--text);
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    td code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      color: var(--sky);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      color: #e2e8f0;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .step-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🛡️ WSL 26.04 Upgrade & Repeatable Home Manager Resolution</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-15 10:40 (US/Pacific)</span>
+          <span>💻 <strong>Host:</strong> tonyh@AsusGA403u (Ubuntu 26.04 / WSL2)</span>
+          <span>🌿 <strong>Branch:</strong> <code>main</code> (clean, 8 commits ahead of origin)</span>
+          <span>🔑 <strong>Latest SHA:</strong> <code>4944968</code></span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">● Generation 35 Active</span>
+        <span class="badge badge-purple">Nix Flakes Verified</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: Metrics Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ Host & Profile State</h2>
+      <ul>
+        <li><strong>Host OS:</strong> Ubuntu 26.04 LTS (x86_64 Linux on WSL2)</li>
+        <li><strong>Target Profile:</strong> <code>wsl</code> (User: <code>tonyh</code>, Host: <code>AsusGA403u</code>)</li>
+        <li><strong>Active HM Generation:</strong> Generation 35 (Activated 2026-11-15 10:36)</li>
+        <li><strong>Config Link:</strong> <code>~/.config/home-manager -&gt; ~/setup-linux-scripts</code></li>
+        <li><strong>Substituters:</strong> <code>cache.nixos.org</code> + <code>cache.numtide.com</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🤖 Declarative AI Toolchain</h2>
+      <ul>
+        <li><strong>Claude Code:</strong> <code>v2.1.325</code> (declarative in Nix profile)</li>
+        <li><strong>Herdr Supervisor:</strong> <code>v0.9.5</code> (declarative in Nix profile)</li>
+        <li><strong>OpenCode:</strong> <code>v1.19.5</code> (declarative in Nix profile)</li>
+        <li><strong>Hermes Agent:</strong> <code>v0.23.0</code> (declarative in Nix profile)</li>
+        <li><strong>AntiGravity CLI:</strong> <code>v1.15.8</code> (declarative in Nix profile)</li>
+        <li><strong>GitHub Copilot:</strong> <code>v1.0.91</code> (declarative via nixpkgs)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🧹 Cleanup & Hygiene Status</h2>
+      <ul>
+        <li><strong>Legacy Binaries Removed:</strong> <code>~/.local/bin/{herdr,hc,claude}</code></li>
+        <li><strong>Deprecation Fixed:</strong> <code>stdenv.hostPlatform.system</code> in <code>home/ai-agents.nix</code></li>
+        <li><strong>Default Lookups:</strong> <code>tonyh</code>, <code>tonyh@AsusGA403u</code> mapped in flake</li>
+        <li><strong>SOPS Verification:</strong> Host SSH key re-verified and authorized</li>
+        <li><strong>Mesh SSL:</strong> <code>*.localhost</code> certificates validated</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Critical Milestones Achieved -->
+  <h2 class="section-title">🏆 Key Accomplishments & Incident Resolution</h2>
+
+  <div class="alert alert-success">
+    <h3>1. Root Cause Resolution: Seamless, Zero-Flag <code>home-manager switch</code></h3>
+    <p><strong>Incident:</strong> After upgrading to WSL 26.04 and running dry-run <code>./bootstrap.sh --build</code>, running bare <code>home-manager switch</code> failed with <code>No configuration file found. Please create one at ~/.config/home-manager/home.nix</code>.<br>
+    <strong>Root Cause:</strong> Home Manager defaults to looking for <code>~/.config/home-manager/flake.nix</code>. When not found, it falls back to non-flake <code>home.nix</code>. Furthermore, when evaluating flakes without an explicit <code>#target</code> argument, Home Manager checks for <code>homeConfigurations."$USER@$HOSTNAME"</code> and <code>homeConfigurations."$USER"</code>, which were not aliased in <code>flake.nix</code>.<br>
+    <strong>Resolution:</strong> (1) Scaffolding automatic symlink <code>~/.config/home-manager -&gt; $SCRIPT_DIR</code> in <code>bootstrap.sh</code>. (2) Aliased standard Home Manager convention attributes (<code>tonyh</code>, <code>tonyh@AsusGA403u</code>, <code>thsieh</code>, <code>thsieh01</code>) in <code>flake.nix</code>. Bare <code>home-manager switch</code> and <code>home-manager build</code> now work natively from any directory.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>2. Nixpkgs Deprecation Fix (<code>pkgs.system</code> -> <code>pkgs.stdenv.hostPlatform.system</code>)</h3>
+    <p>Modernized <code>home/ai-agents.nix</code> to access <code>pkgs.stdenv.hostPlatform.system</code> instead of deprecated <code>pkgs.system</code>, completely eliminating the evaluation warning during Home Manager builds.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>3. Legacy Artifacts Cleanup & Declarative Precedence</h3>
+    <p>Safely cleaned up shadowed imperative binaries from prior installations (<code>~/.local/bin/herdr</code>, <code>~/.local/bin/hc</code>, <code>~/.local/bin/claude</code>). All AI agent tools (<code>claude</code>, <code>herdr</code>, <code>opencode</code>, <code>hermes</code>, <code>antigravity-cli</code>) are now 100% sourced from declarative Nix under <code>~/.nix-profile/bin</code>.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>4. New Ergonomic CLI Shorthands & Task Runner Integration</h3>
+    <p>Added shell aliases in <code>home/shell.nix</code> (<code>hm="home-manager"</code>, <code>hms="home-manager switch -b backup"</code>, <code>hmb="home-manager build"</code>) and added lifecycle recipes in <code>local-services/justfile</code> (<code>jl switch</code> and <code>jl build</code>), giving unified single-command access across workflows.</p>
+  </div>
+
+  <!-- Section 4: Command Matrix -->
+  <h2 class="section-title">⚡ Operational Command Matrix</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Command</th>
+        <th>Scope</th>
+        <th>Description</th>
+        <th>Target / Behavior</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>home-manager switch</code></td>
+        <td>CLI</td>
+        <td>Native flake switch from any working directory</td>
+        <td>Auto-discovers via <code>~/.config/home-manager</code></td>
+      </tr>
+      <tr>
+        <td><code>hms</code></td>
+        <td>Alias</td>
+        <td>Safe switch with automatic backup extension</td>
+        <td><code>home-manager switch -b backup</code></td>
+      </tr>
+      <tr>
+        <td><code>jl switch</code></td>
+        <td>Task Runner</td>
+        <td>Full bootstrap switch with verification & cleanup</td>
+        <td>Runs <code>./bootstrap.sh</code> via Justfile</td>
+      </tr>
+      <tr>
+        <td><code>jl build</code></td>
+        <td>Task Runner</td>
+        <td>Dry-run build verification</td>
+        <td>Runs <code>./bootstrap.sh --build</code> via Justfile</td>
+      </tr>
+      <tr>
+        <td><code>jl update-agents</code></td>
+        <td>Tier 1</td>
+        <td>Update AI CLI agents from Numtide cache without touching nixpkgs</td>
+        <td><code>llm-agents.nix</code> lock update</td>
+      </tr>
+      <tr>
+        <td><code>jl herdr-reload</code></td>
+        <td>Supervisor</td>
+        <td>Live reload Herdr daemon configuration (<code>Ctrl-a</code>)</td>
+        <td><code>~/.config/herdr/config.toml</code></td>
+      </tr>
+      <tr>
+        <td><code>jl kanban-swarm &lt;goal|spec.md&gt; [board]</code></td>
+        <td>Orchestration</td>
+        <td>Dispatch multi-agent swarm with auto-attached specification</td>
+        <td>Worker -> Verifier -> Synthesizer</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Plan -->
+  <h2 class="section-title">🎯 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">1. Push Clean Commits to Remote Repository</div>
+      <span class="badge badge-warn">HIGH PRIORITY — STEP 1</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      The local branch is clean and 8 commits ahead of origin with all sandbox, swarm, and WSL 26.04 Home Manager fixes verified.
+    </p>
+    <pre><code># Push to origin
+git push origin main</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">2. Test Real-World Feature Swarm with a Specification File</div>
+      <span class="badge badge-info">MEDIUM PRIORITY — STEP 2</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      Dispatch a Hermes Kanban Swarm using a concrete specification file in <code>specs/</code> to verify task decomposition, physical file attachment, and autonomous verifier review.
+    </p>
+    <pre><code># Dispatch swarm onto a dedicated project board
+jl kanban-swarm specs/auth-flow.md auth-feature
+
+# View board progress
+jl kanban-board auth-feature</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <div class="step-title">3. Synchronize Bare-Metal Arch / CachyOS Workstation</div>
+      <span class="badge badge-purple">STEP 3</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+      On your CachyOS machine, run <code>git pull</code> and <code>jl switch</code> (or <code>home-manager switch</code>) to inherit the new default aliases, Numtide binary cache settings, and Herdr multiplexer harmony.
+    </p>
+    <pre><code>git pull
+jl switch</code></pre>
+  </div>
+
+  <footer>
+    <div>Generated by <strong>Antigravity AI Agent</strong> (Google DeepMind)</div>
+    <div>Session Checkpoint: <code>2026-11-15-1040-context.html</code></div>
+  </footer>
+
+</body>
+</html>
