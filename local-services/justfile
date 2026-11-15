@@ -737,3 +737,13 @@ kanban-swarm TARGET BOARD="default":
     echo ""
     echo "✅ Swarm dispatched! View board with: jl kanban-board {{BOARD}}"
 
+# --- ❄️ Declarative Environment Lifecycle Tasks ---
+# Switch / activate declarative Home Manager environment (runs bootstrap.sh)
+switch *ARGS:
+    @{{justfile_directory()}}/../bootstrap.sh {{ARGS}}
+
+# Dry-run build declarative Home Manager environment
+build *ARGS:
+    @{{justfile_directory()}}/../bootstrap.sh --build {{ARGS}}
+
+

@@ -111,7 +111,7 @@
       };
 
       # 3. User Home Manager Configurations across your machines
-      homeConfigurations = {
+      homeConfigurations = rec {
         # 1. WSL2 Ubuntu (User: tonyh, Home: /home/tonyh)
         "wsl" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages."x86_64-linux";
@@ -164,7 +164,6 @@
           ];
         };
 
-
         # 3. macOS Darwin (User: thsieh01, Home: /Users/thsieh01)
         "darwin" = home-manager.lib.homeManagerConfiguration {
           pkgs = nixpkgs.legacyPackages."aarch64-darwin";
@@ -178,6 +177,14 @@
             }
           ];
         };
+
+        # Default username and host aliases for standard Home Manager CLI invocations
+        # (e.g. 'home-manager switch' or 'home-manager build' without explicit #target)
+        "tonyh" = wsl;
+        "tonyh@AsusGA403u" = wsl;
+        "thsieh" = cachyos;
+        "thsieh@wsl" = wsl-thsieh;
+        "thsieh01" = cachyos-thsieh01;
       };
     };
 }

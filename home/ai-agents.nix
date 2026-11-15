@@ -1,8 +1,9 @@
 { pkgs, inputs ? {}, ... }:
 
 let
-  llmPkgs = if inputs ? llm-agents && inputs.llm-agents ? packages && inputs.llm-agents.packages ? ${pkgs.system}
-    then inputs.llm-agents.packages.${pkgs.system}
+  system = pkgs.stdenv.hostPlatform.system;
+  llmPkgs = if inputs ? llm-agents && inputs.llm-agents ? packages && inputs.llm-agents.packages ? ${system}
+    then inputs.llm-agents.packages.${system}
     else {};
 in
 {

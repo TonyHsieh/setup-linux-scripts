@@ -363,6 +363,16 @@ if [ ! -f "$HOME/.config/nix/nix.conf" ] || ! grep -q "experimental-features" "$
 fi
 export NIX_CONFIG="experimental-features = nix-command flakes"
 
+# 1.55. Ensure ~/.config/home-manager points to this repository for repeatable 'home-manager switch'
+mkdir -p "$HOME/.config"
+if [ ! -e "$HOME/.config/home-manager" ] || [ -L "$HOME/.config/home-manager" ]; then
+  CURRENT_LINK="$(readlink -f "$HOME/.config/home-manager" 2>/dev/null || true)"
+  if [ "$CURRENT_LINK" != "$SCRIPT_DIR" ]; then
+    echo "==> Linking ~/.config/home-manager -> $SCRIPT_DIR..."
+    ln -sfn "$SCRIPT_DIR" "$HOME/.config/home-manager"
+  fi
+fi
+
 # Global detection state
 DETECTED_DUPLICATE_BINS=()
 DETECTED_DOTFILE_BACKUPS=()

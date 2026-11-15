@@ -37,6 +37,11 @@
       ha = "hermes";
       hc = "herdr";
 
+      # Declarative Nix & Home Manager Shorthands
+      hm = "home-manager";
+      hms = "home-manager switch -b backup";
+      hmb = "home-manager build";
+
       # Quick Tmux launcher
       t = "tmux";
     };
