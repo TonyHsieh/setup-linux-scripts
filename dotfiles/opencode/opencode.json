@@ -34,6 +34,8 @@
         "-i",
         "--rm",
         "--init",
+        "--label",
+        "ephemeral=true",
         "docker.io/mcp/puppeteer:latest"
       ],
       "enabled": true

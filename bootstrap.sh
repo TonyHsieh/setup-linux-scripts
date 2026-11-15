@@ -378,6 +378,7 @@ DETECTED_DUPLICATE_BINS=()
 DETECTED_DOTFILE_BACKUPS=()
 DETECTED_LEGACY_DIRS=()
 DETECTED_NIX_PROFILE_PKGS=()
+DETECTED_STALE_MCP=()
 DETECTED_OLD_GENERATIONS=0
 
 detect_existing_deployments() {
@@ -386,6 +387,7 @@ detect_existing_deployments() {
   DETECTED_DOTFILE_BACKUPS=()
   DETECTED_LEGACY_DIRS=()
   DETECTED_NIX_PROFILE_PKGS=()
+  DETECTED_STALE_MCP=()
   DETECTED_OLD_GENERATIONS=0
 
   # 1. Check for legacy/duplicate binaries in /usr/local/bin and ~/.local/bin
@@ -440,7 +442,16 @@ detect_existing_deployments() {
     DETECTED_OLD_GENERATIONS=$(home-manager generations 2>/dev/null | wc -l || echo 0)
   fi
 
-  local total_found=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#DETECTED_DOTFILE_BACKUPS[@]} + ${#DETECTED_LEGACY_DIRS[@]} + ${#DETECTED_NIX_PROFILE_PKGS[@]} ))
+  # 6. Check for stale ephemeral MCP containers (e.g. created/exited puppeteer)
+  if command -v podman >/dev/null 2>&1; then
+    while IFS= read -r cid; do
+      if [ -n "$cid" ]; then
+        DETECTED_STALE_MCP+=("$cid")
+      fi
+    done < <(podman ps -a --filter "ancestor=docker.io/mcp/puppeteer:latest" --filter "status=created" --filter "status=exited" -q 2>/dev/null || true)
+  fi
+
+  local total_found=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#DETECTED_DOTFILE_BACKUPS[@]} + ${#DETECTED_LEGACY_DIRS[@]} + ${#DETECTED_NIX_PROFILE_PKGS[@]} + ${#DETECTED_STALE_MCP[@]} ))
   if [ "$total_found" -gt 0 ]; then
     echo "   ⚠️  Detected $total_found legacy / existing artifact(s) from previous installations."
   else
@@ -526,13 +537,14 @@ offer_and_run_cleanup() {
 
   # If running in build/dry-run mode, report only
   if [ "$ACTION" = "build" ]; then
-    local total_found=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#DETECTED_DOTFILE_BACKUPS[@]} + ${#DETECTED_LEGACY_DIRS[@]} ))
+    local total_found=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#DETECTED_DOTFILE_BACKUPS[@]} + ${#DETECTED_LEGACY_DIRS[@]} + ${#DETECTED_STALE_MCP[@]} ))
     if [ "$total_found" -gt 0 ]; then
       echo ""
       echo "ℹ️  Dry-run build mode: Skipping cleanup. The following legacy artifacts were detected:"
       for b in "${DETECTED_DUPLICATE_BINS[@]}"; do echo "   - Binary: $b"; done
       for f in "${DETECTED_DOTFILE_BACKUPS[@]}"; do echo "   - Backup: $f"; done
       for d in "${DETECTED_LEGACY_DIRS[@]}"; do echo "   - Directory: $d"; done
+      for c in "${DETECTED_STALE_MCP[@]}"; do echo "   - Stale MCP Container: $c"; done
     fi
     return 0
   fi
@@ -552,7 +564,7 @@ offer_and_run_cleanup() {
     backups_to_clean+=("$f")
   done
 
-  local total_detected=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#backups_to_clean[@]} + ${#DETECTED_LEGACY_DIRS[@]} ))
+  local total_detected=$(( ${#DETECTED_DUPLICATE_BINS[@]} + ${#backups_to_clean[@]} + ${#DETECTED_LEGACY_DIRS[@]} + ${#DETECTED_STALE_MCP[@]} ))
   if [ "$total_detected" -eq 0 ]; then
     echo ""
     echo "==> 🧹 No legacy deployment residue detected. System is clean!"
@@ -585,6 +597,13 @@ offer_and_run_cleanup() {
     echo "📁 Obsolete Residue Directories (superseded by Nix):"
     for d in "${DETECTED_LEGACY_DIRS[@]}"; do
       echo "   • $d"
+    done
+  fi
+
+  if [ ${#DETECTED_STALE_MCP[@]} -gt 0 ]; then
+    echo "🐳 Stale Ephemeral MCP Containers (${#DETECTED_STALE_MCP[@]} containers):"
+    for c in "${DETECTED_STALE_MCP[@]}"; do
+      echo "   • $c"
     done
   fi
 
@@ -654,6 +673,13 @@ offer_and_run_cleanup() {
       else
         echo "⚠️ Sudo not available. Please remove manually: rm -f ${sudo_bins[*]}"
       fi
+    fi
+
+    # 4. Clean stale ephemeral MCP containers (puppeteer / ephemeral)
+    if [ ${#DETECTED_STALE_MCP[@]} -gt 0 ]; then
+      echo "==> Removing stale ephemeral MCP containers..."
+      podman rm "${DETECTED_STALE_MCP[@]}" >/dev/null 2>&1 || true
+      echo "   ✓ Removed ${#DETECTED_STALE_MCP[@]} stale MCP container(s)"
     fi
 
     echo ""

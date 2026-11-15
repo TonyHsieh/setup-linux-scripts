@@ -433,7 +433,7 @@ mcp-info:
     @echo '  "mcp": {'
     @echo '    "puppeteer": {'
     @echo '      "type": "local",'
-    @echo '      "command": ["podman", "run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"]'
+    @echo '      "command": ["podman", "run", "-i", "--rm", "--init", "--label", "ephemeral=true", "docker.io/mcp/puppeteer:latest"]'
     @echo '    }'
     @echo '  }'
     @echo "======================================================================"
@@ -441,8 +441,28 @@ mcp-info:
     @echo 'mcp_servers:'
     @echo '  puppeteer:'
     @echo '    command: "podman"'
-    @echo '    args: ["run", "-i", "--rm", "--init", "docker.io/mcp/puppeteer:latest"]'
+    @echo '    args: ["run", "-i", "--rm", "--init", "--label", "ephemeral=true", "docker.io/mcp/puppeteer:latest"]'
     @echo "======================================================================"
+
+# Safely prune stale/created ephemeral MCP containers without touching stopped service mesh containers
+clean-mcp:
+    @echo "==> Scanning for stale ephemeral MCP containers..."
+    @STALE_IDS=$({{CONTAINER_CMD}} ps -a \
+        --filter "ancestor=docker.io/mcp/puppeteer:latest" \
+        --filter "status=created" \
+        --filter "status=exited" -q 2>/dev/null || true); \
+    LABEL_IDS=$({{CONTAINER_CMD}} ps -a \
+        --filter "label=ephemeral=true" \
+        --filter "status=created" \
+        --filter "status=exited" -q 2>/dev/null || true); \
+    ALL_STALE=$(echo "$STALE_IDS $LABEL_IDS" | tr ' ' '\n' | sort -u | tr '\n' ' ' | xargs); \
+    if [ -n "$ALL_STALE" ]; then \
+        echo "==> Cleaning stale MCP container(s): $ALL_STALE"; \
+        {{CONTAINER_CMD}} rm $ALL_STALE; \
+        echo "🎉 Cleaned stale ephemeral MCP container(s)."; \
+    else \
+        echo "✓ No stale ephemeral MCP containers found. System is clean!"; \
+    fi
 
 # --- 🐾 Herdr Multi-Agent Multiplexer & Supervisor Tasks ---
 # Start the Herdr supervisor daemon
