@@ -3,6 +3,7 @@
 {
   imports = [
     ./packages.nix
+    ./neovim.nix
     ./shell.nix
     ./starship.nix
     ./tmux.nix

@@ -30,9 +30,6 @@
     devenv
     postgresql
 
-    # Editor Engine (Option A: Neovim stable managed via Nix)
-    neovim
-
     # Bash Line Editor
     blesh
   ];
