@@ -946,11 +946,17 @@ EOF
       echo ""
       echo "==> 🏷️  Configuring Local Machine Identity (TS_MACHINE_ID)..."
       echo "    Auto-detected machine nickname: [${AUTO_MACHINE_ID}]"
-      if read -r -p "    Press [Enter] to accept [${AUTO_MACHINE_ID}], or enter custom nickname (max 10 alphanumeric chars): " USER_INPUT_ID < /dev/tty 2>/dev/null; then
-        CLEAN_INPUT="$(echo "${USER_INPUT_ID:-}" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-10)"
-        if [ -n "$CLEAN_INPUT" ]; then
-          CONFIRMED_MACHINE_ID="$CLEAN_INPUT"
-        fi
+      echo -n "    Press [Enter] to accept [${AUTO_MACHINE_ID}], or enter custom nickname (timeout 15s): "
+      USER_INPUT_ID=""
+      if [ -e /dev/tty ]; then
+        read -r -t 15 USER_INPUT_ID < /dev/tty 2>/dev/null || true
+      elif [ -t 0 ]; then
+        read -r -t 15 USER_INPUT_ID 2>/dev/null || true
+      fi
+      echo ""
+      CLEAN_INPUT="$(echo "${USER_INPUT_ID:-}" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-10)"
+      if [ -n "$CLEAN_INPUT" ]; then
+        CONFIRMED_MACHINE_ID="$CLEAN_INPUT"
       fi
     fi
 
