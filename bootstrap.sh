@@ -345,7 +345,10 @@ fi
 
 if ! command -v nix >/dev/null 2>&1; then
   echo "==> Nix not found. Installing Nix via Determinate Systems Installer..."
-  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm
+  curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --no-confirm \
+    --extra-conf "trusted-users = root $USER @sudo @wheel" \
+    --extra-conf "extra-substituters = https://cache.numtide.com" \
+    --extra-conf "extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
   if [ -d "/nix/var/nix/profiles/default/bin" ]; then
     export PATH="/nix/var/nix/profiles/default/bin:$PATH"
   fi
@@ -366,6 +369,7 @@ export NIX_CONFIG="experimental-features = nix-command flakes"
 # 1.52. Ensure administrative users and binary caches are trusted by the multi-user Nix daemon
 setup_nix_daemon_trust() {
   local conf_file="/etc/nix/nix.conf"
+  local custom_conf_file="/etc/nix/nix.custom.conf"
 
   # Only apply when a multi-user Nix daemon is present (e.g. Determinate Nix installer or NixOS/systemd daemon)
   if [ -e /nix/var/nix/daemon-socket/socket ] || [ -d "/etc/nix" ] || pgrep -x nix-daemon >/dev/null 2>&1 || pgrep -x determinate-nixd >/dev/null 2>&1; then
@@ -387,11 +391,15 @@ setup_nix_daemon_trust() {
     if [ -f "$conf_file" ]; then
       current_conf="$(cat "$conf_file" 2>/dev/null || sudo -n cat "$conf_file" 2>/dev/null || true)"
     fi
+    if [ -f "$custom_conf_file" ]; then
+      current_conf="$current_conf $(cat "$custom_conf_file" 2>/dev/null || sudo -n cat "$custom_conf_file" 2>/dev/null || true)"
+    fi
 
     local lines_to_add=()
-    # Trust administrative groups generically without hardcoding individual usernames
-    if ! echo "$current_conf" | grep -qE "trusted-users.*(@sudo|@wheel|@admin)"; then
-      lines_to_add+=("trusted-users = root @sudo @wheel @admin")
+    # Explicitly trust the dynamic local machine user ($USER) as well as admin groups
+    # Note: On Linux, Nix daemon checks primary GID for @groups; explicit $USER ensures trusted access regardless of primary group
+    if ! echo "$current_conf" | grep -q "trusted-users.*$USER"; then
+      lines_to_add+=("trusted-users = root $USER @sudo @wheel @admin")
     fi
     if ! echo "$current_conf" | grep -q "cache.numtide.com"; then
       lines_to_add+=("extra-substituters = https://cache.numtide.com")
@@ -403,22 +411,32 @@ setup_nix_daemon_trust() {
       echo "==> Detected administrative user ($USER). Configuring multi-user Nix daemon trust (/etc/nix/nix.conf)..."
       local append_text
       append_text="$(printf "%s\n" "${lines_to_add[@]}")"
-      if [ -w /etc/nix ] || [ -w "$conf_file" ]; then
-        mkdir -p /etc/nix 2>/dev/null || true
-        printf "\n%s\n" "$append_text" >> "$conf_file"
-        need_restart=true
-      elif command -v sudo >/dev/null 2>&1; then
-        sudo mkdir -p /etc/nix 2>/dev/null || true
-        printf "\n%s\n" "$append_text" | sudo tee -a "$conf_file" >/dev/null
-        need_restart=true
+
+      local targets=("$conf_file")
+      if [ -f "$custom_conf_file" ]; then
+        targets+=("$custom_conf_file")
       fi
+
+      for tgt in "${targets[@]}"; do
+        if [ -w /etc/nix ] || [ -w "$tgt" ]; then
+          mkdir -p /etc/nix 2>/dev/null || true
+          printf "\n%s\n" "$append_text" >> "$tgt"
+          need_restart=true
+        elif command -v sudo >/dev/null 2>&1; then
+          sudo mkdir -p /etc/nix 2>/dev/null || true
+          printf "\n%s\n" "$append_text" | sudo tee -a "$tgt" >/dev/null
+          need_restart=true
+        fi
+      done
     fi
 
     if [ "$need_restart" = true ]; then
       echo "==> Restarting Nix daemon to apply updated daemon trust settings..."
       if command -v systemctl >/dev/null 2>&1; then
         if sudo -n true 2>/dev/null || [ -t 0 ]; then
-          sudo systemctl restart nix-daemon 2>/dev/null || sudo systemctl restart determinate-nixd 2>/dev/null || true
+          sudo systemctl restart nix-daemon.socket nix-daemon.service 2>/dev/null || \
+          sudo systemctl restart nix-daemon 2>/dev/null || \
+          sudo systemctl restart determinate-nixd 2>/dev/null || true
         fi
       fi
     fi
