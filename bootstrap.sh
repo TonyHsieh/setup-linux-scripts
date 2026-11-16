@@ -1021,7 +1021,8 @@ EOF
       echo "   Import-Certificate -FilePath \"$WIN_CA\" -CertStoreLocation Cert:\LocalMachine\Root"
     fi
     echo "👉 Windows Terminal Font: For Starship & LazyVim icons, install Hack Nerd Font in PowerShell:"
-    echo "   winget install --id NerdFonts.Hack -e"
+    echo "   & ([scriptblock]::Create((iwr -UseBasicParsing 'https://to.loredo.me/Install-NerdFont.ps1'))) -Name Hack"
+    echo "   (Or download https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip and click Install)"
   fi
   if [ "$INSTALL_LLM" = true ]; then
     echo ""

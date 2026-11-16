@@ -104,10 +104,20 @@ To render modern terminal UI glyphs (Git branch indicators, language versions, a
 
 #### 1. Windows / WSL2 (Windows Terminal)
 Because WSL runs inside a virtual machine, terminal fonts must be installed on the **Windows host OS** (not inside the Linux guest):
-```powershell
-# Run in Windows PowerShell / Windows Terminal (No admin required):
-winget install --id NerdFonts.Hack -e
-```
+
+* **Automated (PowerShell)**:
+  ```powershell
+  # Run in Windows PowerShell / Windows Terminal (No admin required):
+  & ([scriptblock]::Create((iwr -UseBasicParsing 'https://to.loredo.me/Install-NerdFont.ps1'))) -Name Hack
+  ```
+* **Manual / Direct Download**:
+  1. Download [**Hack.zip**](https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Hack.zip) from the official Nerd Fonts repository.
+  2. Extract the archive, select the `.ttf` font files, right-click and choose **Install** (or **Install for all users**).
+* **If using Scoop or Chocolatey**:
+  ```powershell
+  scoop bucket add nerd-fonts && scoop install Hack-NF
+  # or: choco install nerd-fonts-hack
+  ```
 * **Activate in Windows Terminal**:
   1. Open Windows Terminal `Settings` (`Ctrl+,`).
   2. Under `Profiles`, click **`Defaults`** (or your specific `Ubuntu` profile) → **`Appearance`**.
