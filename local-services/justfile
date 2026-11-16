@@ -8,6 +8,11 @@ CONTAINER_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "
 
 export LOCAL_SERVICES_DIR := justfile_directory()
 export COMPOSE_PROJECT_NAME := "local-services"
+export BOOKS_DIR := env_var_or_default('BOOKS_DIR', env_var('HOME') + '/Books')
+export BOOKS_DIR_2 := env_var_or_default('BOOKS_DIR_2', env_var_or_default('BOOKS_DIR', env_var('HOME') + '/Books'))
+export BOOKS_DIR_3 := env_var_or_default('BOOKS_DIR_3', env_var_or_default('BOOKS_DIR', env_var('HOME') + '/Books'))
+export COMICS_DIR := env_var_or_default('COMICS_DIR', env_var_or_default('BOOKS_DIR', env_var('HOME') + '/Books'))
+export MEDIA_DIR := env_var_or_default('MEDIA_DIR', env_var('HOME') + '/Media')
 
 default:
     @just --list -f {{justfile()}}
@@ -31,6 +36,7 @@ up: check-runtime
 
 # Start ALL services including optional profiles (LLM, Books, Media)
 up-all: check-runtime
+    @mkdir -p "$BOOKS_DIR" "$MEDIA_DIR"
     @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         echo "==> SSL certificates missing. Generating now..."; \
         just -f {{justfile()}} certs; \
