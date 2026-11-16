@@ -101,6 +101,7 @@ install_host_dependencies() {
     if command -v brew >/dev/null 2>&1; then
       echo "==> Installing podman, podman-compose, and tailscale via Homebrew..."
       brew install podman podman-compose tailscale
+      brew install --cask font-hack-nerd-font 2>/dev/null || true
       if ! podman machine list 2>/dev/null | grep -q "Running"; then
         echo "==> Initializing Podman Machine on macOS..."
         if ! podman machine list 2>/dev/null | grep -q "podman-machine-default"; then
@@ -112,16 +113,17 @@ install_host_dependencies() {
       echo "⚠️ Warning: Homebrew not found. Please install Homebrew to install Podman on macOS."
     fi
   elif command -v pacman >/dev/null 2>&1; then
-    echo "==> Synchronizing pacman databases and installing podman, podman-compose, tailscale & krdp..."
-    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose tailscale krdp; then
+    echo "==> Synchronizing pacman databases and installing podman, podman-compose, tailscale, krdp & ttf-hack-nerd..."
+    if ! sudo pacman -Sy --needed --noconfirm podman podman-compose tailscale krdp ttf-hack-nerd; then
       echo "⚠️ Pacman download failed (stale mirrors or database). Refreshing mirrorlist and retrying..."
       if command -v cachyos-rate-mirrors >/dev/null 2>&1; then
         sudo cachyos-rate-mirrors || true
       elif command -v rate-mirrors >/dev/null 2>&1; then
         sudo rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist || true
       fi
-      sudo pacman -Syy --needed --noconfirm podman podman-compose tailscale krdp
+      sudo pacman -Syy --needed --noconfirm podman podman-compose tailscale krdp ttf-hack-nerd
     fi
+    fc-cache -f >/dev/null 2>&1 || true
   elif command -v apt-get >/dev/null 2>&1; then
     echo "==> Installing podman, podman-compose, and tailscale..."
     sudo apt-get update -y
@@ -1018,6 +1020,8 @@ EOF
       echo "👉 Windows SSL Notice: If browser shows untrusted certs, run this in Admin PowerShell:"
       echo "   Import-Certificate -FilePath \"$WIN_CA\" -CertStoreLocation Cert:\LocalMachine\Root"
     fi
+    echo "👉 Windows Terminal Font: For Starship & LazyVim icons, install Hack Nerd Font in PowerShell:"
+    echo "   winget install --id NerdFonts.Hack -e"
   fi
   if [ "$INSTALL_LLM" = true ]; then
     echo ""

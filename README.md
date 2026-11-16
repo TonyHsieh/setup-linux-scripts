@@ -98,6 +98,43 @@ brew update && brew upgrade
 
 ---
 
+### 🔤 Step 0.5: Host Terminal & Hack Nerd Font Setup
+
+To render modern terminal UI glyphs (Git branch indicators, language versions, and timers in **Starship**, plus file tree icons in **LazyVim / Neovim**), your **host terminal emulator** must be configured with a [Nerd Font](https://www.nerdfonts.com/). **Hack Nerd Font** is the tested standard across all platforms:
+
+#### 1. Windows / WSL2 (Windows Terminal)
+Because WSL runs inside a virtual machine, terminal fonts must be installed on the **Windows host OS** (not inside the Linux guest):
+```powershell
+# Run in Windows PowerShell / Windows Terminal (No admin required):
+winget install --id NerdFonts.Hack -e
+```
+* **Activate in Windows Terminal**:
+  1. Open Windows Terminal `Settings` (`Ctrl+,`).
+  2. Under `Profiles`, click **`Defaults`** (or your specific `Ubuntu` profile) → **`Appearance`**.
+  3. Under **`Font face`**, select **`Hack Nerd Font`** (or `Hack NF`).
+  4. Click **`Save`**.
+
+#### 2. macOS (Darwin)
+Install the font cask via Homebrew into your macOS font collection:
+```bash
+brew install --cask font-hack-nerd-font
+```
+* **Activate in Terminal**:
+  * **iTerm2**: `Settings` (`Cmd+,`) → `Profiles` → `Text` → `Font` → select **`Hack Nerd Font`**.
+  * **Ghostty / Alacritty / Kitty**: Set `font-family = "Hack Nerd Font"` in your terminal config file.
+
+#### 3. Arch Linux / CachyOS
+Install the official Nerd Font package via `pacman`:
+```bash
+sudo pacman -S --needed ttf-hack-nerd
+fc-cache -fv
+```
+* **Activate in Terminal**:
+  * **KDE Konsole**: `Settings` → `Edit Current Profile` → `Appearance` → `Font` → choose **`Hack Nerd Font`**.
+  * **Ghostty / Alacritty**: Set `font-family = "Hack Nerd Font"`.
+
+---
+
 ### 🌟 Recommended All-In-One Bootstrap Command
 
 To deploy or upgrade your entire developer environment with host container prerequisites, local SSL ingress, automated self-tests, and legacy artifact cleanup in a single execution:
