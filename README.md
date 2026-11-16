@@ -586,7 +586,7 @@ When deploying across different environments (such as your `envy`, `asus`, WSL2,
 | **Remote Desktop Entrypoint** | [Remote Desktop Guide](docs/remote-desktop.md) (`jl up-desktop`): Native Wayland RDP (`krdp` on KDE Plasma 6 port 3389) + web client (`https://desktop-<id>.komodo-sole.ts.net`). | Windows Remote Desktop / WSLg (`jl up-desktop`). | Built-in macOS Screen Sharing over Tailscale (`jl up-desktop`). |
 | **Port 80 $\rightarrow$ 443 Redirection** | Native HTTP 301 Permanent Redirect on Port 80 via `tailscale serve` to upgrade mobile browsers seamlessly. | Identical HTTP 301 behavior across all configurations. | Identical HTTP 301 behavior across all configurations. |
 | **Auth Key Decryption** | In-memory ephemeral decryption via SOPS using native host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via WSL host `~/.ssh/id_ed25519`. Zero secrets stored on disk. | In-memory ephemeral decryption via macOS `~/.ssh/id_ed25519` or `age`. Zero secrets stored on disk. |
-| **Adding a Machine to SOPS** | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. | Add `cat ~/.ssh/id_ed25519.pub` to [`.sops.yaml`](.sops.yaml) and run `sops updatekeys secrets/tailscale.enc.yaml`. |
+| **Adding a Machine to SOPS** | Run `jl register-key`, push `.sops.yaml`, and re-encrypt via GitHub Actions or peer `sops updatekeys -y secrets/tailscale.enc.yaml`. | Same across Linux, WSL2, and macOS ([step-by-step](docs/tailscale-auth-key-rotator.md#-step-by-step-onboarding-a-brand-new-machine)). | Same across Linux, WSL2, and macOS ([step-by-step](docs/tailscale-auth-key-rotator.md#-step-by-step-onboarding-a-brand-new-machine)). |
 | **Regression Testing** | `jl test-remote` validates disk secret zero-exposure, DNS fallback, sidecars, and Port 80/443 schemas. | Supported via `jl test-remote`. | Supported via `jl test-remote`. |
 
 ### 🔒 Certificate Lifecycles & Automated Renewals
@@ -601,11 +601,37 @@ You do **not** need to manually renew certificates. Both local and remote layers
 * **Automatic HTTP $\rightarrow$ HTTPS 301 Redirection**: All remote Tailscale endpoints (`pdf-<id>`, `chat-<id>`, `books-<id>`, `plex-<id>`, `ollama-<id>`, `traefik-<id>`) bind Port 80 with `"HTTP": true` and issue an immediate `HTTP 301 Moved Permanently` redirect to HTTPS. Mobile browsers (like iOS Safari and Android Chrome) cache this rule and automatically upgrade future visits.
 * **Persistent TLS Storage**: Tailscale TLS certificates and cryptographic keys are stored inside persistent Podman volumes (`tailscale-<service>-state:/var/lib/tailscale`), ensuring background renewals survive reboots and container upgrades.
 
+### 🔑 First-Time New Machine Tailscale & SOPS Onboarding
+
+On a freshly bootstrapped machine, complete these steps once so it can decrypt `secrets/tailscale.enc.yaml` in memory and start `jl up-remote`:
+
+```bash
+# 1. Generate ~/.ssh/id_ed25519 (if missing) & append public key to .sops.yaml
+jl register-key
+
+# 2. Add the public key to GitHub (via gh CLI or https://github.com/settings/keys) & verify
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname -s)-WSL"
+ssh -T git@github.com
+
+# 3. Switch remote from HTTPS to SSH (if cloned via HTTPS)
+git remote set-url origin git@github.com:TonyHsieh/setup-linux-scripts.git
+
+# 4. Set Git identity in ~/.gitconfig (not --global, since ~/.config/git/config is a read-only Nix symlink)
+git config --file ~/.gitconfig user.name "Your Name"
+git config --file ~/.gitconfig user.email "your-github-email@example.com"
+
+# 5. Commit & push .sops.yaml (triggers GitHub Actions to re-encrypt, or run 'sops updatekeys -y secrets/tailscale.enc.yaml' on an authorized peer)
+git add .sops.yaml && git commit -m "chore(sops): authorize $(hostname -s) SSH key" && git push
+
+# 6. Pull re-encrypted secret, verify SOPS decryption, and start Tailscale ingress
+git pull && jl sync-auth-key && jl up-remote
+```
+
 > [!TIP]
-> * For a full guide on remote mobile access, dedicated Port 443 HTTPS endpoints, and multi-machine parameterization, read **[docs/tailscale-ingress.md](docs/tailscale-ingress.md)**.
-> * For automated 90-day key rotation, scoped OAuth clients, and GitOps decryption via host SSH keys, read **[docs/tailscale-auth-key-rotator.md](docs/tailscale-auth-key-rotator.md)**.
-> * For connecting databases, configuring custom services, and updating certificates, read **[docs/local-services.md](docs/local-services.md)**.
-> * For local LLM chat workflows, host CLI wrappers, and AI agent routing, read **[docs/ollama-guide.md](docs/ollama-guide.md)**.
+> * **Tailscale & SOPS Deep Dive (What & Why)**: **[docs/tailscale-auth-key-rotator.md](docs/tailscale-auth-key-rotator.md)** (envelope encryption, GitHub Actions rotation, and [new-machine onboarding](docs/tailscale-auth-key-rotator.md#-step-by-step-onboarding-a-brand-new-machine)).
+> * **Remote HTTPS Endpoints & Sidecars**: **[docs/tailscale-ingress.md](docs/tailscale-ingress.md)** (Port 443 MagicDNS routing and `TS_MACHINE_ID`).
+> * **Zero-Trust SSH & Remote Desktop**: **[docs/tailscale-ssh.md](docs/tailscale-ssh.md)** (`jl up-ssh`) and **[docs/remote-desktop.md](docs/remote-desktop.md)** (`jl up-desktop`).
+> * **Local Services & Ollama**: **[docs/local-services.md](docs/local-services.md)** and **[docs/ollama-guide.md](docs/ollama-guide.md)**.
 
 ---
 

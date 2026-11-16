@@ -90,31 +90,29 @@ When deploying across multiple laptops (e.g. an Asus ROG Zephyrus, an HP Envy, o
 
 ## 🚀 Setup & Activation Workflow
 
-### Step 1: Generate a Reusable Auth Key
-1. Go to your [Tailscale Keys Console](https://login.tailscale.com/admin/settings/keys).
-2. Click **Generate auth key...**.
-3. Enable **Reusable** (and optionally **Ephemeral** so test containers clean up if deleted).
-4. Copy the generated key (`tskey-auth-...`).
-
-### Step 2: Configure `.env`
-Save your key in `~/.local/share/local-services/.env`:
-```bash
-TS_MACHINE_ID=asus
-TS_AUTHKEY=tskey-auth-kv8sKGeLeT11CNTRL-...
-```
-*(Permissions are restricted to `600` so only your user can read it).*
-
-### Step 3: Enable HTTPS in Tailscale Admin Console
+### Step 1: Enable HTTPS in Tailscale Admin Console (One-Time)
 1. Open your [Tailscale DNS Settings](https://login.tailscale.com/admin/dns).
 2. Under **HTTPS Certificates**, ensure **Enable HTTPS Certificates** is turned **ON**.
 
-### Step 4: Start the Remote Ingress Mesh
+### Step 2: Authorize a New Machine for In-Memory SOPS Decryption
+`jl up-remote` decrypts `TS_AUTHKEY` from `secrets/tailscale.enc.yaml` directly into memory using your host `~/.ssh/id_ed25519` key (zero plaintext tokens on disk).
+
+If this is a **brand-new machine**, authorize its SSH key first:
+1. Run `jl register-key` to generate `~/.ssh/id_ed25519` (if missing) and add its public key to [`.sops.yaml`](../.sops.yaml).
+2. Add `~/.ssh/id_ed25519.pub` to GitHub, switch `origin` to SSH if needed, set Git identity via `git config --file ~/.gitconfig`, and push `.sops.yaml` (see the full step-by-step walkthrough in **[Tailscale Auth Key Rotator Guide — Onboarding a Brand-New Machine](tailscale-auth-key-rotator.md#-step-by-step-onboarding-a-brand-new-machine)**).
+3. Pull the re-encrypted secret (from GitHub Actions or a peer machine running `sops updatekeys -y secrets/tailscale.enc.yaml`) and verify:
+   ```bash
+   git pull
+   jl sync-auth-key
+   ```
+
+### Step 3: Start the Remote Ingress Mesh
 Run the task runner command:
 ```bash
 jl up-remote
 ```
 
-All 5 dedicated Tailscale containers will spin up, authenticate with your key, request official TLS certificates, and start routing.
+All dedicated Tailscale containers will spin up, authenticate with your in-memory auth key, request official Let's Encrypt TLS certificates, and start routing.
 
 ---
 

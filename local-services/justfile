@@ -47,7 +47,7 @@ up-all: check-runtime
 # Stop all local container services
 down: check-runtime
     @echo "==> Stopping local container mesh via {{COMPOSE_CMD}}..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml down
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile all down
 
 # Show status of local container services
 status: check-runtime
@@ -86,7 +86,7 @@ down-llm:
     fi; \
     if {{CONTAINER_CMD}} ps -q -f name=local-ollama 2>/dev/null | grep -q .; then \
         echo "==> Stopping containerized Ollama Local LLM service..."; \
-        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ollama; \
+        {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile llm stop ollama; \
     fi
 
 # Pull a model into Ollama (e.g. jl llm-pull qwen2.5-coder:7b)
@@ -164,7 +164,7 @@ up-webui:
 # Stop Open WebUI service
 down-webui:
     @echo "==> Stopping Open WebUI..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop open-webui
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile webui stop open-webui
 
 # --- 📚 Ubooquity 3 E-Book & Comic Server Tasks ---
 # Start Ubooquity 3 Server (https://books.localhost)
@@ -182,7 +182,7 @@ up-books:
 # Stop Ubooquity E-Book Server
 down-books:
     @echo "==> Stopping Ubooquity..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop ubooquity
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile books stop ubooquity
 
 # --- 🎬 Plex Media Server Tasks ---
 # Start Plex Media Server (https://plex.localhost)
@@ -198,7 +198,7 @@ up-media:
 # Stop Plex Media Server
 down-media:
     @echo "==> Stopping Plex..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop plex
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile media stop plex
  
 # --- 🌐 Tailscale Private Mesh Ingress Tasks ---
 # Start Tailscale remote mesh ingress (exposes dedicated services on port 443 with in-memory auth key)
@@ -298,7 +298,7 @@ rotate-auth-key:
 # Stop Tailscale remote mesh ingress
 down-remote:
     @echo "==> Stopping Tailscale remote mesh ingress..."
-    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml stop tailscale-pdf tailscale-chat tailscale-traefik tailscale-ollama tailscale-books tailscale-plex tailscale-desktop
+    {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile remote stop tailscale-pdf tailscale-chat tailscale-traefik tailscale-ollama tailscale-books tailscale-plex tailscale-desktop
 
 # --- 🖥️ Remote Desktop Management (RDP / Screen Sharing) ---
 # Set up and enable host Remote Desktop server (krdp / macOS Screen Sharing)

@@ -173,37 +173,83 @@ flowchart TD
 
 ---
 
-### 🚀 Two Ways to Authorize a New Laptop
+### 🚀 Step-by-Step: Onboarding a Brand-New Machine
 
-#### Method A: Fully Automated via GitHub Actions (Zero Cross-Laptop Typing)
+On a freshly bootstrapped machine (e.g., `Dominator`), follow these steps in order:
+
+#### 1. Generate & Register the Host SSH Key in `.sops.yaml`
+```bash
+jl register-key
+```
+* **What happens:** If `~/.ssh/id_ed25519` does not exist, `scripts/register-host-key.sh` generates a new ed25519 keypair and appends its public key to [`.sops.yaml`](../.sops.yaml).
+* **Why it doesn't decrypt yet:** This machine does not yet have an authorized private key to unwrap the existing DEK in `secrets/tailscale.enc.yaml`, so you must commit and push `.sops.yaml` first.
+
+#### 2. Associate the New SSH Key with GitHub (First-Time Only)
+To push `.sops.yaml` from the new machine, add `~/.ssh/id_ed25519.pub` to your GitHub account:
+```bash
+# Option A: via GitHub CLI (if authenticated)
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname -s)-WSL"
+
+# Option B: Print and paste manually into https://github.com/settings/keys (New SSH key)
+cat ~/.ssh/id_ed25519.pub
+```
+Verify SSH authentication (type `yes` on first connect to accept GitHub's host fingerprint):
+```bash
+ssh -T git@github.com
+```
+
+#### 3. Switch `origin` from HTTPS to SSH (If Cloned via HTTPS)
+Check `git remote -v`. If `origin` starts with `https://github.com/...`, switch it to SSH so Git uses `~/.ssh/id_ed25519`:
+```bash
+git remote set-url origin git@github.com:TonyHsieh/setup-linux-scripts.git
+```
+
+#### 4. Set Git Author Identity in `~/.gitconfig`
+Because [`home/git.nix`](../home/git.nix) intentionally omits personal identity and manages `~/.config/git/config` as a **read-only symlink into `/nix/store`**, running `git config --global` fails with `Permission denied`. Write your identity to `~/.gitconfig` instead (Git reads both files):
+```bash
+git config --file ~/.gitconfig user.name "Your Name"
+git config --file ~/.gitconfig user.email "your-github-email@example.com"
+```
+
+#### 5. Commit, Push & Complete Vault Authorization (Two Methods)
+
+First, commit and push `.sops.yaml` from the new machine:
+```bash
+git add .sops.yaml
+git commit -m "chore(sops): authorize $(hostname -s) SSH key"
+git push
+```
+
+Then complete re-encryption using either method:
+
+##### Method A: Fully Automated via GitHub Actions (Zero Cross-Laptop Typing)
 Because `.github/workflows/rotate-tailscale-key.yml` triggers on any push to `.sops.yaml`:
-1. On the new laptop (`asus`), run:
+1. Wait ~15 seconds for GitHub Actions to mint/re-encrypt `secrets/tailscale.enc.yaml` for **all** public keys in `.sops.yaml` (including the new machine) and push back to `main`.
+2. On the new machine, pull and verify decryption:
    ```bash
-   jl register-key --commit
-   git push origin main
+   git pull
+   jl sync-auth-key
+   jl up-remote
    ```
-2. GitHub Actions detects the `.sops.yaml` commit, runs the rotation workflow, mints/re-encrypts the secret using **all** public keys in `.sops.yaml` (including Asus), and commits the result back to `main`.
-3. On the new laptop, simply run:
-   ```bash
-   git pull origin main
-   ```
-   *Asus can now immediately decrypt `secrets/tailscale.enc.yaml` locally in memory!*
 
-#### Method B: Peer Authorization from an Existing Laptop (`envy`)
-If you are already sitting at your authorized laptop (`envy`):
-1. On `envy`:
+##### Method B: Peer Authorization from an Existing Laptop (e.g., `envy` / `asus`)
+If you are already at an authorized laptop:
+1. On the **authorized laptop**:
    ```bash
-   git pull origin main
+   git pull
    sops updatekeys -y secrets/tailscale.enc.yaml
-   git commit -am "chore(sops): re-encrypt for asus"
-   git push origin main
+   git add secrets/tailscale.enc.yaml
+   git commit -m "chore(sops): re-encrypt tailscale secret for new host"
+   git push
    ```
-2. On `asus`:
+2. Back on the **new machine**:
    ```bash
-   git pull origin main
+   git pull
+   jl sync-auth-key
+   jl up-remote
    ```
 
-Now the new laptop can immediately decrypt `secrets/tailscale.enc.yaml` during `./bootstrap.sh` using its own local private SSH key!
+Now the new laptop can decrypt `secrets/tailscale.enc.yaml` in memory on demand using its own local `~/.ssh/id_ed25519` private key!
 
 ---
 
