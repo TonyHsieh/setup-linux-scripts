@@ -363,6 +363,64 @@ if [ ! -f "$HOME/.config/nix/nix.conf" ] || ! grep -q "experimental-features" "$
 fi
 export NIX_CONFIG="experimental-features = nix-command flakes"
 
+# 1.52. Ensure current user and binary caches are trusted by the multi-user Nix daemon
+setup_nix_daemon_trust() {
+  local conf_file="/etc/nix/nix.conf"
+
+  # Only apply when a multi-user Nix daemon is present (e.g. Determinate Nix installer or NixOS/systemd daemon)
+  if [ -e /nix/var/nix/daemon-socket/socket ] || [ -d "/etc/nix" ] || pgrep -x nix-daemon >/dev/null 2>&1 || pgrep -x determinate-nixd >/dev/null 2>&1; then
+    local current_conf=""
+    if [ -f "$conf_file" ]; then
+      current_conf="$(cat "$conf_file" 2>/dev/null || sudo -n cat "$conf_file" 2>/dev/null || true)"
+    fi
+
+    local lines_to_add=()
+    if ! echo "$current_conf" | grep -q "trusted-users.*$USER"; then
+      lines_to_add+=("trusted-users = root $USER @sudo @wheel")
+    fi
+    if ! echo "$current_conf" | grep -q "cache.numtide.com"; then
+      lines_to_add+=("extra-substituters = https://cache.numtide.com")
+      lines_to_add+=("extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=")
+    fi
+
+    local need_restart=false
+    if [ ${#lines_to_add[@]} -gt 0 ]; then
+      local can_sudo=false
+      if [ -w /etc/nix ] || [ -w "$conf_file" ]; then
+        can_sudo=true
+      elif command -v sudo >/dev/null 2>&1; then
+        if sudo -n true 2>/dev/null || [ -t 0 ]; then
+          can_sudo=true
+        fi
+      fi
+
+      if [ "$can_sudo" = true ]; then
+        echo "==> Configuring trusted-users and binary caches in /etc/nix/nix.conf..."
+        local append_text
+        append_text="$(printf "%s\n" "${lines_to_add[@]}")"
+        if [ -w /etc/nix ] || [ -w "$conf_file" ]; then
+          mkdir -p /etc/nix 2>/dev/null || true
+          printf "\n%s\n" "$append_text" >> "$conf_file"
+        else
+          sudo mkdir -p /etc/nix 2>/dev/null || true
+          printf "\n%s\n" "$append_text" | sudo tee -a "$conf_file" >/dev/null
+        fi
+        need_restart=true
+      fi
+    fi
+
+    if [ "$need_restart" = true ]; then
+      echo "==> Restarting Nix daemon to apply updated daemon trust settings..."
+      if command -v systemctl >/dev/null 2>&1; then
+        if sudo -n true 2>/dev/null || [ -t 0 ]; then
+          sudo systemctl restart nix-daemon 2>/dev/null || sudo systemctl restart determinate-nixd 2>/dev/null || true
+        fi
+      fi
+    fi
+  fi
+}
+setup_nix_daemon_trust
+
 # 1.55. Ensure ~/.config/home-manager points to this repository for repeatable 'home-manager switch'
 mkdir -p "$HOME/.config"
 if [ ! -e "$HOME/.config/home-manager" ] || [ -L "$HOME/.config/home-manager" ]; then

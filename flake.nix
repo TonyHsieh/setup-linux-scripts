@@ -182,6 +182,7 @@
         # (e.g. 'home-manager switch' or 'home-manager build' without explicit #target)
         "tonyh" = wsl;
         "tonyh@AsusGA403u" = wsl;
+        "tonyh@Dominator" = wsl;
         "thsieh" = cachyos;
         "thsieh@wsl" = wsl-thsieh;
         "thsieh01" = cachyos-thsieh01;
