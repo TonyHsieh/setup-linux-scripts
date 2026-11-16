@@ -3,8 +3,8 @@
 # Usage: just -f <path-to-justfile> <command>  (or 'jl <command>')
 # ==============================================================================
 
-COMPOSE_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman compose" } else { "docker compose" }
-CONTAINER_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman" } else { "docker" }
+COMPOSE_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman compose" } else if `command -v docker >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "docker compose" } else { "none" }
+CONTAINER_CMD := if `command -v podman >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "podman" } else if `command -v docker >/dev/null 2>&1 && echo 1 || echo 0` == "1" { "docker" } else { "none" }
 
 export LOCAL_SERVICES_DIR := justfile_directory()
 export COMPOSE_PROJECT_NAME := "local-services"
@@ -12,8 +12,16 @@ export COMPOSE_PROJECT_NAME := "local-services"
 default:
     @just --list -f {{justfile()}}
 
+[private]
+check-runtime:
+    @if [ "{{COMPOSE_CMD}}" = "none" ]; then \
+        echo "❌ Error: Neither 'podman' nor 'docker' is installed on this host."; \
+        echo "👉 Run './bootstrap.sh --with-host-deps' to install Podman and configure rootless sockets."; \
+        exit 1; \
+    fi
+
 # Start all local container services (default core profile)
-up:
+up: check-runtime
     @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         echo "==> SSL certificates missing. Generating now..."; \
         just -f {{justfile()}} certs; \
@@ -22,7 +30,7 @@ up:
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml up -d
 
 # Start ALL services including optional profiles (LLM, Books, Media)
-up-all:
+up-all: check-runtime
     @if [ ! -f {{justfile_directory()}}/certs/local-cert.pem ]; then \
         echo "==> SSL certificates missing. Generating now..."; \
         just -f {{justfile()}} certs; \
@@ -31,17 +39,17 @@ up-all:
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml --profile all up -d
 
 # Stop all local container services
-down:
+down: check-runtime
     @echo "==> Stopping local container mesh via {{COMPOSE_CMD}}..."
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml down
 
 # Show status of local container services
-status:
+status: check-runtime
     @echo "==> Local container service status:"
     {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml ps
 
 # View logs for local services (e.g. jl logs or jl logs traefik)
-logs service="":
+logs service="": check-runtime
     @if [ -z "{{service}}" ]; then \
         {{COMPOSE_CMD}} -f {{justfile_directory()}}/docker-compose.yml logs -f; \
     else \
