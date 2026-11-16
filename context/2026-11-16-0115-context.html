@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-16 01:15</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul {
+      list-style: none;
+    }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong {
+      color: var(--text);
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert-purple { border-left-color: var(--indigo); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .alert p:last-child { margin-bottom: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+      background: var(--card-bg);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    tr:last-child td { border-bottom: none; }
+    td code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.25rem;
+      color: var(--sky);
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      margin-top: 0.5rem;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+      position: relative;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .step-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>❄️ Multi-Machine Bootstrap & Hermetic Toolchain Hardening</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-16 01:15 (US/Pacific)</span>
+          <span>💻 <strong>Host Machines:</strong> <code>AsusGA403u</code> (Active) &amp; <code>Dominator</code> (Verified Bootstrap)</span>
+          <span>🌿 <strong>Branch:</strong> <code>main</code> (100% clean &amp; in sync with <code>origin/main</code>)</span>
+          <span>🔑 <strong>Latest SHA:</strong> <code>76caa39</code></span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">● Flakes Verified</span>
+        <span class="badge badge-purple">Hermetic Neovim</span>
+        <span class="badge badge-info">Podman Mesh Fixed</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: Metrics Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ Multi-Machine Matrix</h2>
+      <ul>
+        <li><strong>Host 1 (AsusGA403u):</strong> Ubuntu 26.04.1 LTS (WSL2), Nix Generation 35 active.</li>
+        <li><strong>Host 2 (Dominator):</strong> Ubuntu on Windows 10 (WSL2), bootstrapped from scratch via <code>./bootstrap.sh</code>.</li>
+        <li><strong>Privacy Safeguard:</strong> Zero machine hostnames or usernames hardcoded in Git.</li>
+        <li><strong>Multi-User Daemon:</strong> Dynamic local trust configuration for admin groups.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🛡️ Prime Directives Compliance</h2>
+      <ul>
+        <li><strong>Directive 1 (90/10 Split):</strong> Container runtimes (Podman) remain native Tier 0 host workloads.</li>
+        <li><strong>Directive 2 (No Global Compilers):</strong> Neovim C-compiler/toolchain hermetically wrapped inside <code>bin/nvim</code>.</li>
+        <li><strong>Directive 3 (llm-agents):</strong> <code>cache.numtide.com</code> preserved; zero source recompilations.</li>
+        <li><strong>Directive 5 (MCP Boundaries):</strong> Ephemeral Puppeteer containers isolated &amp; prune-guarded.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🐳 Container Mesh Architecture</h2>
+      <ul>
+        <li><strong>Ingress:</strong> Traefik v3 on ports 80/443 with wildcard <code>*.localhost</code> SSL.</li>
+        <li><strong>Core Services:</strong> BentoPDF (<code>pdf.localhost</code>) &amp; PostgreSQL 16 (<code>devdb</code>).</li>
+        <li><strong>Appliance Profile:</strong> Ollama Local LLM &amp; Open WebUI (<code>chat.localhost</code>).</li>
+        <li><strong>Media &amp; Books:</strong> Ubooquity (<code>books.localhost</code>) &amp; Plex Media Server.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Incident Resolutions & Accomplishments -->
+  <h2 class="section-title">🏆 Key Accomplishments & Incident Resolutions</h2>
+
+  <div class="alert alert-success">
+    <h3>1. Multi-User Nix Daemon Trust on Scratch Installation (Dominator)</h3>
+    <p><strong>Incident:</strong> On a fresh WSL install using the Determinate Nix installer, running <code>./bootstrap.sh</code> resulted in <code>warning: ignoring untrusted substituter 'https://cache.numtide.com', you are not a trusted user</code>. This caused Nix to bypass precompiled binary caches and attempt local source compilation of <code>slack-bolt</code> and <code>nemo-relay</code>.<br>
+    <strong>Root Cause:</strong> The Nix daemon evaluates trusted groups (e.g. <code>@sudo</code>) against the connecting socket user's <strong>primary GID</strong>. On Ubuntu, user <code>tonyh</code> has primary GID <code>1000 (tonyh)</code> while <code>sudo</code> is supplementary GID <code>27</code>. Because supplementary groups are ignored by the socket check, <code>@sudo</code> alone failed to grant trust.<br>
+    <strong>Resolution:</strong> Implemented <code>setup_nix_daemon_trust()</code> in <code>bootstrap.sh</code> to dynamically verify administrative access and configure <code>trusted-users = root $USER @sudo @wheel @admin</code> and Numtide substituters in <code>/etc/nix/nix.conf</code> locally, followed by a daemon restart. Scratch installer now executes with <code>--extra-conf</code>.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>2. Hermetic Neovim Toolchain for LazyVim (No Global Compiler Pollution)</h3>
+    <p><strong>Incident:</strong> Launching Neovim on a fresh machine produced Treesitter parser warnings: <code>Unmet requirements for nvim-treesitter main: C compiler, curl, tar, tree-sitter (CLI)</code>.<br>
+    <strong>Root Cause &amp; Architecture:</strong> LazyVim compiles <code>.so</code> parsers dynamically. However, installing <code>gcc</code> into global <code>home.packages</code> or running <code>sudo apt install build-essential</code> violates <strong>Prime Directive 2</strong> (Never Install Global Compilers).<br>
+    <strong>Resolution:</strong> Created modular <a href="file:///home/tonyh/_Projects/setup-linux-scripts/home/neovim.nix"><code>home/neovim.nix</code></a> using Home Manager's <code>programs.neovim.extraPackages</code>. Nix generates a wrapper script for <code>nvim</code> that prefixes its internal execution <code>$PATH</code> with <code>gcc</code>, <code>gnumake</code>, <code>tree-sitter</code>, <code>curl</code>, <code>gnutar</code>, <code>ripgrep</code>, and <code>fd</code>. Neovim compiles parsers seamlessly while global shell <code>$PATH</code> remains 100% free of compiler pollution.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>3. Podman-Compose Volume Parsing Bug in <code>jl up-all</code></h3>
+    <p><strong>Incident:</strong> Running <code>jl up-all</code> failed with <code>RuntimeError: volume [$HOME/Books] not defined in top level</code>.<br>
+    <strong>Root Cause:</strong> <code>podman-compose</code> uses a non-recursive regex (<code>var_re</code>) to substitute environment variables and checks <code>dir_re = re.compile(r"^[~/\.]")</code> to distinguish host bind mounts from named volumes. Because <code>${BOOKS_DIR:-$HOME/Books}</code> evaluated literally to <code>$HOME/Books</code> without expanding <code>$HOME</code>, it failed the <code>^[~/\.]</code> prefix check and was treated as a missing named Docker volume. Furthermore, nested fallback <code>${BOOKS_DIR_2:-${BOOKS_DIR:-...}}</code> broke on the first closing <code>}</code>, leaving an invalid trailing <code>}</code>.<br>
+    <strong>Resolution:</strong> (1) Exported <code>BOOKS_DIR</code>, <code>BOOKS_DIR_2</code>, <code>COMICS_DIR</code>, and <code>MEDIA_DIR</code> directly in <code>local-services/justfile</code>. (2) Changed compose defaults from <code>$HOME/Books</code> to <code>~/Books</code> (natively supported by Python's <code>os.path.expanduser</code>). (3) Added automatic <code>mkdir -p "$BOOKS_DIR" "$MEDIA_DIR"</code>. Verified clean via <code>podman-compose --profile all config</code>.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>4. Hack Nerd Font Setup across WSL2, macOS, and Arch/CachyOS</h3>
+    <p><strong>Incident:</strong> <code>winget install --id NerdFonts.Hack -e</code> failed with <code>No package found matching input criteria</code> on Windows 10.<br>
+    <strong>Resolution:</strong> Identified that <code>NerdFonts.Hack</code> is not published in the winget repository. Documented the verified 1-line PowerShell installer (<code>Install-NerdFont.ps1</code>), direct GitHub zip releases, and Scoop/Chocolatey options in <a href="file:///home/tonyh/_Projects/setup-linux-scripts/README.md"><code>README.md</code></a>. Resolved Windows 10 legacy console (<code>conhost.exe</code>) font filtering via <code>HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont</code>.</p>
+  </div>
+
+  <div class="alert alert-purple">
+    <h3>5. WSL Interop Path Translation Warning (<code>Y:\Program Files\Go\bin</code>)</h3>
+    <p><strong>Diagnosis:</strong> The message <code>wsl: Failed to translate 'Y:\Program Files\Go\bin'</code> is emitted by WSL's microVM <code>/init</code> process when translating the Windows host <code>PATH</code> into Linux <code>$PATH</code> while drive <code>Y:</code> is offline or unmounted. Provided diagnostic commands and 1-line PowerShell surgical cleanup scripts to eliminate the stale path from Windows Machine/User environment variables.</p>
+  </div>
+
+  <!-- Section 4: Endpoints & Local Service Matrix -->
+  <h2 class="section-title">🌐 Local Container Mesh Endpoints</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Local URL</th>
+        <th>Port / Container</th>
+        <th>Profile</th>
+        <th>Auth / Security</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Traefik Ingress</strong></td>
+        <td><code>https://traefik.localhost</code></td>
+        <td><code>80, 443, 8088</code> (traefik-ingress)</td>
+        <td><code>core</code> (default)</td>
+        <td>Local CA Wildcard SSL</td>
+      </tr>
+      <tr>
+        <td><strong>BentoPDF</strong></td>
+        <td><code>https://pdf.localhost</code></td>
+        <td><code>8080</code> (bentopdf)</td>
+        <td><code>core</code> (default)</td>
+        <td>Local CA Wildcard SSL</td>
+      </tr>
+      <tr>
+        <td><strong>PostgreSQL 16</strong></td>
+        <td><code>localhost:5432</code></td>
+        <td><code>5432</code> (local-postgres)</td>
+        <td><code>core</code> (default)</td>
+        <td>Password (<code>devpassword</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Ollama Local LLM</strong></td>
+        <td><code>https://ollama.localhost</code></td>
+        <td><code>11434</code> (local-ollama)</td>
+        <td><code>llm, all</code></td>
+        <td>Native GPU / Container</td>
+      </tr>
+      <tr>
+        <td><strong>Open WebUI</strong></td>
+        <td><code>https://chat.localhost</code></td>
+        <td><code>8080</code> (local-open-webui)</td>
+        <td><code>llm, webui, all</code></td>
+        <td>Local AI Hub</td>
+      </tr>
+      <tr>
+        <td><strong>Ubooquity E-Books</strong></td>
+        <td><code>https://books.localhost</code></td>
+        <td><code>2202, 2203</code> (local-ubooquity)</td>
+        <td><code>books, all</code></td>
+        <td>Admin on <code>books-admin.localhost</code></td>
+      </tr>
+      <tr>
+        <td><strong>Plex Media Server</strong></td>
+        <td><code>https://plex.localhost</code></td>
+        <td><code>32400</code> (local-plex)</td>
+        <td><code>media, all</code></td>
+        <td>Plex Account / Local</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Plan -->
+  <h2 class="section-title">🎯 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">1. Verify Ollama Download &amp; Local Mesh on Dominator</span>
+      <span class="badge badge-success">HIGH PRIORITY</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Once the <code>ollama/ollama</code> and <code>open-webui</code> container image layers finish downloading on Dominator, verify that all services are operational.</p>
+    <pre><code># Check container status on Dominator:
+jl status
+
+# Test local Ollama endpoint:
+jl llm-test
+
+# If you only want lightweight core services running without 7GB LLM containers:
+jl down &amp;&amp; jl up</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">2. Clean Up Stale Windows Path Warning on Dominator</span>
+      <span class="badge badge-info">MEDIUM PRIORITY</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Remove the stale <code>Y:\Program Files\Go\bin</code> entry from the Windows host registry to silence the boot warning.</p>
+    <pre><code># In Windows PowerShell (as Admin):
+$p = [System.Environment]::GetEnvironmentVariable('Path', 'Machine')
+$newP = ($p -split ';' | Where-Object { $_ -notlike '*Y:\Program Files\Go*' }) -join ';'
+[System.Environment]::SetEnvironmentVariable('Path', $newP, 'Machine')
+
+# Restart WSL microVM:
+wsl --shutdown</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">3. Test Hermes Kanban Swarm &amp; Agent Sandbox Worktree</span>
+      <span class="badge badge-purple">NEXT MILESTONE</span>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.9rem;">Validate the multi-agent swarm architecture using a specification file attachment and test an isolated worktree.</p>
+    <pre><code># 1. Dispatch multi-agent kanban swarm with specification file:
+jl kanban-swarm specs/auth-flow.md
+
+# 2. Test Geoff Huntley isolated worktree sandbox:
+jl agent-sandbox claude</code></pre>
+  </div>
+
+  <!-- Section 6: Git Commit Audit -->
+  <h2 class="section-title">📜 Recent Commit Audit</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Commit SHA</th>
+        <th>Type</th>
+        <th>Description</th>
+        <th>Files Affected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>76caa39</code></td>
+        <td><code>fix(mesh)</code></td>
+        <td>Resolve podman-compose volume expansion for books and media</td>
+        <td><code>docker-compose.yml</code>, <code>justfile</code></td>
+      </tr>
+      <tr>
+        <td><code>bcaa0b7</code></td>
+        <td><code>fix(justfile)</code></td>
+        <td>Provide clear error message when container runtime is missing</td>
+        <td><code>local-services/justfile</code></td>
+      </tr>
+      <tr>
+        <td><code>43b67cf</code></td>
+        <td><code>feat(neovim)</code></td>
+        <td>Hermetically bundle gcc and tree-sitter tooling for LazyVim</td>
+        <td><code>home/neovim.nix</code>, <code>packages.nix</code>, <code>default.nix</code></td>
+      </tr>
+      <tr>
+        <td><code>23518b2</code></td>
+        <td><code>docs(fonts)</code></td>
+        <td>Replace missing winget ID with PowerShell installer for Hack Nerd Font</td>
+        <td><code>README.md</code>, <code>bootstrap.sh</code></td>
+      </tr>
+      <tr>
+        <td><code>f3a3ca0</code></td>
+        <td><code>docs(fonts)</code></td>
+        <td>Document Hack Nerd Font setup across WSL2, macOS, and Arch/CachyOS</td>
+        <td><code>README.md</code>, <code>bootstrap.sh</code></td>
+      </tr>
+      <tr>
+        <td><code>2a9a8b6</code></td>
+        <td><code>fix(bootstrap)</code></td>
+        <td>Prevent machine ID prompt from being swallowed and add timeout</td>
+        <td><code>bootstrap.sh</code></td>
+      </tr>
+      <tr>
+        <td><code>1e2284b</code></td>
+        <td><code>fix(bootstrap)</code></td>
+        <td>Explicitly include dynamic $USER in local trusted-users and pass extra-conf</td>
+        <td><code>bootstrap.sh</code></td>
+      </tr>
+      <tr>
+        <td><code>3a354bb</code></td>
+        <td><code>fix(security)</code></td>
+        <td>Make daemon trust generic via admin groups and remove machine hostnames</td>
+        <td><code>flake.nix</code>, <code>bootstrap.sh</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <span>Generated by <strong>Antigravity AI Agent</strong> (Session Checkpoint)</span>
+    <span>Workspace: <code>/home/tonyh/_Projects/setup-linux-scripts</code></span>
+  </footer>
+
+</body>
+</html>
