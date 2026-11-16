@@ -363,20 +363,35 @@ if [ ! -f "$HOME/.config/nix/nix.conf" ] || ! grep -q "experimental-features" "$
 fi
 export NIX_CONFIG="experimental-features = nix-command flakes"
 
-# 1.52. Ensure current user and binary caches are trusted by the multi-user Nix daemon
+# 1.52. Ensure administrative users and binary caches are trusted by the multi-user Nix daemon
 setup_nix_daemon_trust() {
   local conf_file="/etc/nix/nix.conf"
 
   # Only apply when a multi-user Nix daemon is present (e.g. Determinate Nix installer or NixOS/systemd daemon)
   if [ -e /nix/var/nix/daemon-socket/socket ] || [ -d "/etc/nix" ] || pgrep -x nix-daemon >/dev/null 2>&1 || pgrep -x determinate-nixd >/dev/null 2>&1; then
+    # Dynamically verify if the current user SHOULD be trusted (belongs to administrative groups or has sudo access)
+    local user_should_be_trusted=false
+    if [ "$EUID" -eq 0 ] || groups 2>/dev/null | grep -qE '\b(sudo|wheel|admin)\b'; then
+      user_should_be_trusted=true
+    elif command -v sudo >/dev/null 2>&1; then
+      if sudo -n true 2>/dev/null || ( [ -t 0 ] && sudo -v 2>/dev/null ); then
+        user_should_be_trusted=true
+      fi
+    fi
+
+    if [ "$user_should_be_trusted" = false ]; then
+      return 0
+    fi
+
     local current_conf=""
     if [ -f "$conf_file" ]; then
       current_conf="$(cat "$conf_file" 2>/dev/null || sudo -n cat "$conf_file" 2>/dev/null || true)"
     fi
 
     local lines_to_add=()
-    if ! echo "$current_conf" | grep -q "trusted-users.*$USER"; then
-      lines_to_add+=("trusted-users = root $USER @sudo @wheel")
+    # Trust administrative groups generically without hardcoding individual usernames
+    if ! echo "$current_conf" | grep -qE "trusted-users.*(@sudo|@wheel|@admin)"; then
+      lines_to_add+=("trusted-users = root @sudo @wheel @admin")
     fi
     if ! echo "$current_conf" | grep -q "cache.numtide.com"; then
       lines_to_add+=("extra-substituters = https://cache.numtide.com")
@@ -385,26 +400,16 @@ setup_nix_daemon_trust() {
 
     local need_restart=false
     if [ ${#lines_to_add[@]} -gt 0 ]; then
-      local can_sudo=false
+      echo "==> Detected administrative user ($USER). Configuring multi-user Nix daemon trust (/etc/nix/nix.conf)..."
+      local append_text
+      append_text="$(printf "%s\n" "${lines_to_add[@]}")"
       if [ -w /etc/nix ] || [ -w "$conf_file" ]; then
-        can_sudo=true
+        mkdir -p /etc/nix 2>/dev/null || true
+        printf "\n%s\n" "$append_text" >> "$conf_file"
+        need_restart=true
       elif command -v sudo >/dev/null 2>&1; then
-        if sudo -n true 2>/dev/null || [ -t 0 ]; then
-          can_sudo=true
-        fi
-      fi
-
-      if [ "$can_sudo" = true ]; then
-        echo "==> Configuring trusted-users and binary caches in /etc/nix/nix.conf..."
-        local append_text
-        append_text="$(printf "%s\n" "${lines_to_add[@]}")"
-        if [ -w /etc/nix ] || [ -w "$conf_file" ]; then
-          mkdir -p /etc/nix 2>/dev/null || true
-          printf "\n%s\n" "$append_text" >> "$conf_file"
-        else
-          sudo mkdir -p /etc/nix 2>/dev/null || true
-          printf "\n%s\n" "$append_text" | sudo tee -a "$conf_file" >/dev/null
-        fi
+        sudo mkdir -p /etc/nix 2>/dev/null || true
+        printf "\n%s\n" "$append_text" | sudo tee -a "$conf_file" >/dev/null
         need_restart=true
       fi
     fi

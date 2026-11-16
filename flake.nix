@@ -178,13 +178,9 @@
           ];
         };
 
-        # Default username and host aliases for standard Home Manager CLI invocations
-        # (e.g. 'home-manager switch' or 'home-manager build' without explicit #target)
+        # Default profile aliases for common local usernames
         "tonyh" = wsl;
-        "tonyh@AsusGA403u" = wsl;
-        "tonyh@Dominator" = wsl;
         "thsieh" = cachyos;
-        "thsieh@wsl" = wsl-thsieh;
         "thsieh01" = cachyos-thsieh01;
       };
     };
