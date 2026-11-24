@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-24 11:22</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul {
+      list-style: none;
+    }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong {
+      color: var(--text);
+    }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert-purple { border-left-color: var(--indigo); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .alert p:last-child { margin-bottom: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      background: var(--card-bg);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+    th {
+      background: #151e2e;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:not(:last-child) td {
+      border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+    }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.3rem;
+      color: var(--sky);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #e2e8f0;
+      font-size: 0.825rem;
+      line-height: 1.5;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .step-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>📚 Session Checkpoint & Architecture State</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-24 11:22 PST</span>
+          <span>💻 <strong>Host:</strong> envy (CachyOS Linux)</span>
+          <span>👤 <strong>User:</strong> thsieh</span>
+          <span>🌿 <strong>Branch:</strong> main (commit <code>9a15230</code>)</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">Mesh Operational</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: Metrics & Overview Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ Workspace Environment</h2>
+      <ul>
+        <li><strong>Host OS:</strong> CachyOS Linux (x86_64, Kernel 6.17+)</li>
+        <li><strong>Container Engine:</strong> Rootless Podman (v5.x) + systemd user socket</li>
+        <li><strong>Mesh Router:</strong> Traefik v3 + Tailscale ingress nodes</li>
+        <li><strong>State:</strong> All local-services containers running healthy</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>📦 Declarative Stack</h2>
+      <ul>
+        <li><strong>Nix Flakes:</strong> Hermetic package management via <code>flake.nix</code></li>
+        <li><strong>Home Manager:</strong> Machine profile <code>cachyos</code> (user: <code>thsieh</code>)</li>
+        <li><strong>AI Tools:</strong> <code>numtide/llm-agents.nix</code> (pre-built binary cache)</li>
+        <li><strong>Service Config:</strong> <code>local-services/docker-compose.yml</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🌐 Network & Ingress</h2>
+      <ul>
+        <li><strong>Tailnet Ingress:</strong> <code>komodo-sole.ts.net</code> (Machine ID: <code>envy</code>)</li>
+        <li><strong>E-Book Reader:</strong> <code>https://books-envy.komodo-sole.ts.net</code></li>
+        <li><strong>OPDS Feed:</strong> <code>https://books-envy.komodo-sole.ts.net/opds</code></li>
+        <li><strong>Local Ingress:</strong> <code>https://books.localhost</code> (Port 2202/2203)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Technical Accomplishments & Solved Incidents -->
+  <h2 class="section-title">🛠️ Solved Technical Incidents & Root Cause Analysis</h2>
+
+  <div class="alert alert-success">
+    <h3>🔍 Incident 1: Numtide Binary Cache Legitimacy & Public Key Verification</h3>
+    <p><strong>Question:</strong> During <code>bootstrap.sh</code> execution, Nix prompts to trust public key <code>niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=</code>. The end-user noted that <code>*.com-1</code> resembled a suspicious or spoofed domain.</p>
+    <p><strong>Root Cause & Verification:</strong> In the Nix ecosystem, cache public keys follow standard cryptographic format <code>&lt;cache-domain&gt;-&lt;key-id&gt;:&lt;base64-ed25519-public-key&gt;</code> (identical to official <code>cache.nixos.org-1</code> and <code>devenv.cachix.org-1</code>). <code>-1</code> denotes key revision 1 for Numtide, the core maintainer of <code>llm-agents.nix</code>. Accepting it enables cryptographically signed pre-compiled binaries, avoiding hours of local compilation for LLM agents.</p>
+    <p><strong>Permanent Implementation:</strong> Added user-facing explanatory console banners in <code>bootstrap.sh</code> and documentation headers in <code>flake.nix</code> to reassure users during fresh bootstrap runs.</p>
+  </div>
+
+  <div class="alert alert-purple">
+    <h3>📱 Incident 2: KyBook 3 OPDS Missing Folders & Directory Truncation</h3>
+    <p><strong>Problem:</strong> When browsing large directory trees (such as <code>RPG</code> with 238 subfolders) via KyBook 3 on iOS/iPadOS, only 30 folders were visible.</p>
+    <p><strong>Root Cause 1 (OPDS Navigation Bug):</strong> Ubooquity v3 folder navigation feeds (<code>/opds/books/&lt;id&gt;</code>) use <code>opusPaginationNumber</code> (default <code>30</code>). Unlike book acquisition feeds, Ubooquity's navigation template (<code>tpl-opds-navigation.xml</code>) lacks <code>rel="next"</code> pagination links, causing all OPDS clients to truncate folder listings at 30 items.</p>
+    <p><strong>Root Cause 2 (Java Heap OOM & Empty Folder Pruning):</strong> The container defaulted to 512 MB RAM (<code>-Xmx512m</code>). Scanning massive, multi-hundred-megabyte RPG PDFs caused <code>java.lang.OutOfMemoryError: Java heap space</code>. Files that failed insertion caused Ubooquity to treat parent folders as empty and automatically delete them from the database.</p>
+    <p><strong>Permanent Fix & Verification:</strong>
+      <ul>
+        <li>Added <code>MAXMEM=${UBOOQUITY_MAXMEM:-4096}</code> to <code>local-services/docker-compose.yml</code> to provide 4 GB heap space.</li>
+        <li>Set <code>opusPaginationNumber</code> and <code>booksPaginationNumber</code> to <code>5000</code> in <code>preferences-2.json</code> and <code>preferences.json</code>.</li>
+        <li>Recreated container; live query of <code>/opds/books/12748</code> confirmed entries jumped from <strong>30 to 233 folders</strong>.</li>
+        <li>Documented complete architecture and tuning steps in <code>docs/books-server.md</code>.</li>
+      </ul>
+    </p>
+  </div>
+
+  <!-- Section 4: Endpoints Matrix -->
+  <h2 class="section-title">🌐 Live Services & Endpoints Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Container Name</th>
+        <th>Internal Port</th>
+        <th>Local Traefik URL</th>
+        <th>Tailscale Ingress URL</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Ubooquity 3 (Books)</strong></td>
+        <td><code>local-ubooquity</code></td>
+        <td>2202 / 2203</td>
+        <td><a href="https://books.localhost" style="color:var(--sky)">books.localhost</a></td>
+        <td><a href="https://books-envy.komodo-sole.ts.net/opds" style="color:var(--sky)">books-envy.../opds</a></td>
+        <td><span class="badge badge-success">Up (4GB Heap)</span></td>
+      </tr>
+      <tr>
+        <td><strong>BentoPDF</strong></td>
+        <td><code>bentopdf</code></td>
+        <td>8080</td>
+        <td><a href="https://pdf.localhost" style="color:var(--sky)">pdf.localhost</a></td>
+        <td><code>pdf-envy.komodo-sole.ts.net</code></td>
+        <td><span class="badge badge-success">Up</span></td>
+      </tr>
+      <tr>
+        <td><strong>Open WebUI</strong></td>
+        <td><code>local-open-webui</code></td>
+        <td>8080</td>
+        <td><a href="https://chat.localhost" style="color:var(--sky)">chat.localhost</a></td>
+        <td><code>chat-envy.komodo-sole.ts.net</code></td>
+        <td><span class="badge badge-success">Up</span></td>
+      </tr>
+      <tr>
+        <td><strong>Ollama LLM Engine</strong></td>
+        <td><code>local-ollama</code></td>
+        <td>11434</td>
+        <td><a href="https://ollama.localhost" style="color:var(--sky)">ollama.localhost</a></td>
+        <td><code>ollama-envy.komodo-sole.ts.net</code></td>
+        <td><span class="badge badge-success">Up</span></td>
+      </tr>
+      <tr>
+        <td><strong>Plex Media Server</strong></td>
+        <td><code>local-plex</code></td>
+        <td>32400</td>
+        <td><a href="https://plex.localhost" style="color:var(--sky)">plex.localhost</a></td>
+        <td><code>plex-envy.komodo-sole.ts.net</code></td>
+        <td><span class="badge badge-success">Up</span></td>
+      </tr>
+      <tr>
+        <td><strong>Traefik v3 Ingress</strong></td>
+        <td><code>traefik-ingress</code></td>
+        <td>80 / 443 / 8088</td>
+        <td><a href="https://traefik.localhost" style="color:var(--sky)">traefik.localhost</a></td>
+        <td><code>traefik-envy.komodo-sole.ts.net</code></td>
+        <td><span class="badge badge-success">Up</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Plan -->
+  <h2 class="section-title">📋 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">1. Commit Repository Changes & Test KyBook 3 on Device</span>
+      <span class="badge badge-warn">High Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Pull down to refresh the OPDS feed in KyBook 3 on your iPad/iPhone to verify all 233+ directories display without cutoff. Commit the verified changes to Git.
+    </p>
+    <pre><code>git add bootstrap.sh flake.nix local-services/docker-compose.yml docs/books-server.md context/
+git commit -m "fix(ubooquity): resolve OPDS folder truncation and bump Java heap to 4GB"</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">2. Monitor Ubooquity Library Scan Progress</span>
+      <span class="badge badge-info">Medium Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Allow Ubooquity background scan thread to finish indexing any previously skipped PDF/CBR files with its new 4 GB heap.
+    </p>
+    <pre><code>podman logs --tail 50 -f local-ubooquity</code></pre>
+  </div>
+
+  <!-- Section 6: Git Commit & File Audit -->
+  <h2 class="section-title">📁 Git Commit & Modified File Audit</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>File Path</th>
+        <th>Type</th>
+        <th>Modification Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>bootstrap.sh</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Added informational banner and comments explaining Numtide public key format</td>
+      </tr>
+      <tr>
+        <td><code>flake.nix</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Documented <code>niks3.numtide.com-1</code> public key safety in <code>nixConfig</code></td>
+      </tr>
+      <tr>
+        <td><code>local-services/docker-compose.yml</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Configured <code>MAXMEM=${UBOOQUITY_MAXMEM:-4096}</code> for Ubooquity container</td>
+      </tr>
+      <tr>
+        <td><code>docs/books-server.md</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Added mobile OPDS folder truncation workaround and Java heap tuning guide</td>
+      </tr>
+      <tr>
+        <td><code>context/2026-11-24-1122-context.html</code></td>
+        <td><span class="badge badge-success">Created</span></td>
+        <td>Session state checkpoint and resumption report</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <span>Generated by <strong>Antigravity</strong> (Google DeepMind) • Save Current Context Skill</span>
+    <span>Single Source of Truth for Work Resumption</span>
+  </footer>
+
+</body>
+</html>

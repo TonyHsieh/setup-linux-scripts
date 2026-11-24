@@ -121,6 +121,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Los_Angeles
+      - MAXMEM=${UBOOQUITY_MAXMEM:-4096}
     volumes:
       - ubooquity-data:/config
       - "${BOOKS_DIR:-~/Books}:/books:ro"

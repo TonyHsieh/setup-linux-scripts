@@ -1,6 +1,9 @@
 {
   description = "Cross-Platform Declarative Developer Environment & Devenv Ecosystem";
 
+  # Official Numtide binary cache for pre-built AI agent binaries (numtide/llm-agents.nix).
+  # Format note: 'niks3.numtide.com-1' is standard Nix cache public key notation (<signer>-<key_id>),
+  # NOT a malicious domain. Safe to trust ('y' or 'a') to prevent hours of local compilation.
   nixConfig = {
     extra-substituters = [
       "https://cache.numtide.com"

@@ -186,3 +186,16 @@ With the reverse proxy prefix cleared, URLs are short, clean, and consistent:
   https://books-<machine-name>.komodo-sole.ts.net/opds
   ```
   *(Or specific feeds: `/opds-books` for books only, `/opds-comics` for comics only)*
+
+---
+
+## 💡 6. Mobile OPDS & Large Library Optimization
+
+### A. OPDS Directory Truncation Workaround (KyBook 3, Panels, Chunky)
+Ubooquity v3 limits folder feeds to `opusPaginationNumber` (default 30) without outputting a next-page link (`rel="next"`) in navigation XML. In large collections (e.g. hundreds of subfolders), mobile OPDS clients will truncate the folder list at 30 items.
+To ensure all directories appear in your mobile reader:
+* Set `opusPaginationNumber : 5000` in `/config/preferences-2.json`.
+
+### B. High-Memory Java Allocation (`MAXMEM=4096`)
+Scanning large curated collections with multi-hundred-megabyte PDFs (e.g. RPG sourcebooks, high-res maps) requires more than the container's default 512 MB Java heap space. 
+* Configured via `MAXMEM=${UBOOQUITY_MAXMEM:-4096}` in `docker-compose.yml` to prevent `OutOfMemoryError` and automatic pruning of unindexed folders.

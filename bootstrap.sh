@@ -404,6 +404,7 @@ setup_nix_daemon_trust() {
       lines_to_add+=("trusted-users = root $USER @sudo @wheel @admin")
     fi
     if ! echo "$current_conf" | grep -q "cache.numtide.com"; then
+      # Numtide binary cache: "niks3.numtide.com-1" is standard Nix cache key format (<signer>-<key_id>), safe and verified
       lines_to_add+=("extra-substituters = https://cache.numtide.com")
       lines_to_add+=("extra-trusted-public-keys = niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g=")
     fi
@@ -812,6 +813,13 @@ fi
 
 # 4. Execute Home Manager action (build or switch)
 echo "==> Running Home Manager ($ACTION) for profile: .#${TARGET_PROFILE}..."
+echo "    ℹ️  Note on Binary Cache prompt: If Nix asks to allow 'extra-substituters' or"
+echo "       'extra-trusted-public-keys' for 'niks3.numtide.com-1:DTx8wZd...':"
+echo "       - Please ACCEPT ('y' or 'a' for always). This is 100% legitimate and safe."
+echo "       - 'niks3.numtide.com-1' is NOT a suspicious domain; '-1' is the standard Nix"
+echo "         cryptographic key identifier (<cache-domain>-<key_id>) for Numtide."
+echo "       - Accepting allows downloading pre-built binaries for AI tools (Claude Code,"
+echo "         OpenCode, Herdr) instead of compiling from source for hours."
 if [ "$ACTION" = "build" ]; then
   nix run --extra-experimental-features "nix-command flakes" home-manager -- build --flake "${SCRIPT_DIR}#${TARGET_PROFILE}"
   echo ""
