@@ -1,0 +1,24 @@
+# Hermes Kanban Profile: claude-api
+# ==============================================================================
+# Direct Anthropic API profile for Claude models (via ANTHROPIC_API_KEY).
+# Ideal for high-precision implementation, refactoring, and code review/verification.
+#
+# Credentials:
+#   Copy .env.example -> .env and set ANTHROPIC_API_KEY (or export in ~/.bashrc.local).
+
+model:
+  provider: "anthropic"
+  default: "claude-sonnet-4-20250514"
+
+kanban:
+  review_dispatch: true
+
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 300
+  home_mode: "auto"
+
+plugins:
+  enabled:
+    - herdr-agent-state

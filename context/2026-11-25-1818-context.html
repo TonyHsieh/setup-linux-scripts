@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-25 18:18</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul { list-style: none; }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong { color: var(--text); }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert-purple { border-left-color: var(--indigo); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .alert p:last-child { margin-bottom: 0; }
+    .alert ul {
+      margin-left: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+    .alert li { margin-bottom: 0.3rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      background: var(--card-bg);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+    th {
+      background: #151e2e;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:not(:last-child) td { border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.3rem;
+      color: var(--sky);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #e2e8f0;
+      font-size: 0.825rem;
+      line-height: 1.5;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .step-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🐝 Session Checkpoint: Hermes Kanban Swarms &amp; Herdr Mission Control</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-25 18:18 PST</span>
+          <span>💻 <strong>Host:</strong> AsusGA403u (Ubuntu 24.04 WSL2)</span>
+          <span>👤 <strong>User:</strong> tonyh</span>
+          <span>🌿 <strong>Branch:</strong> main (HEAD <code>cf6a2c1</code>, uncommitted changes ready)</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">Swarm E2E Verified</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: System Overview & Metrics Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ Workspace Environment</h2>
+      <ul>
+        <li><strong>Host OS:</strong> Ubuntu 24.04 on WSL2 (<code>AsusGA403u</code>, x86_64)</li>
+        <li><strong>Nix Profile:</strong> Home Manager <code>wsl</code> (user: <code>tonyh</code>)</li>
+        <li><strong>AI Agent Lane:</strong> <code>numtide/llm-agents.nix</code> updated via <code>jl update-agents</code> (14.4s cache hit)</li>
+        <li><strong>Active Target Project:</strong> <code>/home/tonyh/_Projects/berzerkcubed</code> (Milestone 3 complete, 61/61 tests)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🐝 Hermes Kanban Swarm Stack</h2>
+      <ul>
+        <li><strong>Default Profile:</strong> <code>agy-neon-medium</code> (Nous Portal <code>tencent/hy4-flash:free</code> + <code>agy -p</code>)</li>
+        <li><strong>Verifier Profile:</strong> <code>claude-api</code> (Anthropic API key verified in <code>.env</code>)</li>
+        <li><strong>Local Profiles:</strong> <code>local-opencode</code>, <code>local-ollama</code> (64K Ollama context)</li>
+        <li><strong>Fast Worker:</strong> <code>openrouter-fast</code> (OpenRouter template ready)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🐾 Herdr &amp; Terminal Harmony</h2>
+      <ul>
+        <li><strong>Mission Control:</strong> <code>jl herdr-kanban [board]</code> (3-pane cockpit)</li>
+        <li><strong>Quiet Watcher:</strong> <code>scripts/kanban-watch.sh</code> (redraw-on-change, zero flicker, audio chimes)</li>
+        <li><strong>Tmux Clipboard:</strong> <code>set -g set-clipboard on</code> added to <code>home/tmux.nix</code></li>
+        <li><strong>Layout Rule:</strong> Run <code>hc</code> in its own host terminal tab beside Tmux</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Technical Accomplishments & Solved Incidents -->
+  <h2 class="section-title">🛠️ Solved Incidents &amp; Permanent Architectural Fixes</h2>
+
+  <div class="alert alert-success">
+    <h3>🐍 Incident 1: Nix <code>hermes-agent-0.23.0</code> Kanban Workers Missing <code>websockets</code> &amp; <code>ruamel.yaml</code></h3>
+    <p><strong>Root Cause:</strong> <code>numtide/llm-agents.nix</code> injects ~120 Python 3.14 dependencies via <code>site.addsitedir()</code> inside <code>.hermes-wrapped</code> rather than exporting <code>PYTHONPATH</code>. When Hermes Kanban spawns workers via bare <code>sys.executable -m hermes_cli.kanban_worker_client</code>, the child Python interpreter loses all bundled site-packages.</p>
+    <p><strong>Permanent Nix Fix:</strong> Added <code>hermesAgentPatched</code> in <code>home/ai-agents.nix</code> using <code>pkgs.symlinkJoin</code> + <code>makeWrapper</code> to automatically extract every <code>/nix/store/.../site-packages</code> path from <code>.hermes-wrapped</code> into <code>PYTHONPATH</code>. Preserves 100% of <code>cache.numtide.com</code> binary substitution (zero source rebuild) and auto-syncs on future <code>jl update-agents</code> runs. Tracked in <code>AGENTS.md</code> Temporary Patches Registry (target review: 2027-01-15).</p>
+  </div>
+
+  <div class="alert alert-purple">
+    <h3>🔁 Incident 2: Infinite <code>Gateway draining: service_draining</code> Loop</h3>
+    <p><strong>Root Cause:</strong> A stale non-Nix systemd user unit (<code>~/.config/systemd/user/hermes-gateway.service</code>) pointing to <code>~/.hermes/hermes-agent/.hermes/bin/hermes</code> with <code>Restart=always</code> was fighting the Nix-managed <code>hermes</code> binary after <code>jl update-agents</code>.</p>
+    <p><strong>Permanent Fix:</strong> Disabled and deleted the legacy systemd unit, cleared stale gateway lock/PID files, and started the Nix-managed gateway cleanly (<code>hermes gateway run</code>).</p>
+  </div>
+
+  <div class="alert alert-warn">
+    <h3>📏 Incident 3: Ollama 64K Context Floor &amp; 7B Tool-Calling Protocol Violations</h3>
+    <p><strong>Root Cause:</strong> Hermes Agent enforces a 64,000-token minimum context window, and <code>qwen2.5-coder:7b</code> printed tool-call JSON as plain text instead of structured OpenAI <code>tool_calls</code> (causing Kanban protocol violations).</p>
+    <p><strong>Permanent Fix:</strong> Added <code>OLLAMA_CONTEXT_LENGTH=65536</code>, <code>OLLAMA_FLASH_ATTENTION=1</code>, and <code>OLLAMA_KV_CACHE_TYPE=q8_0</code> to <code>local-services/docker-compose.yml</code>; bumped local profile configs to 65536; switched <code>agy-neon-medium</code>'s outer Hermes loop to Nous Portal OAuth (<code>tencent/hy4-flash:free</code>, zero <code>GEMINI_API_KEY</code> required) while delegating coding/reasoning to <code>agy -p</code>.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>🏆 Milestone Achieved: First End-to-End Multi-Agent Swarm on <code>berzerkcubed</code></h3>
+    <p>Dispatched <code>docs/specs/milestone-3-integration.md</code> on board <code>berzerkcubed</code> with hybrid profiles (<code>agy-neon-medium</code> → <code>claude-api</code> Verifier → <code>agy-neon-medium</code> Synthesizer). Claude independently re-ran build/tests (<strong>0 TS errors, 61/61 passing</strong>), caught 3 unlogged design decisions + an unlogged demo HTML move, paused via a clean human-in-the-loop gate, applied user decisions, and completed all 4 cards (<code>t_040e12ec</code>, <code>t_c81dac3a</code>, <code>t_47f758eb</code>, <code>t_cad05bed</code>).</p>
+  </div>
+
+  <!-- Section 4: Feature Status & Profiles Matrix -->
+  <h2 class="section-title">🤖 Swarm Profiles &amp; Tooling Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Profile / Tool</th>
+        <th>Backend / Command</th>
+        <th>Auth / Credentials</th>
+        <th>Role &amp; Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong><code>agy-neon-medium</code></strong> *(Default)*</td>
+        <td>Nous Portal (<code>tencent/hy4-flash:free</code>) + <code>agy -p</code></td>
+        <td>Nous OAuth + Antigravity login (zero API keys)</td>
+        <td><span class="badge badge-success">Verified E2E</span></td>
+      </tr>
+      <tr>
+        <td><strong><code>claude-api</code></strong></td>
+        <td>Direct Anthropic API (<code>claude-sonnet-4-20250514</code>)</td>
+        <td><code>ANTHROPIC_API_KEY</code> in <code>~/.hermes/profiles/claude-api/.env</code></td>
+        <td><span class="badge badge-success">Verified E2E</span></td>
+      </tr>
+      <tr>
+        <td><strong><code>local-opencode</code> / <code>local-ollama</code></strong></td>
+        <td>Local Ollama (<code>http://localhost:11434/v1</code>, 64K ctx)</td>
+        <td>None (<code>jl up-llm</code>)</td>
+        <td><span class="badge badge-info">Seeded (use <code>qwen3:8b</code> for Kanban)</span></td>
+      </tr>
+      <tr>
+        <td><strong><code>openrouter-fast</code></strong></td>
+        <td>OpenRouter (<code>google/gemini-2.5-flash</code>)</td>
+        <td><code>OPENROUTER_API_KEY</code> in profile <code>.env</code></td>
+        <td><span class="badge badge-info">Template Seeded</span></td>
+      </tr>
+      <tr>
+        <td><strong>Herdr Mission Control</strong></td>
+        <td><code>jl herdr-kanban [board]</code> &amp; <code>jl kanban-triage [board]</code></td>
+        <td>Local Herdr daemon + <code>scripts/kanban-watch.sh</code></td>
+        <td><span class="badge badge-success">Live (Quiet + Chimes)</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Checklist -->
+  <h2 class="section-title">📋 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">1. Commit Milestone 3 in <code>berzerkcubed</code> &amp; Draft Next Polish Spec</span>
+      <span class="badge badge-warn">High Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Commit the verified Milestone 3 baseline (61/61 passing), then capture your playtest comments and suggestions into a follow-up spec for the next swarm iteration.
+    </p>
+    <pre><code>cd /home/tonyh/_Projects/berzerkcubed
+pnpm run build &amp;&amp; pnpm test
+git add docs/AGENT_LOG.md docs/QUESTIONS.md docs/specs/milestone-3-integration.md src/main.ts src/game/
+git commit -m "feat(m3): implement milestone-3 integration (sim loop, renderer, HUD, tests)"</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">2. Commit Today's <code>setup-linux-scripts</code> Improvements &amp; Sync</span>
+      <span class="badge badge-warn">High Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Commit all declarative Nix fixes, Hermes profile templates, Herdr Mission Control bridge, and updated docs so your CachyOS (<code>envy</code>) and macOS machines can pull them cleanly.
+    </p>
+    <pre><code>cd /home/tonyh/_Projects/setup-linux-scripts
+chmod +x scripts/kanban-watch.sh
+./bootstrap.sh
+git add AGENTS.md README.md flake.lock home/tmux.nix home/ai-agents.nix local-services/justfile local-services/docker-compose.yml scripts/kanban-watch.sh dotfiles/hermes/ docs/herdr-guide.md docs/agent-sandboxes-and-swarms.md context/2026-11-25-1818-context.html
+git commit -m "feat(swarms): add Hermes Kanban profiles, Herdr Mission Control, and Nix PYTHONPATH fix"
+git push</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">3. Optional: Install Clean Nix <code>hermes-gateway</code> User Service</span>
+      <span class="badge badge-info">Medium Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      If you want the Hermes Kanban dispatcher running automatically in the background without manually keeping <code>hermes gateway run</code> open in a pane, re-install the systemd user unit from your patched Nix <code>hermes</code> binary.
+    </p>
+    <pre><code>hermes gateway install &amp;&amp; hermes gateway start</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">4. Pull &amp; Activate on CachyOS (<code>envy</code>)</span>
+      <span class="badge badge-purple">Next Machine</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Sync the updated flake, Hermes wrapper fix, and sample profiles onto your bare-metal CachyOS laptop.
+    </p>
+    <pre><code>cd ~/setup-linux-scripts &amp;&amp; git pull &amp;&amp; ./bootstrap.sh &amp;&amp; jl kanban-init-profiles</code></pre>
+  </div>
+
+  <!-- Section 6: Git Commit & File Audit -->
+  <h2 class="section-title">📁 Modified &amp; Created File Audit (<code>setup-linux-scripts</code>)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>File Path</th>
+        <th>Type</th>
+        <th>Modification Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>home/ai-agents.nix</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Added <code>hermesAgentPatched</code> wrapper extracting full <code>.hermes-wrapped</code> site-packages into <code>PYTHONPATH</code></td>
+      </tr>
+      <tr>
+        <td><code>home/tmux.nix</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Enabled <code>set -g set-clipboard on</code> for OSC 52 clipboard passthrough</td>
+      </tr>
+      <tr>
+        <td><code>local-services/justfile</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Parameterized <code>kanban-swarm</code> (defaults to <code>agy-neon-medium</code>); added <code>kanban-init-profiles</code>, <code>kanban-profiles</code>, <code>kanban-triage</code>, and 3-pane <code>herdr-kanban</code></td>
+      </tr>
+      <tr>
+        <td><code>local-services/docker-compose.yml</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Configured Ollama container with <code>OLLAMA_CONTEXT_LENGTH=65536</code>, flash attention, and <code>q8_0</code> KV cache</td>
+      </tr>
+      <tr>
+        <td><code>scripts/kanban-watch.sh</code></td>
+        <td><span class="badge badge-success">Created</span></td>
+        <td>Quiet, flicker-free Kanban watcher with auto-expanded blocked-card diagnostics and <code>blocked</code>/<code>done</code> bell + chime alerts</td>
+      </tr>
+      <tr>
+        <td><code>dotfiles/hermes/profiles/*</code></td>
+        <td><span class="badge badge-success">Created</span></td>
+        <td>5 sample AI model profiles (<code>agy-neon-medium</code>, <code>claude-api</code>, <code>local-opencode</code>, <code>local-ollama</code>, <code>openrouter-fast</code>) + <code>README.md</code></td>
+      </tr>
+      <tr>
+        <td><code>AGENTS.md</code>, <code>README.md</code>, <code>docs/herdr-guide.md</code>, <code>docs/agent-sandboxes-and-swarms.md</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Documented Herdr vs. Hermes Kanban vs. Tmux roles, CLI profiles, Mission Control workflow, and temporary Nix patch registry</td>
+      </tr>
+      <tr>
+        <td><code>flake.lock</code></td>
+        <td><span class="badge badge-info">Modified</span></td>
+        <td>Updated <code>llm-agents</code> input via <code>jl update-agents</code></td>
+      </tr>
+      <tr>
+        <td><code>context/2026-11-25-1818-context.html</code></td>
+        <td><span class="badge badge-success">Created</span></td>
+        <td>Standalone session context &amp; resumption checkpoint report</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <span>Generated by <strong>Antigravity</strong> (Google DeepMind) • Save Current Context Skill</span>
+    <span>2026-11-25 18:18 PST • Single Source of Truth for Session Resumption</span>
+  </footer>
+
+</body>
+</html>

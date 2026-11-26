@@ -25,7 +25,17 @@ This guide details the architecture, setup, multi-model configuration (Google Ge
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Why Herdr Instead of Plain `tmux`?
+### Why Herdr Instead of Plain `tmux` (and How It Fits with Hermes Kanban)?
+
+| Tool | Primary Job | Best Used For |
+| :--- | :--- | :--- |
+| **Tmux** | **Dev Workbench** | Normal coding, Neovim, git, builds, and tests. |
+| **Hermes Kanban (`jl kanban-swarm` + `hermes dashboard`)** | **Async Pipeline Orchestrator** | Fire-and-forget multi-step swarms (Spec → Parallel Workers → Verifier → Synthesizer) tracked in SQLite + Web UI. |
+| **Herdr (`hc` + `jl herdr-kanban`)** | **Live Interactive Cockpit & Swarm Monitor** | 1) Supervising interactive TUI agents (`agy`, `claude`, `opencode`) side-by-side with an attention queue.<br>2) Watching live Hermes Kanban boards, auto-expanded blocked-card errors, and logs alongside an interactive triage shell. |
+
+> [!TIP]
+> **Avoid nesting multiplexers:** Run `hc` in its **own host terminal tab** (Windows Terminal, Konsole, Ghostty, iTerm2) *beside* your Tmux tab rather than inside Tmux. Both persist independently via their own daemons, and keeping them side-by-side avoids mouse-capture and clipboard conflicts.
+
 | Feature | Traditional `tmux` | Herdr (`hc`) |
 | :--- | :--- | :--- |
 | **Buffer Awareness** | Raw terminal escape sequences & text | **Agent lifecycle states** (`working`, `blocked on input`, `done`, `idle`) |
@@ -182,6 +192,8 @@ You can control the Herdr supervisor daemon using our `jl` task runner:
 | `jl herdr-status` | Displays active daemon status and running agent sessions |
 | `jl herdr-reload` | Reloads configuration (`~/.config/herdr/config.toml`) live without restarting panes |
 | `jl herdr-spawn <agent> [args]` | Spawns an agent into Herdr (e.g. `jl herdr-spawn agy` or `jl herdr-spawn oc`) |
+| `jl herdr-kanban [board]` | Opens a 3-pane Herdr Mission Control workspace (Live Kanban Board + Blocked Diagnostics, Live Logs, Interactive Triage Shell) |
+| `jl kanban-triage [board]` | One-shot terminal triage listing the board and auto-expanding error details for every blocked card |
 | `jl herdr-down` | Gracefully stops the Herdr supervisor daemon |
 
 ---

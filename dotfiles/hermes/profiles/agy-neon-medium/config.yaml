@@ -1,0 +1,32 @@
+# Hermes Kanban Profile: agy-neon-medium (Default Swarm Profile)
+# ==============================================================================
+# Uses Nous Portal OAuth (`hermes auth add nous`) for Hermes's outer Kanban
+# orchestration loop (reliable structured Kanban tool-calling, zero GEMINI_API_KEY
+# required) and delegates deep reasoning & coding to Google Antigravity CLI
+# (`agy -p`), which runs on your active Antigravity model (Gemini 4 Neon Medium).
+#
+# Prerequisites:
+#   1. Nous Portal login: `hermes -p agy-neon-medium auth add nous`
+#      (or copy ~/.hermes/auth.json into ~/.hermes/profiles/agy-neon-medium/)
+#   2. Logged into Google Antigravity CLI (`agy`)
+
+model:
+  provider: "nous"
+  default: "tencent/hy4-flash:free"
+  base_url: "https://inference-api.nousresearch.com/v1"
+
+agent:
+  reasoning_effort: medium
+
+kanban:
+  review_dispatch: true
+
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 300
+  home_mode: "auto"
+
+plugins:
+  enabled:
+    - herdr-agent-state

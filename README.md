@@ -567,8 +567,12 @@ jl build-agent-image     # Build declarative OCI image via Nix and load into Pod
 jl agent-container <a> [br] [m] [rt] # Run agent in rootless Podman/gVisor container (L3, modes: cloud/local)
 
 # 🐝 Hermes Kanban Multi-Agent Swarms
-jl kanban-board [board]  # View active tasks and status on the Hermes Kanban board
-jl kanban-swarm <target> [board] # Dispatch multi-agent swarm (accepts string goal or spec file path)
+jl kanban-init-profiles           # Seed sample AI model profiles (agy-neon-medium, claude-api, local-opencode, local-ollama, openrouter-fast)
+jl kanban-profiles                # List installed Hermes profiles & available repo templates
+jl kanban-board [board]           # View active tasks and status on the Hermes Kanban board
+jl kanban-triage [board]          # List board & auto-expand error details for every blocked card
+jl herdr-kanban [board]           # Launch 3-pane Herdr Mission Control (Live Board + Logs + Triage Shell)
+jl kanban-swarm <target> [board] [worker] [verifier] [synthesizer] # Dispatch swarm (defaults to agy-neon-medium)
 
 jl up-all        # Start ALL core and optional profile services simultaneously
 ```

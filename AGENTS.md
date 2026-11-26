@@ -70,3 +70,4 @@ When applying temporary hotfixes or vendored patches (following the Geoffrey Hun
 | Patch File | Upstream Component | Date Added | Target Removal Date | Upstream Issue / Tracking |
 | :--- | :--- | :--- | :--- | :--- |
 | `third_party/git/0001-forbid-force-push.patch` | Git `builtin/push.c` | 2026-11-13 | Permanent (Policy) | Organizational guardrail (ghuntley/nix-demo) |
+| `home/ai-agents.nix` (`hermesAgentPatched`) | `numtide/llm-agents.nix` `hermes-agent` | 2026-11-25 | 2027-01-15 | Bare `sys.executable -m hermes_cli.kanban_worker_client` lacks `.hermes-wrapped` `site.addsitedir` deps on `PYTHONPATH` |

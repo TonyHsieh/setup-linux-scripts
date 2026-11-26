@@ -1,0 +1,28 @@
+# Hermes Kanban Profile: local-ollama
+# ==============================================================================
+# Pure local Ollama profile (air-gapped / zero cloud API fees).
+# Ensure the local Ollama container is running (`jl up-llm`) and the model is
+# pulled (`jl llm-pull qwen2.5-coder:7b`).
+#
+# Inside Layer 3 Podman containers (MODE="local"), override base_url via
+# OPENAI_BASE_URL=http://local-ollama:11434/v1.
+
+model:
+  provider: "custom"
+  default: "qwen2.5-coder:7b"
+  base_url: "http://localhost:11434/v1"
+  context_length: 65536
+  ollama_num_ctx: 65536
+
+kanban:
+  review_dispatch: true
+
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 300
+  home_mode: "auto"
+
+plugins:
+  enabled:
+    - herdr-agent-state

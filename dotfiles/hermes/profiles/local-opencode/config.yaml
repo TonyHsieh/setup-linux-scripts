@@ -1,0 +1,26 @@
+# Hermes Kanban Profile: local-opencode
+# ==============================================================================
+# 100% local/offline profile powered by your Tier 2 Ollama container mesh
+# (start with `jl up-llm`) and delegating code edits to OpenCode (`opencode run`).
+#
+# Zero cloud API keys required.
+
+model:
+  provider: "custom"
+  default: "qwen2.5-coder:7b"
+  base_url: "http://localhost:11434/v1"
+  context_length: 65536
+  ollama_num_ctx: 65536
+
+kanban:
+  review_dispatch: true
+
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 300
+  home_mode: "auto"
+
+plugins:
+  enabled:
+    - herdr-agent-state

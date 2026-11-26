@@ -91,10 +91,11 @@
         "source-file ~/.config/tmux/tmux.conf; display-message '~/.config/tmux/tmux.conf reloaded'" \
         "source-file ~/.tmux.conf; display-message '~/.tmux.conf reloaded'"
 
-      # ble.sh cursor style & escape passthrough compatibility
+      # ble.sh cursor style & escape/clipboard passthrough compatibility (OSC 52 for Herdr/Neovim/agents)
       set -g cursor-style underline
       set -ga terminal-overrides ',*:Ss=\E[%p1%d q:Se=\E[2 q'
       set -g allow-passthrough on
+      set -g set-clipboard on
     '';
   };
 }

@@ -743,9 +743,188 @@ kanban-board BOARD="default":
     #!/usr/bin/env bash
     hermes kanban --board "{{BOARD}}" list
 
-# Dispatch a Hermes Kanban multi-agent swarm (accepts either a string goal or a specification file path)
-kanban-swarm TARGET BOARD="default":
+# Inspect board and automatically expand full error diagnostics for every blocked card
+kanban-triage BOARD="default":
     #!/usr/bin/env bash
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -f "$d/scripts/kanban-watch.sh" ]; then
+            exec bash "$d/scripts/kanban-watch.sh" --board "{{BOARD}}" --triage
+        fi
+    done
+    echo "⚠️ scripts/kanban-watch.sh not found." >&2
+    exit 1
+
+# Launch a unified 3-pane Herdr Mission Control workspace for a Hermes Kanban board
+# Pane 1 (Top-Left):    Live Kanban board + auto-expanded blocked-card diagnostics
+# Pane 2 (Bottom-Left): Live Hermes daemon / worker log tail
+# Pane 3 (Right):       Plain interactive triage shell ready for unblock/comment/agents
+herdr-kanban BOARD="default":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    HC_BIN="$(command -v herdr || command -v hc || echo "")"
+    if [ -z "$HC_BIN" ] && [ -x "$HOME/.local/bin/herdr" ]; then
+        HC_BIN="$HOME/.local/bin/herdr"
+    elif [ -z "$HC_BIN" ] && [ -x "$HOME/.local/bin/hc" ]; then
+        HC_BIN="$HOME/.local/bin/hc"
+    fi
+    if [ -z "$HC_BIN" ]; then
+        echo "⚠️ Herdr not found. Install it with: ./bootstrap.sh --herdr"
+        exit 1
+    fi
+
+    WATCH_SCRIPT=""
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -f "$d/scripts/kanban-watch.sh" ]; then
+            WATCH_SCRIPT="$d/scripts/kanban-watch.sh"
+            break
+        fi
+    done
+    if [ -z "$WATCH_SCRIPT" ]; then
+        echo "⚠️ scripts/kanban-watch.sh not found." >&2
+        exit 1
+    fi
+
+    # Ensure Herdr supervisor daemon is running
+    if ! $HC_BIN status server 2>/dev/null | grep -q "status: running"; then
+        echo "==> Starting Herdr supervisor server..."
+        just -f "{{justfile()}}" herdr-up
+    fi
+
+    send_cmd() {
+        local pane_id="$1"
+        local cmd="$2"
+        if $HC_BIN pane run "$pane_id" "$cmd" >/dev/null 2>&1; then
+            return 0
+        elif $HC_BIN pane send-text "$pane_id" "$cmd" >/dev/null 2>&1; then
+            $HC_BIN pane send-keys "$pane_id" Enter >/dev/null 2>&1 || true
+            return 0
+        fi
+        return 1
+    }
+
+    TARGET_CWD="$PWD"
+    LABEL="kanban-{{BOARD}}"
+    echo "==> 🐾 Creating Herdr Mission Control workspace '$LABEL' in $TARGET_CWD..."
+    WS_JSON="$($HC_BIN workspace create --label "$LABEL" --cwd "$TARGET_CWD")"
+    PANE_BOARD="$(echo "$WS_JSON" | jq -r '.result.root_pane.pane_id // .root_pane.pane_id // empty')"
+    if [ -z "$PANE_BOARD" ]; then
+        echo "⚠️ Failed to create Herdr workspace. Output: $WS_JSON"
+        exit 1
+    fi
+
+    # Split right for Pane 3 (Interactive Triage Shell)
+    SPLIT_RIGHT_JSON="$($HC_BIN pane split --pane "$PANE_BOARD" --direction right --cwd "$TARGET_CWD" 2>/dev/null || true)"
+    PANE_SHELL="$(echo "$SPLIT_RIGHT_JSON" | jq -r '.result.pane.pane_id // .result.pane_id // .pane_id // empty' 2>/dev/null || true)"
+
+    # Split bottom-left from Pane 1 for Pane 2 (Live Hermes Logs)
+    SPLIT_DOWN_JSON="$($HC_BIN pane split --pane "$PANE_BOARD" --direction down --cwd "$TARGET_CWD" 2>/dev/null || true)"
+    PANE_LOGS="$(echo "$SPLIT_DOWN_JSON" | jq -r '.result.pane.pane_id // .result.pane_id // .pane_id // empty' 2>/dev/null || true)"
+
+    # Launch live Kanban watcher in Pane 1 (quiet, flicker-free redraw only on change)
+    WATCH_CMD="bash '$WATCH_SCRIPT' --board '{{BOARD}}' --watch --interval 5"
+    send_cmd "$PANE_BOARD" "$WATCH_CMD" || true
+
+    # Launch live Hermes Kanban event stream in Pane 2
+    if [ -n "$PANE_LOGS" ]; then
+        LOG_CMD="echo '📜 Streaming live Kanban events (Board: {{BOARD}})...' && hermes kanban --board '{{BOARD}}' watch"
+        send_cmd "$PANE_LOGS" "$LOG_CMD" || true
+    fi
+
+    # Print quick-reference triage banner in Pane 3 (Plain Shell)
+    if [ -n "$PANE_SHELL" ]; then
+        BANNER_CMD="clear && printf '🛠️  Kanban Triage Shell (Board: {{BOARD}})\n  • Triage blocked:  jl kanban-triage {{BOARD}}\n  • Inspect task:    hermes kanban --board {{BOARD}} show <id>\n  • Tail live task:  hermes kanban --board {{BOARD}} tail <id>\n  • Worker log:      hermes kanban --board {{BOARD}} log <id>\n  • Comment:         hermes kanban --board {{BOARD}} comment <id> \"...\"\n  • Unblock/retry:   hermes kanban --board {{BOARD}} unblock <id>\n  • Dispatch swarm:  jl kanban-swarm \"<goal>\" {{BOARD}}\n  • Web Dashboard:   hermes dashboard\n\n'"
+        send_cmd "$PANE_SHELL" "$BANNER_CMD" || true
+    fi
+
+    echo ""
+    echo "✅ Herdr Kanban Mission Control workspace '$LABEL' is ready!"
+    echo "   • Pane 1 (Board + Blocked Diagnostics): $PANE_BOARD"
+    [ -n "$PANE_LOGS" ] && echo "   • Pane 2 (Live Kanban Event Stream):    $PANE_LOGS"
+    [ -n "$PANE_SHELL" ] && echo "   • Pane 3 (Interactive Triage Shell):    $PANE_SHELL"
+    echo ""
+    echo "👉 Attach in a dedicated terminal tab (beside tmux):  hc"
+
+# List installed Hermes profiles and available repository swarm profile templates
+kanban-profiles:
+    #!/usr/bin/env bash
+    echo "======================================================================"
+    echo "🤖 Installed Hermes Profiles (~/.hermes/profiles/)"
+    echo "======================================================================"
+    if command -v hermes >/dev/null 2>&1; then
+        hermes profile list 2>/dev/null || ls -1 "$HOME/.hermes/profiles" 2>/dev/null || echo "  (none yet — run: jl kanban-init-profiles)"
+    else
+        ls -1 "$HOME/.hermes/profiles" 2>/dev/null || echo "  (none yet — run: jl kanban-init-profiles)"
+    fi
+    echo ""
+    echo "📦 Available Sample Templates (dotfiles/hermes/profiles/):"
+    TEMPLATE_DIR=""
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -d "$d/dotfiles/hermes/profiles" ]; then
+            TEMPLATE_DIR="$d/dotfiles/hermes/profiles"
+            break
+        fi
+    done
+    if [ -n "$TEMPLATE_DIR" ]; then
+        for p in "$TEMPLATE_DIR"/*/; do
+            [ -d "$p" ] && echo "  • $(basename "$p")"
+        done
+    else
+        echo "  (template directory not found)"
+    fi
+    echo "======================================================================"
+
+# Seed sample Hermes AI model profiles into ~/.hermes/profiles/ (non-destructive)
+kanban-init-profiles:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    TEMPLATE_DIR=""
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -d "$d/dotfiles/hermes/profiles" ]; then
+            TEMPLATE_DIR="$d/dotfiles/hermes/profiles"
+            break
+        fi
+    done
+    if [ -z "$TEMPLATE_DIR" ]; then
+        echo "⚠️ dotfiles/hermes/profiles not found." >&2
+        exit 1
+    fi
+    mkdir -p "$HOME/.hermes/profiles"
+    for src_dir in "$TEMPLATE_DIR"/*/; do
+        [ -d "$src_dir" ] || continue
+        name="$(basename "$src_dir")"
+        dst_dir="$HOME/.hermes/profiles/$name"
+        mkdir -p "$dst_dir"
+        for f in config.yaml SOUL.md .env.example; do
+            if [ -f "$src_dir/$f" ]; then
+                if [ ! -f "$dst_dir/$f" ]; then
+                    cp "$src_dir/$f" "$dst_dir/$f"
+                    echo "   ✓ Seeded $dst_dir/$f"
+                else
+                    echo "   • Kept existing $dst_dir/$f"
+                fi
+            fi
+        done
+        # Auto-create .env for zero-key local/CLI profiles if missing
+        if [[ "$name" == local-* || "$name" == "agy-neon-medium" ]] && [ ! -f "$dst_dir/.env" ] && [ -f "$dst_dir/.env.example" ]; then
+            cp "$dst_dir/.env.example" "$dst_dir/.env"
+            chmod 600 "$dst_dir/.env"
+            echo "   ✓ Initialized local $dst_dir/.env"
+        fi
+    done
+    echo ""
+    echo "✅ Hermes swarm profiles ready in ~/.hermes/profiles/"
+    echo "👉 For API-key cloud profiles (claude-api, openrouter-fast), add API tokens"
+    echo "   to ~/.hermes/profiles/<profile>/.env or export them in ~/.bashrc.local."
+
+# Dispatch a Hermes Kanban multi-agent swarm (defaults to agy-neon-medium profile)
+# Usage:
+#   jl kanban-swarm "Goal or path/to/spec.md"
+#   jl kanban-swarm "Goal" default claude-api
+#   jl kanban-swarm "Goal" billing-service local-opencode claude-api agy-neon-medium
+#   jl kanban-swarm docs/spec.md default "local-ollama:implementation,openrouter-fast:tests" claude-api agy-neon-medium
+kanban-swarm TARGET BOARD="default" WORKER="agy-neon-medium" VERIFIER="" SYNTHESIZER="":
+    #!/usr/bin/env bash
+    set -euo pipefail
     SPEC_FILE=""
     GOAL_TEXT="{{TARGET}}"
     if [ -f "{{TARGET}}" ]; then
@@ -753,14 +932,85 @@ kanban-swarm TARGET BOARD="default":
         SPEC_FILE="{{TARGET}}"
         GOAL_TEXT="$(cat "{{TARGET}}")"
     fi
+
+    # Resolve worker specs (supports comma-separated list and optional :role suffix)
+    RAW_WORKERS="{{WORKER}}"
+    [ -z "$RAW_WORKERS" ] && RAW_WORKERS="agy-neon-medium"
+
+    IFS=',' read -ra WORKER_ITEMS <<< "$RAW_WORKERS"
+    WORKER_FLAGS=()
+    REFERENCED_PROFILES=()
+    FIRST_PROFILE=""
+    for item in "${WORKER_ITEMS[@]}"; do
+        item="$(echo "$item" | xargs)"
+        [ -z "$item" ] && continue
+        if [[ "$item" == *:* ]]; then
+            prof="${item%%:*}"
+            WORKER_FLAGS+=(--worker "$item")
+        else
+            prof="$item"
+            WORKER_FLAGS+=(--worker "${item}:implementation")
+        fi
+        [ -z "$FIRST_PROFILE" ] && FIRST_PROFILE="$prof"
+        REFERENCED_PROFILES+=("$prof")
+    done
+
+    EFFECTIVE_VERIFIER="{{VERIFIER}}"
+    [ -z "$EFFECTIVE_VERIFIER" ] && EFFECTIVE_VERIFIER="${FIRST_PROFILE:-agy-neon-medium}"
+    EFFECTIVE_SYNTHESIZER="{{SYNTHESIZER}}"
+    [ -z "$EFFECTIVE_SYNTHESIZER" ] && EFFECTIVE_SYNTHESIZER="$EFFECTIVE_VERIFIER"
+
+    REFERENCED_PROFILES+=("$EFFECTIVE_VERIFIER" "$EFFECTIVE_SYNTHESIZER")
+
+    # Locate sample profile templates for auto-seeding missing profiles
+    TEMPLATE_DIR=""
+    for d in "{{justfile_directory()}}/.." "$HOME/setup-linux-scripts" "$HOME/_Projects/setup-linux-scripts"; do
+        if [ -d "$d/dotfiles/hermes/profiles" ]; then
+            TEMPLATE_DIR="$d/dotfiles/hermes/profiles"
+            break
+        fi
+    done
+
+    # Auto-seed any referenced profile from repo templates if not yet initialized
+    SEEN=" "
+    for prof in "${REFERENCED_PROFILES[@]}"; do
+        [ "$prof" = "default" ] && continue
+        [[ "$SEEN" == *" $prof "* ]] && continue
+        SEEN="$SEEN$prof "
+        dst_dir="$HOME/.hermes/profiles/$prof"
+        if [ ! -f "$dst_dir/config.yaml" ]; then
+            if [ -n "$TEMPLATE_DIR" ] && [ -d "$TEMPLATE_DIR/$prof" ]; then
+                echo "==> 🌱 Auto-seeding Hermes profile '$prof' into $dst_dir..."
+                mkdir -p "$dst_dir"
+                for f in config.yaml SOUL.md .env.example; do
+                    [ -f "$TEMPLATE_DIR/$prof/$f" ] && cp "$TEMPLATE_DIR/$prof/$f" "$dst_dir/$f"
+                done
+                if [[ "$prof" == local-* || "$prof" == "agy-neon-medium" ]] && [ ! -f "$dst_dir/.env" ] && [ -f "$dst_dir/.env.example" ]; then
+                    cp "$dst_dir/.env.example" "$dst_dir/.env"
+                    chmod 600 "$dst_dir/.env"
+                elif [ ! -f "$dst_dir/.env" ]; then
+                    echo "    ℹ️  Reminder: configure API token in $dst_dir/.env (or ~/.bashrc.local) if not already exported."
+                fi
+            else
+                echo "⚠️  Profile '$prof' not found in ~/.hermes/profiles/$prof and no repo template exists."
+                echo "    Run 'jl kanban-profiles' to list available profiles or 'hermes profile create $prof'."
+            fi
+        fi
+    done
+
     if [ "{{BOARD}}" != "default" ]; then
         hermes kanban boards create "{{BOARD}}" 2>/dev/null || true
     fi
+
     echo "==> 🐝 Dispatching Hermes Kanban Swarm on board '{{BOARD}}'..."
+    echo "    • Worker(s):   ${RAW_WORKERS}"
+    echo "    • Verifier:    ${EFFECTIVE_VERIFIER}"
+    echo "    • Synthesizer: ${EFFECTIVE_SYNTHESIZER}"
+
     SWARM_JSON="$(hermes kanban --board "{{BOARD}}" swarm "$GOAL_TEXT" \
-        --worker default:implementation \
-        --verifier default \
-        --synthesizer default \
+        "${WORKER_FLAGS[@]}" \
+        --verifier "$EFFECTIVE_VERIFIER" \
+        --synthesizer "$EFFECTIVE_SYNTHESIZER" \
         --json)"
     ROOT_ID="$(echo "$SWARM_JSON" | jq -r '.root_id // empty')"
     if [ -n "$SPEC_FILE" ] && [ -n "$ROOT_ID" ]; then

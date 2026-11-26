@@ -75,6 +75,11 @@ services:
     container_name: local-ollama
     restart: unless-stopped
     profiles: ["llm", "all"]
+    environment:
+      # Hermes Agent requires >= 64,000 token context window; flash attention + q8_0 KV cache keep VRAM usage low
+      - OLLAMA_CONTEXT_LENGTH=65536
+      - OLLAMA_FLASH_ATTENTION=1
+      - OLLAMA_KV_CACHE_TYPE=q8_0
     ports:
       - "11434:11434"
     volumes:

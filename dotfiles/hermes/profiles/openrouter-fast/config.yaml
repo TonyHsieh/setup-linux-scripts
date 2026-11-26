@@ -1,0 +1,29 @@
+# Hermes Kanban Profile: openrouter-fast
+# ==============================================================================
+# Low-cost, high-throughput OpenRouter worker profile.
+# Ideal for fanning out parallel implementation or test-writing workers while
+# reserving frontier profiles (agy-neon-medium / claude-api) for verification
+# and synthesis.
+#
+# Credentials:
+#   Copy .env.example -> .env and set OPENROUTER_API_KEY (or export in ~/.bashrc.local).
+
+model:
+  provider: "openrouter"
+  default: "google/gemini-2.5-flash"
+
+provider_routing:
+  sort: "throughput"
+
+kanban:
+  review_dispatch: true
+
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 240
+  home_mode: "auto"
+
+plugins:
+  enabled:
+    - herdr-agent-state

@@ -130,33 +130,80 @@ sequenceDiagram
 
 ---
 
-### 4.1 Dispatching Swarms (String Goal vs. Specification File)
+### 4.1 Choosing AI Model Profiles for Swarms
 
-The `jl kanban-swarm` recipe **auto-detects** whether your input is a string or a file path:
+Hermes Kanban Swarms route each role (`--worker`, `--verifier`, `--synthesizer`) through a **Hermes profile** stored in `~/.hermes/profiles/<profile>/config.yaml`.
 
-#### A. Passing a Direct String Goal
+This repository ships ready-to-use sample profile templates under [`dotfiles/hermes/profiles/`](../dotfiles/hermes/profiles/README.md):
+
+| Profile | Backend / Provider | Default Model | Credentials Needed | Best Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **`agy-neon-medium`** *(Default)* | Nous Portal loop + `agy -p` (Gemini 4 Neon Medium) | `stealth/space-bunny-alpha` + `agy` | Nous OAuth + `agy` login (zero API keys) | Default all-rounder, Architect, Synthesizer |
+| **`claude-api`** | Direct Anthropic API | `claude-sonnet-4-20250514` | `ANTHROPIC_API_KEY` | High-precision Coder, Verifier / Reviewer |
+| **`local-opencode`** | Local Ollama + OpenCode CLI | `qwen2.5-coder:7b` | None (`jl up-llm`) | Offline / private coding worker |
+| **`local-ollama`** | Local Ollama (direct) | `qwen2.5-coder:7b` | None (`jl up-llm`) | Air-gapped worker / Container `MODE="local"` |
+| **`openrouter-fast`** | OpenRouter | `google/gemini-2.5-flash` | `OPENROUTER_API_KEY` | Fast, low-cost parallel workers |
+
+> [!NOTE]
+> **State vs. Config (Prime Directive #3):** Profiles are **seeded** into writable `~/.hermes/profiles/<name>/` directories (never symlinked read-only from `/nix/store`). Keep API keys in `~/.hermes/profiles/<name>/.env` or `~/.bashrc.local`—never commit real tokens to Git.
+>
+> **Note on `agy-neon-medium`:** Because `agy` is an interactive/print CLI agent rather than a raw HTTP endpoint, `agy-neon-medium` uses **Nous Portal OAuth** (`hermes -p agy-neon-medium auth add nous`, zero API keys required) for Hermes's outer Kanban tool-calling loop and delegates deep reasoning/coding to `agy -p` (which runs on your active Antigravity CLI login, **Gemini 4 Neon Medium**). For a pure native `agy` swarm without Hermes, use `/teamwork` directly inside `agy`.
+
+#### Initializing & Configuring Profiles
 ```bash
-jl kanban-swarm "Implement JWT authentication with unit tests"
+# 1. Seed all sample profiles into ~/.hermes/profiles/ (non-destructive; preserves existing files)
+jl kanban-init-profiles
+
+# 2. List installed profiles & available templates
+jl kanban-profiles
+
+# 3. Add API keys for cloud profiles (skip this for local-ollama / local-opencode)
+cp ~/.hermes/profiles/claude-api/.env.example ~/.hermes/profiles/claude-api/.env
+$EDITOR ~/.hermes/profiles/claude-api/.env
+```
+*(You can also skip step 1—running `jl kanban-swarm` automatically seeds any referenced template profile on first use.)*
+
+---
+
+### 4.2 Dispatching Swarms (String Goal, Spec File & Custom Profiles)
+
+**Syntax:**
+```bash
+jl kanban-swarm <TARGET> [BOARD="default"] [WORKER="agy-neon-medium"] [VERIFIER] [SYNTHESIZER]
 ```
 
-#### B. Passing a Specification File Directly
-If you pass a path to a Markdown, text, or YAML file, `kanban-swarm` automatically:
-1. Ingests the entire specification into the swarm root task.
-2. Physically attaches the file to the task in SQLite via `hermes kanban attach`.
-3. Ensures all workers, verifiers, and synthesizers have the complete spec in their prompt context.
+* **`TARGET`**: A direct string goal **or** a path to a specification file (Markdown, text, or YAML). If a file path is detected, `kanban-swarm` ingests its contents and physically attaches it to the root task via `hermes kanban attach`.
+* **`BOARD`**: Kanban board name (defaults to `default`; auto-created if missing).
+* **`WORKER`**: Profile name (defaults to `agy-neon-medium`). Supports bare profile names (`claude-api` → `claude-api:implementation`), explicit `profile:role` (`local-ollama:tests`), or comma-separated multi-worker lists (`"local-opencode:implementation,openrouter-fast:tests"`).
+* **`VERIFIER`**: Profile for code review/verification (defaults to the first worker profile).
+* **`SYNTHESIZER`**: Profile for final synthesis/merge (defaults to the verifier profile).
 
+#### Examples
 ```bash
-# Pass any spec file directly
-jl kanban-swarm docs/specs/feature-auth.md
+# 1. Default swarm (uses agy-neon-medium for worker, verifier, and synthesizer)
+jl kanban-swarm "Implement JWT authentication with unit tests"
 
-# Target a dedicated project board (auto-creates if missing)
+# 2. Pass a specification file on a dedicated board (still defaults to agy-neon-medium)
 jl kanban-swarm docs/specs/billing.md billing-service
+
+# 3. Run the entire swarm on Claude (via ANTHROPIC_API_KEY)
+jl kanban-swarm "Refactor API error handling" default claude-api
+
+# 4. Run 100% locally / offline using OpenCode + Ollama
+jl kanban-swarm docs/specs/feature-auth.md default local-opencode
+
+# 5. Hybrid swarm: local/fast workers + Claude verifier + AGY Neon Medium synthesizer
+jl kanban-swarm docs/specs/feature-auth.md default local-opencode claude-api agy-neon-medium
+
+# 6. Multi-worker hybrid swarm (parallel implementation + test workers)
+jl kanban-swarm docs/specs/feature-auth.md default "local-ollama:implementation,openrouter-fast:tests" claude-api agy-neon-medium
 ```
 
 ---
 
-### 4.2 Inspecting and Managing the Board
+### 4.3 Inspecting, Triaging & Live Monitoring in Herdr
 
+#### Quick CLI Triage & Management
 ```bash
 # View all tasks on the default board
 jl kanban-board
@@ -164,15 +211,38 @@ jl kanban-board
 # View tasks on a specific project board
 jl kanban-board billing-service
 
-# Show full details, events, and runs for a task
+# One-shot triage: list board AND auto-expand failure details for every blocked card
+jl kanban-triage
+jl kanban-triage billing-service
+
+# Show full details, events, and runs for a specific task
 hermes kanban show <task-id>
 
-# View attachments on a task
-hermes kanban attachments <task-id>
+# Comment on or unblock a paused card
+hermes kanban comment <task-id> "Clarification or fix applied"
+hermes kanban unblock <task-id>
 
-# Archive completed swarm tasks
+# Archive completed or test swarm tasks
 hermes kanban archive <task-id>
 ```
+
+#### Unified Live Mission Control in Herdr (`jl herdr-kanban`)
+Because `jl kanban-swarm` runs workers as headless background processes, use `jl herdr-kanban` to open a **3-pane live Herdr Mission Control workspace** for any board:
+
+```bash
+# Create the 3-pane Mission Control workspace for 'default' (or pass a board name)
+jl herdr-kanban
+jl herdr-kanban billing-service
+
+# Attach in a dedicated terminal tab (beside tmux)
+hc
+```
+
+* **Pane 1 (Top-Left)**: Live auto-refreshing Kanban board (`scripts/kanban-watch.sh --watch`) that automatically expands error details for any `⊘ blocked` card.
+* **Pane 2 (Bottom-Left)**: Live tail of `~/.hermes/logs/` so you see worker activity and crashes in real time.
+* **Pane 3 (Right)**: Plain interactive triage shell ready for `hermes kanban unblock <id>`, `comment`, `git diff`, or ad-hoc `agy` / `claude` / `oc` runs.
+
+*(For a visual browser UI, you can also run `hermes dashboard`.)*
 
 ---
 
