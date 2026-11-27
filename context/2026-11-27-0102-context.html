@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Context & State Checkpoint — 2026-11-27 01:02</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --sky: #38bdf8;
+      --emerald: #34d399;
+      --indigo: #818cf8;
+      --amber: #fbbf24;
+      --rose: #f43f5e;
+      --code-bg: #090d16;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2.5rem 1.5rem;
+      max-width: 1240px;
+      margin: 0 auto;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .meta {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-success { background: rgba(52, 211, 153, 0.15); color: var(--emerald); border: 1px solid rgba(52, 211, 153, 0.3); }
+    .badge-info { background: rgba(56, 189, 248, 0.15); color: var(--sky); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-warn { background: rgba(251, 191, 36, 0.15); color: var(--amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+    .badge-purple { background: rgba(129, 140, 248, 0.15); color: var(--indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+    }
+    .card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card ul { list-style: none; }
+    .card li {
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .card li strong { color: var(--text); }
+
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .alert {
+      background: rgba(30, 41, 59, 0.7);
+      border-left: 4px solid var(--sky);
+      border-radius: 0 0.5rem 0.5rem 0;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .alert-success { border-left-color: var(--emerald); }
+    .alert-warn { border-left-color: var(--amber); }
+    .alert-purple { border-left-color: var(--indigo); }
+    .alert-danger { border-left-color: var(--rose); }
+    .alert h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .alert p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    .alert p:last-child { margin-bottom: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      background: var(--card-bg);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+    th {
+      background: #151e2e;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+    tr:not(:last-child) td { border-bottom: 1px solid rgba(51, 65, 85, 0.5); }
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
+      background: var(--code-bg);
+      padding: 0.15rem 0.4rem;
+      border-radius: 0.3rem;
+      color: var(--sky);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #e2e8f0;
+      font-size: 0.825rem;
+      line-height: 1.5;
+    }
+
+    .step-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .step-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 1.5rem;
+      margin-top: 3rem;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>🎮 Session Checkpoint: BERZERK³ Boss Hang Fix, Gallery Parity &amp; Smooth Boot</h1>
+        <div class="meta">
+          <span>🕒 <strong>Timestamp:</strong> 2026-11-27 01:02 PST</span>
+          <span>💻 <strong>Host:</strong> AsusGA403u (Ubuntu 24.04 WSL2)</span>
+          <span>👤 <strong>User:</strong> tonyh</span>
+          <span>🌿 <strong>setup-linux-scripts:</strong> <code>main</code> @ <code>2c6b241</code></span>
+          <span>🌿 <strong>berzerkcubed:</strong> <code>main</code> @ <code>3ad2106</code> (5 uncommitted fixes ready)</span>
+        </div>
+      </div>
+      <div>
+        <span class="badge badge-success">Boss Hang Resolved</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Section 2: System Overview & Metrics Grid -->
+  <div class="grid">
+    <div class="card">
+      <h2>🖥️ Workspace Environment</h2>
+      <ul>
+        <li><strong>Host OS:</strong> Ubuntu 24.04 on WSL2 (<code>AsusGA403u</code>, x86_64)</li>
+        <li><strong>Declarative Stack:</strong> Nix Flakes + Home Manager (<code>wsl</code>) + <code>numtide/llm-agents.nix</code></li>
+        <li><strong>Infra Repo:</strong> <code>/home/tonyh/_Projects/setup-linux-scripts</code> (<code>2c6b241</code>)</li>
+        <li><strong>Game Repo:</strong> <code>/home/tonyh/_Projects/berzerkcubed</code> (Milestone 4.16 + post-playtest fixes)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🐝 Hermes Kanban &amp; Herdr Cockpit</h2>
+      <ul>
+        <li><strong>Gateway Start:</strong> <code>hermes gateway run</code> (or <code>hermes gateway install &amp;&amp; hermes gateway start</code>)</li>
+        <li><strong>Mission Control:</strong> <code>jl herdr-kanban berzerkcubed</code> → attach via <code>hc</code></li>
+        <li><strong>Swarm Dispatch Rule:</strong> Always run from project dir + pass board: <code>cd /home/tonyh/_Projects/berzerkcubed &amp;&amp; jl kanban-swarm docs/specs/&lt;spec&gt;.md berzerkcubed</code></li>
+        <li><strong>Completed Swarms:</strong> Milestones 3, 4, 4.1, 4.11, 4.12, 4.13, 4.14, 4.15, 4.16</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>🌐 Multi-Machine &amp; Uncommitted State</h2>
+      <ul>
+        <li><strong>berzerkcubed (Uncommitted):</strong> 5 files modified (boss hang fix, gallery spacing parity, smooth boot thermometer, 2 new tests)</li>
+        <li><strong>Playtest Verification:</strong> Boss fight <code>RESULT_CODE_HUNG</code> confirmed fixed in browser</li>
+        <li><strong>CachyOS (<code>envy</code>):</strong> Ready to pull <code>setup-linux-scripts</code> (<code>2c6b241</code>)</li>
+        <li><strong>macOS:</strong> Ready to pull &amp; sync via <code>./bootstrap.sh</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section 3: Technical Accomplishments & Solved Incidents -->
+  <h2 class="section-title">🛠️ Solved Incidents &amp; Session Accomplishments</h2>
+
+  <div class="alert alert-danger">
+    <h3>🔥 Incident 1: Chrome <code>RESULT_CODE_HUNG</code> Freeze During Boss Fights</h3>
+    <p><strong>Root Cause:</strong> Milestone 4.16 wired <code>renderer.update()</code> to call <code>sound.setBossHpRatio(boss.hp / boss.maxHp)</code> at 60 Hz, and <code>SoundEngine.setBossHpRatio()</code> unconditionally called <code>Tone.getTransport().bpm.rampTo(targetBpm, 0.2)</code> on every tick — even when boss HP had not changed. In Tone.js 14.8.49, <code>TickParam._events</code> is an unpruned <code>new Timeline(Infinity)</code>; stacking overlapping 200ms linear ramps at 60 Hz (and twice in the same audio quantum when fixed-timestep accumulator ran 2+ steps) corrupted <code>getDurationOfTicks(1, nextTickTime)</code> to return <code>&lt;= 0</code>, locking <code>TickSource.forEachTickBetween</code> in an infinite <code>while (nextTickTime &lt; endTime)</code> loop. Headless Vitest missed it because <code>this.Tone</code> is <code>null</code> without Web Audio.</p>
+    <p><strong>Permanent Fix:</strong> Added <code>_lastAppliedBpm</code> and <code>_lastBpmRampEndAt</code> guards in <code>src/audio/soundEngine.ts</code> so <code>Transport.bpm.rampTo</code> only schedules when BPM changes by <code>&gt;= 1.0</code> and the prior ramp has finished. Synced trackers in <code>applyMusicModeToTone()</code>, added a 60 Hz mock-Tone regression test in <code>src/game/milestone416.test.ts</code>, and verified the fix live in browser playtesting.</p>
+  </div>
+
+  <div class="alert alert-success">
+    <h3>📐 Accomplishment 2: Model Gallery Spacing Parity with In-Game Proportions</h3>
+    <p><strong>Issue:</strong> <code>src/game/gallery.ts</code> rendered every model at a flat <code>scale = 4.5</code> and <code>spacingPx = 3.4px</code> (ratio 0.76), ignoring <code>getEntitySpacingMultiplier(kind)</code> (1.42× for non-Recogniser characters) and per-entity in-game <code>spacing / scale</code> ratios (Hero/enemies 1.99, Bosses 1.24, Recogniser 0.90).</p>
+    <p><strong>Fix:</strong> Updated <code>GALLERY_DEFAULT_SPACING</code> to <code>2.8</code> (exact in-game <code>BASE_LAYER_SPACING</code>), exported <code>computeGalleryCardSpacing(...)</code>, and added per-entry in-game metadata (<code>kind</code>, <code>inGameScale</code>, <code>inGameSpacingMult</code>, <code>galleryScale</code>) so every turntable card renders with exact in-game 3D aspect ratios while preserving live <code>W/S</code> / <code>↑/↓</code> tuning. Added unit test in <code>src/game/milestone416.test.ts</code>.</p>
+  </div>
+
+  <div class="alert alert-purple">
+    <h3>🌡️ Accomplishment 3: Smooth Boot Thermometer (No More 2% Stall → Blink to 100%)</h3>
+    <p><strong>Issue:</strong> <code>src/main.ts</code> set progress to <code>2%</code> and awaited an opaque <code>Promise.all([...])</code> across all 6 dynamic module imports. In Vite dev mode, ESM network/transform loading took almost all the wall-clock time while the bar sat frozen at 2%, then the ~12 fast canvas bakes zoomed 25% → 100% in ~200ms.</p>
+    <p><strong>Fix:</strong> Replaced the opaque wait in <code>src/main.ts</code> with individually tracked imports across <code>4% → 55%</code> with real stage labels plus a gentle asymptotic creep timer, mapped <code>bootstrapAssets</code> onto <code>55% → 96%</code>, and updated <code>loading.ts</code> <code>finish()</code> to hold briefly (160ms) at <code>100% READY</code> before fading out over 240ms.</p>
+  </div>
+
+  <div class="alert alert-warn">
+    <h3>🧭 Incident 4: Hermes Kanban Swarm Dispatched to Wrong Board / CWD</h3>
+    <p><strong>Root Cause:</strong> Running <code>jl kanban-swarm docs/specs/milestone-4.16-tweaks.md</code> from <code>setup-linux-scripts/local-services</code> without the 2nd <code>BOARD</code> argument dispatched to board <code>default</code> and treated the spec path as raw text instead of attaching the file.</p>
+    <p><strong>Resolution:</strong> Documented exact invocation from <code>/home/tonyh/_Projects/berzerkcubed</code> with board <code>berzerkcubed</code>, and archived stray cards on <code>default</code> if needed.</p>
+  </div>
+
+  <!-- Section 4: Feature Status & Tooling Matrix -->
+  <h2 class="section-title">🤖 Active Stack &amp; Feature Status Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Component / Feature</th>
+        <th>Location / Command</th>
+        <th>Verification Status</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Boss Tempo Ramp (Hang Fix)</strong></td>
+        <td><code>berzerkcubed/src/audio/soundEngine.ts</code></td>
+        <td><span class="badge badge-success">Browser Verified</span></td>
+        <td>Throttled/deduplicated <code>Transport.bpm.rampTo</code>; no more <code>RESULT_CODE_HUNG</code></td>
+      </tr>
+      <tr>
+        <td><strong>Model Gallery Spacing Parity</strong></td>
+        <td><code>berzerkcubed/src/game/gallery.ts</code></td>
+        <td><span class="badge badge-warn">Ready to Playtest</span></td>
+        <td>Default <code>2.8px</code> base; exact per-entity in-game <code>spacing / scale</code> ratios</td>
+      </tr>
+      <tr>
+        <td><strong>Smooth Boot Thermometer</strong></td>
+        <td><code>berzerkcubed/src/main.ts</code> &amp; <code>loading.ts</code></td>
+        <td><span class="badge badge-warn">Ready to Playtest</span></td>
+        <td>Tracked imports <code>4% → 55%</code> + creep + <code>55% → 96%</code> bake + 160ms 100% hold</td>
+      </tr>
+      <tr>
+        <td><strong>Hermes Kanban Mission Control</strong></td>
+        <td><code>jl herdr-kanban berzerkcubed</code> + <code>hc</code></td>
+        <td><span class="badge badge-success">Active</span></td>
+        <td>Start gateway with <code>hermes gateway run</code> or systemd service</td>
+      </tr>
+      <tr>
+        <td><strong>Local Dev Server (BERZERK³)</strong></td>
+        <td><code>pnpm dev</code> (Vite)</td>
+        <td><span class="badge badge-info">Local Browser</span></td>
+        <td>Gallery via <code>ESC → Model Gallery</code> or <code>?gallery=1</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5: Prioritized Resumption Checklist -->
+  <h2 class="section-title">📋 Prioritized Resumption Plan</h2>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">1. Run Build &amp; Test Suite + Playtest Gallery &amp; Boot Thermometer in <code>berzerkcubed</code></span>
+      <span class="badge badge-warn">High Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Verify all TypeScript checks and Vitest tests (now 155 tests across 18 files), visually confirm the Model Gallery matches in-game proportions and the boot thermometer climbs smoothly, then commit the 5 uncommitted files.
+    </p>
+    <pre><code>cd /home/tonyh/_Projects/berzerkcubed
+nix develop --impure --command sh -c "pnpm run build && pnpm test"
+# After visual playtest confirmation:
+git add src/audio/soundEngine.ts src/game/gallery.ts src/main.ts src/game/loading.ts src/game/milestone416.test.ts
+git commit -m "fix(m4.16): prevent Tone.js boss tempo hang, match gallery spacing to gameplay, and smooth boot thermometer"</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">2. Clean Up Accidental <code>default</code> Board Swarm Cards (If Still Present)</span>
+      <span class="badge badge-info">Medium Priority</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Archive the accidental cards created on board <code>default</code> so the gateway doesn't attempt to run them outside <code>berzerkcubed</code>.
+    </p>
+    <pre><code>hermes kanban --board default list
+hermes kanban --board default archive t_03936cf9 t_7f372dd0 t_b1682ecd t_7e137298</code></pre>
+  </div>
+
+  <div class="step-card">
+    <div class="step-header">
+      <span class="step-title">3. Commit Context Checkpoint &amp; Sync CachyOS (<code>envy</code>)</span>
+      <span class="badge badge-purple">Next Machine</span>
+    </div>
+    <p style="color:var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">
+      Save this context report in <code>setup-linux-scripts</code> and pull onto CachyOS when ready.
+    </p>
+    <pre><code>cd /home/tonyh/_Projects/setup-linux-scripts
+git add context/2026-11-27-0102-context.html
+git commit -m "docs(context): save session checkpoint 2026-11-27-0102 (BERZERK³ hang fix, gallery parity, smooth boot)"
+git push</code></pre>
+  </div>
+
+  <!-- Section 6: Git Commit & File Audit -->
+  <h2 class="section-title">📁 Git Commit &amp; File Audit</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Repository / File</th>
+        <th>State / SHA</th>
+        <th>Summary</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>berzerkcubed/src/audio/soundEngine.ts</code></td>
+        <td><span class="badge badge-warn">Uncommitted</span></td>
+        <td>Throttled &amp; deduplicated <code>Tone.getTransport().bpm.rampTo</code> to fix <code>RESULT_CODE_HUNG</code> during boss fights</td>
+      </tr>
+      <tr>
+        <td><code>berzerkcubed/src/game/gallery.ts</code></td>
+        <td><span class="badge badge-warn">Uncommitted</span></td>
+        <td>Matched default base spacing (<code>2.8px</code>) and per-entity <code>spacing / scale</code> ratios to exact in-game rendering</td>
+      </tr>
+      <tr>
+        <td><code>berzerkcubed/src/main.ts</code></td>
+        <td><span class="badge badge-warn">Uncommitted</span></td>
+        <td>Individually tracked dynamic imports (<code>4% → 55%</code>) + smooth asymptotic creep timer during ESM boot</td>
+      </tr>
+      <tr>
+        <td><code>berzerkcubed/src/game/loading.ts</code></td>
+        <td><span class="badge badge-warn">Uncommitted</span></td>
+        <td>Added 160ms hold at <code>100% READY</code> before fade-out so completion is clearly visible</td>
+      </tr>
+      <tr>
+        <td><code>berzerkcubed/src/game/milestone416.test.ts</code></td>
+        <td><span class="badge badge-warn">Uncommitted</span></td>
+        <td>Added 2 regression tests: 60 Hz BPM ramp throttling &amp; gallery in-game spacing parity</td>
+      </tr>
+      <tr>
+        <td><code>berzerkcubed</code> (Latest Commit)</td>
+        <td><code>3ad2106</code></td>
+        <td><code>docs(m4.16): replace plan spec with as-built delivery report</code></td>
+      </tr>
+      <tr>
+        <td><code>setup-linux-scripts</code> (Latest Commit)</td>
+        <td><code>2c6b241</code></td>
+        <td><code>fix: Multi-agent Kanban swarm verified end-to-end (Nix PYTHONPATH fix, Herdr Mission Control)</code></td>
+      </tr>
+      <tr>
+        <td><code>setup-linux-scripts/context/2026-11-27-0102-context.html</code></td>
+        <td><span class="badge badge-success">Created</span></td>
+        <td>This standalone session context &amp; resumption checkpoint report</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <span>Generated by <strong>Antigravity</strong> (Google DeepMind) • Save Current Context Skill</span>
+    <span>2026-11-27 01:02 PST • Single Source of Truth for Session Resumption</span>
+  </footer>
+
+</body>
+</html>
